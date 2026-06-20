@@ -1,0 +1,108 @@
+import { coinApiService } from '../../services/coinApiService'
+import { coinTxService } from '../../services/coinTxService'
+import { nativeCoreService } from '../../services/nativeCoreService'
+import type { AddressVariant } from '../../types/crypto'
+import { addressVariantsFromLegacyAddress } from '../../utils/addressVariants'
+import type { WalletEngine } from '../types'
+
+const fallbackVariant = (address: string): AddressVariant => ({
+  id: 'legacy',
+  label: 'Legacy',
+  address,
+  scriptKind: 'p2pkh',
+})
+
+const mergeAddressVariants = (primary: AddressVariant[], secondary: AddressVariant[]) => {
+  const byId = new Map<string, AddressVariant>()
+  for (const variant of [...primary, ...secondary]) {
+    if (!byId.has(variant.id)) byId.set(variant.id, variant)
+  }
+  return Array.from(byId.values())
+}
+
+export const utxoEngine: WalletEngine = {
+  id: 'bitcoin-utxo',
+  kind: 'utxo',
+
+  async deriveAddress(coin, mnemonic) {
+    if (!coin.cryptoParams) return undefined
+    return nativeCoreService.deriveAddress(mnemonic, coin.cryptoParams)
+  },
+
+  async getAddressVariants(coin, address) {
+    if (!coin.cryptoParams) return [fallbackVariant(address)]
+    const localVariants = await addressVariantsFromLegacyAddress(address, coin.cryptoParams).catch(() => [] as AddressVariant[])
+    if (localVariants.length > 0) return localVariants
+
+    try {
+      const variants = await nativeCoreService.addressVariantsFromLegacy(address, coin.cryptoParams)
+      const merged = mergeAddressVariants(variants, localVariants)
+      return merged.length > 0 ? merged : [fallbackVariant(address)]
+    } catch {
+      return [fallbackVariant(address)]
+    }
+  },
+
+  async validateAddress(coin, address) {
+    if (!coin.cryptoParams) return /^\S{8,}$/.test(address)
+    const localValidation = await nativeCoreService.validateAddress(address, coin.cryptoParams)
+    if (localValidation.isValid) return true
+    const daemonValidation = await coinApiService.validateAddress(coin.id, address).catch(() => null)
+    return daemonValidation?.isvalid === true
+  },
+
+  async estimateFee(coin, options = {}) {
+    if (!coin.cryptoParams) return null
+    return coinTxService.estimateFee(
+      coin.id,
+      coin.cryptoParams,
+      coin.satsPerCoin ?? 100_000_000,
+      1,
+      2,
+      options,
+    )
+  },
+
+  async estimateMinimumFee(coin, options = {}) {
+    if (!coin.cryptoParams) return null
+    return coinTxService.estimateMinimumRelayFee(
+      coin.id,
+      coin.satsPerCoin ?? 100_000_000,
+      1,
+      2,
+      options,
+    )
+  },
+
+  async estimateMaxSend(coin, address, feeCoin) {
+    if (!coin.cryptoParams) throw new Error(`Coin "${coin.id}" has no crypto parameters configured`)
+    return coinTxService.estimateMaxSend({
+      coinId: coin.id,
+      cryptoParams: coin.cryptoParams,
+      satsPerCoin: coin.satsPerCoin ?? 100_000_000,
+      fromAddress: address,
+      feeCoin,
+    })
+  },
+
+  async send({ coin, mnemonic, fromAddress, toAddress, amountCoin, feeCoin, sendMax }) {
+    if (!coin.cryptoParams) throw new Error(`Coin "${coin.id}" has no crypto parameters configured`)
+    if (!fromAddress) throw new Error(`Address for ${coin.id} not derived yet - reopen the wallet`)
+    return coinTxService.send({
+      coinId: coin.id,
+      cryptoParams: coin.cryptoParams,
+      satsPerCoin: coin.satsPerCoin ?? 100_000_000,
+      mnemonic,
+      fromAddress,
+      toAddress,
+      amountCoin,
+      feeCoin,
+      sendMax,
+    })
+  },
+
+  async exportSecret(coin, mnemonic) {
+    if (!coin.cryptoParams) throw new Error(`coin-not-supported:${coin.id}`)
+    return nativeCoreService.derivePrivateKeyWif(mnemonic, coin.cryptoParams)
+  },
+}

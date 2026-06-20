@@ -1,0 +1,20 @@
+[submodule "native/core"]
+	path = native/core
+	url = https://github.com/AltbaseWallet/core.git
+	branch = main
+[submodule "native/epic_core"]
+	path = native/epic_core
+	url = https://github.com/AltbaseWallet/epic_core.git
+	branch = main
+[submodule "native/vendor/zano_native_lib"]
+	path = native/vendor/zano_native_lib
+	url = https://github.com/AltbaseWallet/zano_native_lib.git
+	branch = main
+[submodule "native/vendor/epic_wallet_src"]
+	path = native/vendor/epic_wallet_src
+	url = https://github.com/AltbaseWallet/epic_wallet_src.git
+	branch = main
+[submodule "native/vendor/epic_src"]
+	path = native/vendor/epic_src
+	url = https://github.com/AltbaseWallet/epic_src.git
+	branch = main

@@ -1,0 +1,788 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Altbase Wallet API Transparency</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f8fb;
+      --paper: #ffffff;
+      --ink: #1d2433;
+      --muted: #5e697c;
+      --line: #d9deea;
+      --soft: #eef2f8;
+      --accent: #1565c0;
+      --ok: #0b7a3b;
+      --warn: #9a5b00;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 16px;
+      line-height: 1.55;
+    }
+
+    main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 40px 20px 64px;
+    }
+
+    header {
+      padding: 32px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      margin-bottom: 24px;
+    }
+
+    h1,
+    h2,
+    h3 {
+      line-height: 1.18;
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 4vw, 3.25rem);
+      letter-spacing: 0;
+      margin-bottom: 12px;
+    }
+
+    h2 {
+      font-size: 1.55rem;
+      margin-bottom: 12px;
+    }
+
+    h3 {
+      font-size: 1.1rem;
+      margin-bottom: 8px;
+    }
+
+    p {
+      margin: 0 0 12px;
+    }
+
+    a {
+      color: var(--accent);
+    }
+
+    code {
+      background: var(--soft);
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 0.08rem 0.28rem;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: 0.92em;
+    }
+
+    section {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      margin-top: 18px;
+      padding: 24px;
+    }
+
+    .lead {
+      max-width: 860px;
+      color: var(--muted);
+      font-size: 1.08rem;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--soft);
+      color: var(--muted);
+      border: 1px solid var(--line);
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .note {
+      background: #f8fbff;
+      border: 1px solid #cfe0f5;
+      border-left: 4px solid var(--accent);
+      border-radius: 6px;
+      padding: 14px 16px;
+      margin-top: 14px;
+    }
+
+    .safe {
+      color: var(--ok);
+      font-weight: 650;
+    }
+
+    .caution {
+      color: var(--warn);
+      font-weight: 650;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      margin-top: 14px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 760px;
+      background: var(--paper);
+    }
+
+    th,
+    td {
+      text-align: left;
+      vertical-align: top;
+      border-bottom: 1px solid var(--line);
+      padding: 12px 14px;
+    }
+
+    th {
+      background: var(--soft);
+      color: #2f3a4f;
+      font-size: 0.86rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    ul {
+      margin: 8px 0 0 20px;
+      padding: 0;
+    }
+
+    li {
+      margin: 4px 0;
+    }
+
+    .source-list {
+      columns: 2;
+      column-gap: 28px;
+    }
+
+    @media (max-width: 820px) {
+      main {
+        padding: 24px 12px 48px;
+      }
+
+      header,
+      section {
+        padding: 18px;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .source-list {
+        columns: 1;
+      }
+    }
+
+    @media print {
+      body {
+        background: #fff;
+      }
+
+      main {
+        max-width: none;
+        padding: 0;
+      }
+
+      header,
+      section {
+        break-inside: avoid;
+        border-color: #bbb;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Altbase Wallet API Transparency</h1>
+      <p class="lead">
+        This document explains the APIs used by the Altbase non-custodial wallet. The production Altbase API server implementation is intentionally not included in this wallet-only source package.
+      </p>
+      <div class="meta">
+        <span class="pill">Reviewed source date: 2026-06-13</span>
+        <span class="pill">Wallet API base: <code>https://api.altbase.io/api/v1</code></span>
+        <span class="pill">Non-custodial wallet</span>
+      </div>
+    </header>
+
+    <section>
+      <h2>Privacy Summary</h2>
+      <div class="grid">
+        <div class="note">
+          <h3>Private keys stay local</h3>
+          <p>The wallet derives addresses, private keys, WIF keys, Quai keys, Epic keys, and Zano keys locally. Mnemonics and private keys are not sent to the Altbase public API.</p>
+        </div>
+        <div class="note">
+          <h3>Signed transactions are broadcast</h3>
+          <p>For normal sends, the wallet builds and signs the transaction locally, then sends only the signed raw transaction hex to the broadcast endpoint.</p>
+        </div>
+        <div class="note">
+          <h3>Addresses are queried</h3>
+          <p>Balance, UTXO, history, and snapshot endpoints receive public wallet addresses. Those addresses are already public blockchain data, but API access can associate requests with network metadata such as IP address.</p>
+        </div>
+      </div>
+      <p class="note">
+        Privacy coins use local native wallet code. When encrypted privacy cache is enabled, the server stores an encrypted blob only. Encryption keys are derived locally from the mnemonic; the server does not receive the plaintext wallet cache.
+      </p>
+    </section>
+
+    <section>
+      <h2>Wallet App To Altbase API</h2>
+      <p>The desktop wallet talks to <code>https://api.altbase.io/api/v1</code> for network status, balances, histories, fees, broadcasting, updates, prices, and encrypted privacy cache sync.</p>
+      <p>
+        In this table, <strong>secret wallet data</strong> means mnemonic/seed phrase, private keys, wallet password, WIF keys, or plaintext privacy-wallet cache.
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Endpoint</th>
+              <th>Purpose</th>
+              <th>Data sent by wallet</th>
+              <th>Secret wallet data sent?</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>GET /health</code></td>
+              <td>Checks whether the API service is online.</td>
+              <td>No wallet data.</td>
+              <td><span class="safe">No</span></td>
+            </tr>
+            <tr>
+              <td><code>GET /coins</code></td>
+              <td>Returns available coins and server-side coin capabilities.</td>
+              <td>No wallet data.</td>
+              <td><span class="safe">No</span></td>
+            </tr>
+            <tr>
+              <td><code>GET /prices</code></td>
+              <td>Returns cached USD prices collected by the server from market data APIs.</td>
+              <td>No wallet address or seed data.</td>
+              <td><span class="safe">No</span></td>
+            </tr>
+            <tr>
+              <td><code>GET /app/update</code></td>
+              <td>Checks whether a newer desktop wallet build is available.</td>
+              <td>Platform, CPU architecture, and installed app version.</td>
+              <td><span class="safe">No</span></td>
+            </tr>
+            <tr>
+              <td><code>GET /:coin/network</code></td>
+              <td>Returns chain height, network status, mempool size, and sync state for a coin.</td>
+              <td>Coin identifier in URL.</td>
+              <td><span class="safe">No</span></td>
+            </tr>
+            <tr>
+              <td><code>GET /:coin/fee/estimate?blocks=N</code></td>
+              <td>Estimates a transaction fee rate for the requested confirmation target.</td>
+              <td>Coin identifier and target block count.</td>
+              <td><span class="safe">No</span></td>
+            </tr>
+            <tr>
+              <td><code>POST /:coin/validate</code></td>
+              <td>Validates whether an address format is accepted by the coin network.</td>
+              <td>Public address.</td>
+              <td><span class="safe">No</span></td>
+            </tr>
+            <tr>
+              <td><code>POST /:coin/address/balance</code></td>
+              <td>Returns confirmed, pending, and spendable balance for one or more public addresses.</td>
+              <td>Public address or address list, plus optional force-refresh flag.</td>
+              <td><span class="safe">No</span></td>
+            </tr>
+            <tr>
+              <td><code>POST /:coin/address/utxos</code></td>
+              <td>Returns unspent outputs used for local transaction planning and MAX amount calculation.</td>
+              <td>Public address or address list, plus optional force or fast flags.</td>
+              <td><span class="safe">No</span></td>
+            </tr>
+            <tr>
+              <td><code>POST /:coin/address/history</code></td>
+              <td>Returns transaction history for display in the wallet.</td>
+              <td>Public address, pagination settings, and optional UTXO overlay flag.</td>
+              <td><span class="safe">No</span></td>
+            </tr>
+            <tr>
+              <td><code>POST /:coin/address/mempool</code></td>
+              <td>Returns pending address activity when the coin adapter supports it.</td>
+              <td>Public address.</td>
+              <td><span class="safe">No</span></td>
+            </tr>
+            <tr>
+              <td><code>POST /:coin/tx/broadcast</code></td>
+              <td>Broadcasts a locally signed transaction to the coin network.</td>
+              <td>Signed raw transaction hex.</td>
+              <td><span class="safe">No private key; signed transaction only</span></td>
+            </tr>
+            <tr>
+              <td><code>POST /:coin/account/tx-context</code></td>
+              <td>Returns account-chain transaction context, used by Quai for nonce, gas, chain ID, and fee preparation.</td>
+              <td>Public from address, optional to address, optional value.</td>
+              <td><span class="safe">No</span></td>
+            </tr>
+            <tr>
+              <td><code>POST /wallet/snapshot</code></td>
+              <td>Loads network, balances, and transaction history for multiple wallet coins in one request.</td>
+              <td>Coin identifiers and public address lists, plus requested snapshot options.</td>
+              <td><span class="safe">No</span></td>
+            </tr>
+            <tr>
+              <td><code>POST /privacy/cache/get</code></td>
+              <td>Downloads encrypted local wallet cache for Epic or Zano restore acceleration.</td>
+              <td>Coin identifier and backup ID derived locally from the mnemonic.</td>
+              <td><span class="safe">No plaintext secret</span></td>
+            </tr>
+            <tr>
+              <td><code>POST /privacy/cache/put</code></td>
+              <td>Uploads encrypted local wallet cache for Epic or Zano restore acceleration.</td>
+              <td>Coin identifier, backup ID, and AES-GCM encrypted cache blob.</td>
+              <td><span class="safe">Encrypted cache only</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>Local Wallet Engines</h2>
+      <p>Wallet engines decide how a coin derives addresses, obtains balances, signs transactions, and broadcasts. Sensitive operations are local.</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Engine</th>
+              <th>Coins</th>
+              <th>What it does locally</th>
+              <th>What it asks the API for</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>utxo</code></td>
+              <td>Bitcoin2, BCH2, Firo, Capstash, Pepecoin, Kerrigan, SCash, LitecoinII, Neoxa, Terracoin, Junkcoin, Raptoreum</td>
+              <td>Derives addresses, selects UTXOs, builds and signs raw transactions.</td>
+              <td>Network, fee, address validation, balance, UTXOs, history, mempool, broadcast.</td>
+            </tr>
+            <tr>
+              <td><code>pearl-utxo</code></td>
+              <td>Pearl</td>
+              <td>Uses UTXO signing locally, with Pearl-specific address and server profile behavior.</td>
+              <td>Blockbook-style balance, UTXO, history, fee, and broadcast endpoints.</td>
+            </tr>
+            <tr>
+              <td><code>quai-account</code></td>
+              <td>Quai</td>
+              <td>Derives Quai account key, prepares and signs the account transaction locally.</td>
+              <td>Balance, gas price, gas estimate, nonce, chain ID, transaction history, and broadcast.</td>
+            </tr>
+            <tr>
+              <td><code>zano-light</code></td>
+              <td>Zano</td>
+              <td>Runs local privacy wallet scan/spend logic through the native core.</td>
+              <td>Compact scan data and node proxy data required by the local light wallet.</td>
+            </tr>
+            <tr>
+              <td><code>epic-light</code></td>
+              <td>Epic Cash</td>
+              <td>Runs local Epic wallet logic, Epicbox slate exchange, output scan, and spend creation.</td>
+              <td>Epic node status/proxy data and optional encrypted cache storage.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>Coin Read Profiles</h2>
+      <p>UTXO coins are grouped by how the API server reads balances, UTXOs, and history. This keeps coin-specific RPC differences out of the general wallet UI.</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Profile</th>
+              <th>Coins in source</th>
+              <th>How data is read</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>scan-utxo</code></td>
+              <td>Bitcoin2, BCH2, Capstash, LitecoinII, SCash</td>
+              <td>Uses node UTXO scanning and transaction lookup when address-index RPC is not available or not reliable.</td>
+            </tr>
+            <tr>
+              <td><code>address-index</code></td>
+              <td>Firo, Kerrigan, Terracoin, Raptoreum</td>
+              <td>Uses address-index RPC methods such as address balance, address UTXO, address mempool, and address transaction IDs.</td>
+            </tr>
+            <tr>
+              <td><code>local-index</code></td>
+              <td>Pepecoin, Junkcoin</td>
+              <td>Uses server-side indexing helpers around node RPC where direct wallet-style address APIs are not enough.</td>
+            </tr>
+            <tr>
+              <td><code>blockbook</code></td>
+              <td>Neoxa, Pearl</td>
+              <td>Uses a Blockbook-compatible REST API for status, address, UTXO, history, fee, and broadcast data.</td>
+            </tr>
+            <tr>
+              <td><code>quai-rpc</code></td>
+              <td>Quai</td>
+              <td>Uses Quai JSON-RPC plus explorer history fallback for account-based balance, nonce, gas, and transaction history.</td>
+            </tr>
+            <tr>
+              <td><code>privacy-light</code></td>
+              <td>Zano, Epic Cash</td>
+              <td>Uses local native wallet code with server-provided scan/proxy data where required.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>Altbase API Server Routes</h2>
+      <p>The API server exposes normalized routes to the wallet and translates them into coin-specific node, explorer, or index requests.</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Server route group</th>
+              <th>Responsibility</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>/api/v1/:coin/network</code></td>
+              <td>Network height, chain state, mempool status, and sync status.</td>
+              <td>Backed by coin node RPC, Blockbook, Quai RPC, or privacy node adapters.</td>
+            </tr>
+            <tr>
+              <td><code>/api/v1/:coin/address/*</code></td>
+              <td>Balance, UTXOs, history, and mempool activity for public addresses.</td>
+              <td>Responses are cached briefly to reduce node load. Force-refresh is supported for balance and snapshot flows.</td>
+            </tr>
+            <tr>
+              <td><code>/api/v1/:coin/tx/broadcast</code></td>
+              <td>Submits signed raw transactions to the network.</td>
+              <td>The server does not sign wallet transactions.</td>
+            </tr>
+            <tr>
+              <td><code>/api/v1/:coin/account/tx-context</code></td>
+              <td>Returns account-chain transaction context.</td>
+              <td>Used mainly by Quai for nonce, gas, chain ID, and gas estimation.</td>
+            </tr>
+            <tr>
+              <td><code>/api/v1/wallet/snapshot</code></td>
+              <td>Batch endpoint for startup and refresh data.</td>
+              <td>Combines network, balances, and history for multiple coins and addresses.</td>
+            </tr>
+            <tr>
+              <td><code>/api/v1/privacy/*</code></td>
+              <td>Encrypted cache storage and privacy scan/broadcast support.</td>
+              <td>Plain mnemonics and private keys are not accepted by these routes.</td>
+            </tr>
+            <tr>
+              <td><code>/api/v1/app/update</code></td>
+              <td>Desktop app update metadata.</td>
+              <td>The wallet directs users to the official download page.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">
+        The server has CORS enabled for JSON API responses, applies request size limits, rate limits clients by IP, and uses short cache TTLs for high-frequency blockchain data.
+      </p>
+    </section>
+
+    <section>
+      <h2>Server To Coin Nodes And Explorers</h2>
+      <p>These upstream APIs are called by the Altbase server, not directly by the desktop wallet in normal use. Exact production node URLs and RPC credentials are configured on the server and are not shipped in the client source.</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Adapter</th>
+              <th>Upstream API type</th>
+              <th>Methods or paths used</th>
+              <th>Purpose</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>bitcoin-rpc</code></td>
+              <td>Bitcoin Core / Dash-like JSON-RPC over HTTP(S) with server-side Basic Auth.</td>
+              <td><code>getblockchaininfo</code>, <code>getnetworkinfo</code>, <code>getmempoolinfo</code>, <code>getaddressbalance</code>, <code>getaddressutxos</code>, <code>getaddresstxids</code>, <code>getaddressdeltas</code>, <code>getaddressmempool</code>, <code>scantxoutset</code>, <code>gettxout</code>, <code>getrawmempool</code>, <code>getrawtransaction</code>, <code>getblockhash</code>, <code>getblock</code>, <code>decoderawtransaction</code>, <code>sendrawtransaction</code>, <code>validateaddress</code>, <code>estimatesmartfee</code>, <code>estimatefee</code>.</td>
+              <td>UTXO coin network, address, history, fee, validation, and broadcast data.</td>
+            </tr>
+            <tr>
+              <td><code>blockbook</code></td>
+              <td>Blockbook-compatible REST API.</td>
+              <td><code>/</code>, <code>/tx/:txid</code>, <code>/address/:address</code>, <code>/utxo/:address</code>, <code>/sendtx/:hex</code>, <code>/estimatefee/:blocks</code>.</td>
+              <td>Blockbook coins such as Neoxa and Pearl.</td>
+            </tr>
+            <tr>
+              <td><code>quai-rpc</code></td>
+              <td>Quai JSON-RPC plus Quaiscan-compatible explorer endpoints.</td>
+              <td><code>quai_blockNumber</code>, <code>quai_getBlockByNumber</code>, <code>quai_getTransactionByHash</code>, <code>quai_getTransactionReceipt</code>, <code>quai_chainId</code>, <code>quai_gasPrice</code>, <code>quai_estimateGas</code>, <code>quai_getBalance</code>, <code>quai_getTransactionCount</code>, <code>quai_sendRawTransaction</code>, <code>/api/v2/addresses/:address</code>, <code>/api/v2/addresses/:address/transactions</code>.</td>
+              <td>Quai balance, gas, nonce, broadcast, and history.</td>
+            </tr>
+            <tr>
+              <td><code>remote-api</code></td>
+              <td>Another Altbase-compatible API base URL.</td>
+              <td>Forwards normalized routes such as <code>/network</code>, <code>/address/balance</code>, <code>/address/utxos</code>, <code>/address/history</code>, <code>/tx/broadcast</code>, <code>/fee/estimate</code>, and privacy routes.</td>
+              <td>Allows a coin to be served by a separate compatible backend.</td>
+            </tr>
+            <tr>
+              <td><code>zano-node</code></td>
+              <td>Zano node JSON-RPC and compact light index.</td>
+              <td><code>getinfo</code>, <code>get_tx_details</code>, <code>get_blocks_details</code>, plus raw proxy paths used by the local light wallet.</td>
+              <td>Zano network status and scan data for the local native privacy wallet.</td>
+            </tr>
+            <tr>
+              <td><code>epic-node</code></td>
+              <td>Epic node HTTP API.</td>
+              <td><code>/v1/status</code>, <code>/v2/foreign</code>, and related owner/foreign proxy routes when configured.</td>
+              <td>Epic network status and node interaction for the local native Epic wallet.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>Price Data APIs</h2>
+      <p>The desktop wallet requests prices from the Altbase API only. The server fetches prices from external providers, caches them, and returns a normalized result to the wallet.</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Provider</th>
+              <th>Endpoint pattern in source</th>
+              <th>Coins mapped in source</th>
+              <th>Purpose</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>LiveCoinWatch</td>
+              <td><code>POST https://api.livecoinwatch.com/coins/single</code></td>
+              <td>BC2, BCH2, FIRO, PEPE, Kerrigan, SCASH, NEOX, TRC, JKC, RTM, QUAI</td>
+              <td>Primary USD market price source for many listed coins.</td>
+            </tr>
+            <tr>
+              <td>NonKYC</td>
+              <td><code>https://nonkyc.io/api/v2/ticker/{pair}</code></td>
+              <td>CAP, EPIC, ZANO</td>
+              <td>Pair ticker source for coins traded there.</td>
+            </tr>
+            <tr>
+              <td>NestEx</td>
+              <td><code>https://trade.nestex.one/api/cg/tickers/{pair}</code></td>
+              <td>LC2</td>
+              <td>LitecoinII market price source.</td>
+            </tr>
+            <tr>
+              <td>SafeTrade</td>
+              <td><code>https://safe.trade/api/v2/peatio/public/markets/{pair}/tickers</code></td>
+              <td>PRL</td>
+              <td>Pearl market price source.</td>
+            </tr>
+            <tr>
+              <td>CoinPaprika</td>
+              <td><code>https://api.coinpaprika.com/v1/coins/{coinId}/markets</code></td>
+              <td>PRL fallback</td>
+              <td>Fallback market data for Pearl when configured.</td>
+            </tr>
+            <tr>
+              <td>CoinGecko</td>
+              <td><code>https://api.coingecko.com/api/v3/simple/price</code></td>
+              <td>QUAI fallback</td>
+              <td>Fallback USD price for Quai.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">
+        Market API keys, when required, are configured on the server. They are not included in the desktop wallet.
+      </p>
+    </section>
+
+    <section>
+      <h2>Privacy Coin Native APIs</h2>
+      <p>Epic and Zano use native local wallet modules because their privacy models require more than a simple public address balance lookup.</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Coin</th>
+              <th>Local native component</th>
+              <th>External/network API use</th>
+              <th>What stays local</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Zano</td>
+              <td><code>nativeCore.privacyLightWallet</code> with <code>zano-light</code> engine.</td>
+              <td>Altbase API scan/proxy data from <code>https://api.altbase.io/api/v1</code>, Zano node RPC/index data through the server.</td>
+              <td>Mnemonic-derived wallet state, spend preparation, private view/spend data, and decrypted cache contents.</td>
+            </tr>
+            <tr>
+              <td>Epic Cash</td>
+              <td><code>native/epic_core</code> and Epic wallet libraries.</td>
+              <td>Altbase API as Epic node URL in source, Epic node foreign API, and Epicbox WebSocket server <code>wss://epicbox.epiccash.com:443</code> for slate exchange.</td>
+              <td>Epic wallet seed, local wallet database, output ownership, transaction creation, and finalized wallet state.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>Encrypted Privacy Cache</h2>
+      <p>The privacy cache is designed to speed up restores for Epic and Zano without giving the server plaintext wallet data.</p>
+      <ul>
+        <li>The wallet derives a backup ID locally from the coin and mnemonic.</li>
+        <li>The wallet derives an encryption key locally with HKDF-SHA256.</li>
+        <li>The cache payload is encrypted locally with AES-256-GCM before upload.</li>
+        <li>The server receives only <code>coin</code>, <code>backupId</code>, and <code>encryptedBlob</code>.</li>
+        <li>The encrypted cache can include local wallet metadata such as address, balance snapshot, transactions, restore start height, scan height, and scan state, but only after local encryption.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Public Links And Explorers</h2>
+      <p>The source also contains public website and explorer links used for downloads, support, legal pages, or opening transactions and addresses outside the wallet.</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>URL</th>
+              <th>Used for</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>https://altbase.io/download</code></td>
+              <td>Official download page shown by the app update flow.</td>
+            </tr>
+            <tr>
+              <td><code>https://altbase.io/downloads</code></td>
+              <td>Server-side default base for published desktop update files.</td>
+            </tr>
+            <tr>
+              <td><code>https://altbase.io</code></td>
+              <td>Public website link shown in wallet settings.</td>
+            </tr>
+            <tr>
+              <td><code>https://altbase.io/support</code></td>
+              <td>Support link shown in wallet settings.</td>
+            </tr>
+            <tr>
+              <td><code>https://altbase.io/terms</code></td>
+              <td>Terms link shown in wallet settings.</td>
+            </tr>
+            <tr>
+              <td><code>https://explorer.bitcoin2.org</code></td>
+              <td>Bitcoin2 explorer link.</td>
+            </tr>
+            <tr>
+              <td><code>https://explorer.firo.org</code></td>
+              <td>Firo explorer link.</td>
+            </tr>
+            <tr>
+              <td><code>https://pepeblocks.com</code></td>
+              <td>Pepecoin explorer link.</td>
+            </tr>
+            <tr>
+              <td><code>https://quaiscan.io</code></td>
+              <td>Quai explorer and transaction history fallback source.</td>
+            </tr>
+            <tr>
+              <td><code>https://blockbook.pearlresearch.ai</code></td>
+              <td>Pearl Blockbook/explorer source.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>What The API Does Not Do</h2>
+      <ul>
+        <li>It does not receive wallet mnemonics for normal balance, history, send, or update calls.</li>
+        <li>It does not receive private keys or WIF keys for UTXO, Quai, Epic, or Zano sends.</li>
+        <li>It does not sign normal wallet transactions on behalf of the user.</li>
+        <li>It does not need custody of user funds.</li>
+        <li>It does not expose production coin RPC credentials to the desktop app.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Source Files Reviewed</h2>
+      <p>The wallet-side API behavior above is based on these source files:</p>
+      <ul class="source-list">
+        <li><code>src/services/coinApiService.ts</code></li>
+        <li><code>src/services/appUpdateService.ts</code></li>
+        <li><code>src/services/walletSnapshotService.ts</code></li>
+        <li><code>src/services/coinTxService.ts</code></li>
+        <li><code>src/services/quaiWalletService.ts</code></li>
+        <li><code>src/services/privacyCacheService.ts</code></li>
+        <li><code>src/services/nativeCoreService.ts</code></li>
+        <li><code>src/services/coinService.ts</code></li>
+        <li><code>src/wallet-engines/registry.ts</code></li>
+        <li><code>src/wallet-engines/utxo/utxoEngine.ts</code></li>
+        <li><code>src/wallet-engines/account/quaiEngine.ts</code></li>
+        <li><code>src/wallet-engines/privacy/privacyEngine.ts</code></li>
+        <li><code>native/core/src/privacy_light_wallet.cpp</code></li>
+        <li><code>native/epic_core/src/lib.rs</code></li>
+      </ul>
+      <p class="note">
+        Deployment-specific production RPC URLs, node credentials, server source code, and API keys are intentionally not included in this wallet-only source package.
+      </p>
+    </section>
+  </main>
+</body>
+</html>

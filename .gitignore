@@ -1,0 +1,62 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+cli-dist
+dist-ssr
+.altbase-cli
+*.local
+release
+out
+tmp
+tmp-*
+.codex-*
+.privacy-restore-test
+epic-light
+zano-light
+
+# Generated native outputs
+native-core/*
+!native-core/.gitkeep
+native/core/build
+native/epic_core/target
+
+# Heavy optional third-party native dependencies
+native/vendor/*
+!native/vendor/README.md
+!native/vendor/zano_native_lib
+!native/vendor/epic_wallet_src
+!native/vendor/epic_src
+
+# Local archives and packaged artifacts
+*.tar
+*.tar.gz
+*.7z
+*.zip
+*.AppImage
+*.deb
+*.rpm
+*.exe
+*.dll
+*.so
+*.dylib
+*.lib
+*.pdb
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

@@ -1,0 +1,287 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  /* Indigo accent — calm, wallet-classic, plays well with both dark & light
+     surfaces. RGB tuple kept as a custom prop so we can build rgba() shadows
+     and glows from a single source of truth. */
+  --accent: #5b6cff;
+  --accent-rgb: 91, 108, 255;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #0b0f17;
+}
+
+* {
+  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(var(--accent-rgb), 0.55) rgba(255, 255, 255, 0.06);
+}
+
+/* Wallet art (coin logos, app icon, QR codes) is decorative — never let the
+   user drag an image out of the window onto the desktop or reveal its on-disk
+   path via the native drag ghost. Applies globally so any current or future
+   <img>/<svg> is covered regardless of per-component attributes. */
+img,
+svg,
+picture,
+canvas {
+  -webkit-user-drag: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(var(--accent-rgb), 0.14), transparent 36rem),
+    #0b0f17;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+select option {
+  background: #101827;
+  color: #f8fafc;
+}
+
+*::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+*::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.72), rgba(var(--accent-rgb), 0.38));
+  background-clip: padding-box;
+  border: 2px solid transparent;
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(var(--accent-rgb), 0.82);
+  background-clip: padding-box;
+}
+
+/* Wallet-button styles — wrapped in @layer components so Tailwind utilities
+   like `absolute` still win over our `position: relative` default (the eye
+   icon in PasswordInput relies on `absolute` to sit inside the input).
+   Effects:
+     • Slight scale-down on press (0.97)
+     • Soft inner "glass" highlight — a white wash on the top half that fades
+       in on hover (35%) and fills on press (100%).
+     • Brightness boost layered on top of any variant gradient. */
+@layer components {
+  .btn-press {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    transform: translateZ(0);
+  }
+  .btn-press::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0) 60%);
+    opacity: 0;
+    transition: opacity 120ms ease;
+    z-index: 1;
+  }
+  .btn-press > * {
+    position: relative;
+    z-index: 2;
+  }
+  .btn-press:not(:disabled):hover::after {
+    opacity: 0.35;
+  }
+  .btn-press:not(:disabled):active {
+    transform: scale(0.97);
+    filter: brightness(1.05);
+  }
+  .btn-press:not(:disabled):active::after {
+    opacity: 1;
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+   LIGHT THEME
+   We override the dark utility values with light-mode equivalents.
+   Strategy:
+     • Background:  #f4f6fa  (page) / #ffffff (cards)
+     • Surfaces:    rgba(15, 23, 42, 0.04..0.12)  — translucent dark on light
+     • Text:        slate-900 primary, slate-600 secondary, slate-500 tertiary
+     • Borders:     rgba(15, 23, 42, 0.10..0.18)
+     • Accent:      stays the same (#35d5c6)
+   ──────────────────────────────────────────────────────────────────────── */
+.light-theme {
+  color-scheme: light;
+}
+
+.light-theme body {
+  background:
+    radial-gradient(circle at top left, rgba(53, 213, 198, 0.10), transparent 36rem),
+    #f4f6fa;
+}
+
+.light-theme select option {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+/* — Page-level backgrounds — */
+.light-theme .bg-ink {
+  background-color: #f4f6fa !important;
+}
+
+/* — Card / panel surfaces (high-contrast white panels) — */
+.light-theme .bg-panel,
+.light-theme .bg-\[\#101827\],
+.light-theme .bg-\[\#0d1420\]\/82,
+.light-theme .bg-\[\#0d1420\]\/95,
+.light-theme .bg-ink\/85 {
+  background-color: #ffffff !important;
+}
+
+/* — Inset / muted surfaces (translucent dark on light) — */
+.light-theme .bg-white\/5  { background-color: rgba(15, 23, 42, 0.04) !important; }
+.light-theme .bg-white\/6  { background-color: rgba(15, 23, 42, 0.05) !important; }
+.light-theme .bg-white\/7  { background-color: rgba(15, 23, 42, 0.06) !important; }
+.light-theme .bg-white\/8  { background-color: rgba(15, 23, 42, 0.07) !important; }
+.light-theme .bg-white\/9  { background-color: rgba(15, 23, 42, 0.08) !important; }
+.light-theme .bg-white\/10 { background-color: rgba(15, 23, 42, 0.09) !important; }
+.light-theme .bg-white\/12 { background-color: rgba(15, 23, 42, 0.11) !important; }
+
+.light-theme .hover\:bg-white\/7:hover  { background-color: rgba(15, 23, 42, 0.06) !important; }
+.light-theme .hover\:bg-white\/8:hover  { background-color: rgba(15, 23, 42, 0.08) !important; }
+.light-theme .hover\:bg-white\/9:hover  { background-color: rgba(15, 23, 42, 0.10) !important; }
+.light-theme .hover\:bg-white\/10:hover { background-color: rgba(15, 23, 42, 0.10) !important; }
+.light-theme .hover\:bg-white\/12:hover { background-color: rgba(15, 23, 42, 0.13) !important; }
+
+/* — Borders — */
+.light-theme .border-white\/10 { border-color: rgba(15, 23, 42, 0.10) !important; }
+.light-theme .border-white\/15 { border-color: rgba(15, 23, 42, 0.13) !important; }
+.light-theme .border-white\/20 { border-color: rgba(15, 23, 42, 0.18) !important; }
+
+/* — Primary text — */
+.light-theme .text-white,
+.light-theme .text-slate-50,
+.light-theme .text-slate-100 {
+  color: #0f172a !important;
+}
+
+/* — Secondary text — */
+.light-theme .text-slate-200 { color: #1e293b !important; }
+.light-theme .text-slate-300 { color: #334155 !important; }
+.light-theme .text-slate-400 { color: #475569 !important; }
+
+/* — Muted text — */
+.light-theme .text-slate-500 { color: #64748b !important; }
+.light-theme .text-slate-600 { color: #94a3b8 !important; }
+
+/* — Hover-text overrides (was hover:text-white → on light should stay slate-900) — */
+.light-theme .hover\:text-white:hover { color: #0f172a !important; }
+
+/* — Accent surfaces (kept the same) — */
+.light-theme .text-emerald-200,
+.light-theme .text-emerald-300 {
+  color: #047857 !important;
+}
+.light-theme .border-emerald-400\/20,
+.light-theme .border-emerald-400\/25,
+.light-theme .border-emerald-400\/30 {
+  border-color: rgba(16, 185, 129, 0.30) !important;
+}
+.light-theme .bg-emerald-400\/10 {
+  background-color: rgba(16, 185, 129, 0.10) !important;
+}
+
+/* — Amber/warning surfaces — */
+.light-theme .text-amber-100,
+.light-theme .text-amber-200 { color: #92400e !important; }
+.light-theme .text-amber-300 { color: #b45309 !important; }
+.light-theme .border-amber-400\/25,
+.light-theme .border-amber-400\/30,
+.light-theme .border-amber-400\/40 {
+  border-color: rgba(217, 119, 6, 0.30) !important;
+}
+.light-theme .bg-amber-400\/10 {
+  background-color: rgba(251, 191, 36, 0.18) !important;
+}
+
+/* — Rose/danger surfaces — */
+.light-theme .text-rose-100,
+.light-theme .text-rose-200,
+.light-theme .text-rose-300 { color: #b91c1c !important; }
+.light-theme .border-rose-400\/25,
+.light-theme .border-rose-400\/30 {
+  border-color: rgba(225, 29, 72, 0.30) !important;
+}
+.light-theme .bg-rose-400\/10 {
+  background-color: rgba(244, 63, 94, 0.10) !important;
+}
+
+/* — Inputs — keep readable on light — */
+.light-theme input,
+.light-theme textarea,
+.light-theme select {
+  color: #0f172a;
+}
+.light-theme input::placeholder,
+.light-theme textarea::placeholder {
+  color: #94a3b8;
+}
+
+/* — Sidebar header logo line — */
+.light-theme .text-slate-500 { color: #64748b !important; }
+
+/* — Sticky header background that uses bg-ink/85 — */
+.light-theme .backdrop-blur {
+  -webkit-backdrop-filter: saturate(140%) blur(8px);
+  backdrop-filter: saturate(140%) blur(8px);
+}
+
+/* — Soft soft-shadow for cards — */
+.light-theme .shadow-soft {
+  box-shadow: 0 8px 28px -10px rgba(15, 23, 42, 0.10), 0 4px 10px -6px rgba(15, 23, 42, 0.06);
+}
+
+/* — Secondary buttons in light mode — slightly darker hint — */
+.light-theme .btn-secondary {
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  background-color: rgba(15, 23, 42, 0.05) !important;
+  color: #0f172a !important;
+}
+.light-theme .btn-secondary:hover {
+  background-color: rgba(15, 23, 42, 0.09) !important;
+}
+
+/* — Ghost buttons — */
+.light-theme .btn-ghost {
+  color: #475569 !important;
+}
+.light-theme .btn-ghost:hover {
+  color: #0f172a !important;
+  background-color: rgba(15, 23, 42, 0.06) !important;
+}
+
+.light-theme .wallet-toast {
+  border-color: rgba(var(--accent-rgb), 0.25) !important;
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  color: #0f172a !important;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.18) !important;
+}
