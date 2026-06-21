@@ -5,15 +5,14 @@
   "author": "Altbase",
   "homepage": "https://altbase.io",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.2",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite",
     "build:zano": "node scripts/build-zano-native.cjs",
     "build:epic": "set LIBCLANG_PATH=%APPDATA%\\Python\\Python314\\site-packages\\clang\\native&& set PATH=%USERPROFILE%\\.cargo\\bin;%PATH%&& cargo build --release --manifest-path native/epic_core/Cargo.toml",
-    "build:core": "cmake --preset vs2022-x64-release -S native/core && cmake --build native/core/build/vs2022-x64-release --config Release && node scripts/copy-native-core.cjs",
-    "build:core:privacy": "npm run build:zano && npm run build:epic && npm run build:core",
+    "build:core": "npm run build:zano && npm run build:epic && set GIT_CEILING_DIRECTORIES=%USERPROFILE%\\Desktop&& cmake --preset vs2022-x64-release -S native/core && cmake --build native/core/build/vs2022-x64-release --config Release && node scripts/copy-native-core.cjs",
     "build": "tsc -b && vite build",
     "electron": "electron .",
     "dist:win": "npm run build:core && npm run build && electron-builder --win dir --x64 --config.win.signAndEditExecutable=false && node scripts/set-win-icon.cjs && electron-builder --win nsis --x64 --prepackaged release/win-unpacked --config.win.signAndEditExecutable=false",
@@ -54,6 +53,7 @@
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.5.0",
     "postcss": "^8.5.14",
+    "ssh2": "^1.17.0",
     "tailwindcss": "^3.4.17",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.58.2",
@@ -115,7 +115,6 @@
     "linux": {
       "category": "Finance",
       "icon": "logo.png",
-      "maintainer": "Altbase <support@altbase.io>",
       "target": [
         {
           "target": "AppImage",

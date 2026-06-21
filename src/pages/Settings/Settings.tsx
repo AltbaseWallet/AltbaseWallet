@@ -795,7 +795,7 @@ function About() {
   return (
     <Card className="space-y-4">
       <h2 className="text-lg font-semibold text-white">Altbase Wallet</h2>
-      <p className="text-slate-400">{t('walletVersion')}</p>
+      <p className="text-slate-400">{t('walletVersion')} {__APP_VERSION__}</p>
       <div className="grid gap-2 text-sm text-slate-300">
         <a href="https://altbase.io" target="_blank" rel="noreferrer" className="hover:text-white">{t('websiteLink')}</a>
         <a href="https://altbase.io/support" target="_blank" rel="noreferrer" className="hover:text-white">{t('supportLink')}</a>

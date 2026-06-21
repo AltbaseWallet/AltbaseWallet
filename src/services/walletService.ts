@@ -13,6 +13,14 @@ const WALLET_ADDRESSES_KEY = 'wallet-addresses'
 let sessionMnemonicCache: string | null = null
 let pendingWalletSetupId = 0
 let walletSessionRevision = 0
+const ALWAYS_REDERIVE_STANDARD_COIN_IDS = new Set([
+  'bitcoincashii',
+  'firo',
+  'junkcoin',
+  'litecoinii',
+  'pepecoin',
+  'scash',
+])
 
 type EncryptedSecret = {
   cipherText: string
@@ -68,7 +76,8 @@ const deriveStandardCoinAddresses = async (
   previous: WalletAddresses = {},
 ): Promise<WalletAddresses> => {
   const coinsToDerive = allCoins().filter((coin) =>
-    walletEngineRegistry.kindOf(coin) !== 'privacy' && !previous[coin.id],
+    walletEngineRegistry.kindOf(coin) !== 'privacy'
+      && (!previous[coin.id] || ALWAYS_REDERIVE_STANDARD_COIN_IDS.has(coin.id)),
   )
   if (coinsToDerive.length === 0) return {}
 

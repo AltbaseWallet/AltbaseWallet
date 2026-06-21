@@ -1,4 +1,4 @@
-import type { Coin, UtxoReadProfile } from '../types/coin'
+﻿import type { Coin, UtxoReadProfile } from '../types/coin'
 import { storageService } from './storageService'
 import { getWalletStorageScope } from './walletScopeService'
 import type { WalletAddresses } from './walletService'
@@ -27,11 +27,9 @@ const UTXO_READ_PROFILE_BY_COIN: Record<string, UtxoReadProfile> = {
 /**
  * Static catalog of every coin the wallet ships with.
  *
- * `cryptoParams` for each chain comes straight from the project's
- * `chainparams.cpp` (mainnet block). Derivation paths use the daemon RPC port
- * as the BIP44 coin_type so they are guaranteed unique across our 9 chains
- * (no slip-44 conflicts) — keys per coin are therefore disjoint even though
- * the same mnemonic is shared.
+ * `cryptoParams` for each chain comes from the project's `chainparams.cpp`
+ * (mainnet block) and the official wallet's BIP44/SLIP-44 derivation path
+ * where one is defined.
  */
 const CATALOG: Coin[] = [
   {
@@ -55,7 +53,7 @@ const CATALOG: Coin[] = [
     networkId: 'bitcoincashII-mainnet',
     supportsMemo: false,
     satsPerCoin: 100_000_000,
-    cryptoParams: { p2pkhPrefix: 0,  p2shPrefix: 5,  wifPrefix: 128, derivationPath: "m/44'/16002'/0'/0/0", sighashStyle: 'bip143-forkid', cashaddrPrefix: 'bitcoincashii' },
+    cryptoParams: { p2pkhPrefix: 0,  p2shPrefix: 5,  wifPrefix: 128, derivationPath: "m/44'/145'/0'/0/0", sighashStyle: 'bip143-forkid', cashaddrPrefix: 'bitcoincashii' },
   },
   {
     id: 'firo',
@@ -67,7 +65,7 @@ const CATALOG: Coin[] = [
     networkId: 'firo-mainnet',
     supportsMemo: false,
     satsPerCoin: 100_000_000,
-    cryptoParams: { p2pkhPrefix: 82, p2shPrefix: 7,  wifPrefix: 210, derivationPath: "m/44'/16004'/0'/0/0" },
+    cryptoParams: { p2pkhPrefix: 82, p2shPrefix: 7,  wifPrefix: 210, derivationPath: "m/44'/136'/0'/0/0" },
   },
   {
     id: 'capstash',
@@ -90,7 +88,7 @@ const CATALOG: Coin[] = [
     networkId: 'pepecoin-mainnet',
     supportsMemo: false,
     satsPerCoin: 100_000_000,
-    cryptoParams: { p2pkhPrefix: 56, p2shPrefix: 22, wifPrefix: 158, derivationPath: "m/44'/16006'/0'/0/0" },
+    cryptoParams: { p2pkhPrefix: 56, p2shPrefix: 22, wifPrefix: 158, derivationPath: "m/44'/3434'/0'/0/0" },
   },
   {
     id: 'kerrigan',
@@ -112,7 +110,7 @@ const CATALOG: Coin[] = [
     networkId: 'scash-mainnet',
     supportsMemo: false,
     satsPerCoin: 100_000_000,
-    cryptoParams: { p2pkhPrefix: 0,  p2shPrefix: 5,  wifPrefix: 128, derivationPath: "m/44'/16009'/0'/0/0", bech32Hrp: 'scash' },
+    cryptoParams: { p2pkhPrefix: 0,  p2shPrefix: 5,  wifPrefix: 128, derivationPath: "m/44'/805'/0'/0/0", bech32Hrp: 'scash' },
   },
   {
     id: 'litecoinii',
@@ -123,7 +121,7 @@ const CATALOG: Coin[] = [
     networkId: 'litecoinii-mainnet',
     supportsMemo: false,
     satsPerCoin: 100_000_000,
-    cryptoParams: { p2pkhPrefix: 48, p2shPrefix: 5, wifPrefix: 176, derivationPath: "m/44'/16010'/0'/0/0", bech32Hrp: 'lc2' },
+    cryptoParams: { p2pkhPrefix: 48, p2shPrefix: 5, wifPrefix: 176, derivationPath: "m/44'/2102'/0'/0/0", bech32Hrp: 'lc2' },
   },
   {
     id: 'neoxa',
@@ -156,7 +154,7 @@ const CATALOG: Coin[] = [
     networkId: 'junkcoin-mainnet',
     supportsMemo: false,
     satsPerCoin: 100_000_000,
-    cryptoParams: { p2pkhPrefix: 16, p2shPrefix: 5, wifPrefix: 144, derivationPath: "m/44'/9771'/0'/0/0" },
+    cryptoParams: { p2pkhPrefix: 16, p2shPrefix: 5, wifPrefix: 144, derivationPath: "m/44'/2013'/0'/0/0" },
   },
   {
     id: 'raptoreum',

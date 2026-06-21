@@ -1,6 +1,7 @@
 import { coinApiService } from '../../services/coinApiService'
 import { coinTxService } from '../../services/coinTxService'
 import { nativeCoreService } from '../../services/nativeCoreService'
+import type { Coin } from '../../types/coin'
 import type { AddressVariant } from '../../types/crypto'
 import { addressVariantsFromLegacyAddress } from '../../utils/addressVariants'
 import type { WalletEngine } from '../types'
@@ -20,23 +21,38 @@ const mergeAddressVariants = (primary: AddressVariant[], secondary: AddressVaria
   return Array.from(byId.values())
 }
 
+const preferCashaddrCoinIds = new Set(['bitcoincashii'])
+
+const cashaddrVariantFor = async (address: string, coin: Coin) => {
+  if (!coin.cryptoParams || !coin.cryptoParams.cashaddrPrefix || !preferCashaddrCoinIds.has(coin.id)) return null
+  const variants = await addressVariantsFromLegacyAddress(address, coin.cryptoParams).catch(() => [] as AddressVariant[])
+  return variants.find((variant) => variant.id === 'cashaddr') ?? null
+}
+
 export const utxoEngine: WalletEngine = {
   id: 'bitcoin-utxo',
   kind: 'utxo',
 
   async deriveAddress(coin, mnemonic) {
     if (!coin.cryptoParams) return undefined
-    return nativeCoreService.deriveAddress(mnemonic, coin.cryptoParams)
+    const address = await nativeCoreService.deriveAddress(mnemonic, coin.cryptoParams)
+    return (await cashaddrVariantFor(address, coin))?.address ?? address
   },
 
   async getAddressVariants(coin, address) {
     if (!coin.cryptoParams) return [fallbackVariant(address)]
     const localVariants = await addressVariantsFromLegacyAddress(address, coin.cryptoParams).catch(() => [] as AddressVariant[])
+    if (preferCashaddrCoinIds.has(coin.id) && localVariants.some((variant) => variant.id === 'cashaddr')) {
+      return localVariants.filter((variant) => variant.id === 'cashaddr')
+    }
     if (localVariants.length > 0) return localVariants
 
     try {
       const variants = await nativeCoreService.addressVariantsFromLegacy(address, coin.cryptoParams)
       const merged = mergeAddressVariants(variants, localVariants)
+      if (preferCashaddrCoinIds.has(coin.id) && merged.some((variant) => variant.id === 'cashaddr')) {
+        return merged.filter((variant) => variant.id === 'cashaddr')
+      }
       return merged.length > 0 ? merged : [fallbackVariant(address)]
     } catch {
       return [fallbackVariant(address)]
