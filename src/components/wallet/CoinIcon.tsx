@@ -3,8 +3,11 @@ import { clsx } from 'clsx'
 // Static asset imports — Vite hashes & inlines these into the bundle.
 import bitcoinIILogo from '../../assets/coins/bitcoinII.png'
 import bch2Logo from '../../assets/coins/bch2.png'
+import btgsLogo from '../../assets/coins/btgs.png'
 import firoLogo from '../../assets/coins/firo.png'
 import capStashLogo from '../../assets/coins/CapStash.png'
+import hypercoinLogo from '../../assets/coins/hypercoin.png'
+import mydogecoinLogo from '../../assets/coins/mydogecoin.png'
 import pepecoinLogo from '../../assets/coins/pepecoin.png'
 import kerriganLogo from '../../assets/coins/kerrigan.png'
 import scashLogo from '../../assets/coins/scash.png'
@@ -22,8 +25,11 @@ import pearlLogo from '../../assets/coins/prl.png'
 const LOGO_MAP: Record<string, string> = {
   BC2:   bitcoinIILogo,
   BCH2:  bch2Logo,
+  BTGS:  btgsLogo,
   FIRO:  firoLogo,
   CAPS:  capStashLogo,
+  HRC:   hypercoinLogo,
+  MYDOGE: mydogecoinLogo,
   PEPE:  pepecoinLogo,
   KER:   kerriganLogo,
   SCASH: scashLogo,

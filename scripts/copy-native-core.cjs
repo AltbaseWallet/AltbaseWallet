@@ -3,16 +3,24 @@ const path = require('node:path')
 const { spawnSync } = require('node:child_process')
 
 const root = path.resolve(__dirname, '..')
-const targetPlatform = process.env.ALTBASE_TARGET_PLATFORM || process.platform
+const rawTargetPlatform = process.env.ALTBASE_TARGET_PLATFORM || process.platform
+const targetPlatform = rawTargetPlatform === 'macos' ? 'darwin' : rawTargetPlatform
 const exeName = targetPlatform === 'win32' ? 'altbase_core_bridge.exe' : 'altbase_core_bridge'
-const candidates = [
-  path.join(root, 'native', 'core', 'build', 'vs2022-x64-release', 'bin', 'Release', exeName),
-  path.join(root, 'native', 'core', 'build', 'vs2022-x64-release', 'bin', exeName),
-  path.join(root, 'native', 'core', 'build', 'macos-x64-release', 'bin', exeName),
-  path.join(root, 'native', 'core', 'build', 'macos-x64-release', 'bin', 'Release', exeName),
-  path.join(root, 'native', 'core', 'build', 'linux-x64-release', 'bin', exeName),
-  path.join(root, 'native', 'core', 'build', 'linux-x64-release', 'bin', 'Release', exeName),
-]
+const platformCandidates = {
+  win32: [
+    path.join(root, 'native', 'core', 'build', 'vs2022-x64-release', 'bin', 'Release', exeName),
+    path.join(root, 'native', 'core', 'build', 'vs2022-x64-release', 'bin', exeName),
+  ],
+  darwin: [
+    path.join(root, 'native', 'core', 'build', 'macos-x64-release', 'bin', exeName),
+    path.join(root, 'native', 'core', 'build', 'macos-x64-release', 'bin', 'Release', exeName),
+  ],
+  linux: [
+    path.join(root, 'native', 'core', 'build', 'linux-x64-release', 'bin', exeName),
+    path.join(root, 'native', 'core', 'build', 'linux-x64-release', 'bin', 'Release', exeName),
+  ],
+}
+const candidates = platformCandidates[targetPlatform] || []
 
 const source = candidates.find((candidate) => fs.existsSync(candidate))
 if (!source) {
