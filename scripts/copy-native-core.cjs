@@ -66,6 +66,55 @@ const bundleLinuxSharedLibraries = (binary) => {
 bundleLinuxSharedLibraries(source)
 
 if (targetPlatform === 'win32') {
+  const copyFirstExisting = (name, candidates) => {
+    const sourceFile = candidates.find((candidate) => fs.existsSync(candidate))
+    if (!sourceFile) {
+      console.warn(`Windows runtime library was not found: ${name}`)
+      return
+    }
+    fs.copyFileSync(sourceFile, path.join(targetDir, name))
+    console.log(`copied Windows runtime library: ${sourceFile} -> ${path.join(targetDir, name)}`)
+  }
+  const searchRedistDll = (name) => {
+    const roots = [
+      process.env.VCToolsRedistDir,
+      path.join(process.env.ProgramFiles || 'C:\\Program Files', 'Microsoft Visual Studio'),
+      path.join(process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)', 'Microsoft Visual Studio'),
+    ].filter(Boolean)
+
+    const matches = []
+    const walk = (dir, depth = 0) => {
+      if (depth > 8) return
+      let entries = []
+      try {
+        entries = fs.readdirSync(dir, { withFileTypes: true })
+      } catch {
+        return
+      }
+      for (const entry of entries) {
+        const entryPath = path.join(dir, entry.name)
+        if (entry.isDirectory()) {
+          walk(entryPath, depth + 1)
+        } else if (
+          entry.name.toLowerCase() === name.toLowerCase() &&
+          /x64/i.test(entryPath) &&
+          /Microsoft\.VC14[0-9]\.CRT/i.test(entryPath)
+        ) {
+          matches.push(entryPath)
+        }
+      }
+    }
+
+    for (const rootDir of roots) walk(rootDir)
+    return matches.sort().pop()
+  }
+  for (const name of ['MSVCP140.dll', 'VCRUNTIME140.dll', 'VCRUNTIME140_1.dll']) {
+    copyFirstExisting(name, [
+      searchRedistDll(name),
+      path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', name.toLowerCase()),
+      path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', name),
+    ].filter(Boolean))
+  }
   const epicDll = path.join(root, 'native', 'epic_core', 'target', 'release', 'altbase_epic_core.dll')
   if (fs.existsSync(epicDll)) {
     fs.copyFileSync(epicDll, path.join(targetDir, 'altbase_epic_core.dll'))
