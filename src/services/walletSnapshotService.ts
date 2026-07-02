@@ -36,6 +36,36 @@ const withTimeout = async <T,>(promise: Promise<T>, ms = BALANCE_CHUNK_TIMEOUT_M
   }
 }
 
+const networkOnlySnapshot = (
+  coins: Coin[],
+  timeoutMs = Math.min(BALANCE_CHUNK_TIMEOUT_MS, 8_000),
+) =>
+  coinApiService.getWalletSnapshot({
+    coins: coins
+      .filter((coin) => coin.enabled)
+      .map((coin) => ({ coin: coin.id, addresses: [] })),
+    includeNetwork: true,
+    includeBalances: false,
+    includeHistory: false,
+    expandAddresses: false,
+  }, timeoutMs)
+
+const timedOutBalanceFallback = async (
+  coins: Coin[],
+  items: WalletSnapshotItem[],
+  timeoutMs?: number,
+): Promise<{ items: WalletSnapshotItem[]; snapshot: WalletSnapshotResponse }> => {
+  const fallbackTimeout = Math.min(timeoutMs ?? BALANCE_CHUNK_TIMEOUT_MS, 8_000)
+  try {
+    return {
+      items,
+      snapshot: await withTimeout(networkOnlySnapshot(coins, fallbackTimeout), fallbackTimeout),
+    }
+  } catch {
+    return { items, snapshot: emptySnapshot() }
+  }
+}
+
 const mergeSnapshotResults = (
   results: Array<{ items: WalletSnapshotItem[]; snapshot: WalletSnapshotResponse }>,
 ) => {
@@ -103,7 +133,7 @@ export const walletSnapshotService = {
 
   async fetchBalances(
     coins: Coin[],
-    options: { forceBalances?: boolean } = {},
+    options: { forceBalances?: boolean; timeoutMs?: number } = {},
   ): Promise<{ items: WalletSnapshotItem[]; snapshot: WalletSnapshotResponse }> {
     const enabled = coins.filter((coin) => coin.enabled)
     if (enabled.length === 0) return { items: [], snapshot: emptySnapshot() }
@@ -117,7 +147,7 @@ export const walletSnapshotService = {
       includeHistory: false,
       forceBalances: options.forceBalances === true,
       expandAddresses: false,
-    })
+    }, options.timeoutMs ?? 0)
     return { items, snapshot }
   },
 
@@ -152,10 +182,24 @@ export const walletSnapshotService = {
 
     const results = await Promise.all(
       chunkCoins(enabled, options.chunkSize ?? BALANCE_CHUNK_SIZE).map(async (chunk) => {
+        const items = await this.buildItems(chunk)
         try {
-          return await withTimeout(this.fetchBalances(chunk, options), options.timeoutMs)
+          return await withTimeout(
+            coinApiService.getWalletSnapshot({
+              coins: items,
+              historyLimit: 0,
+              historyOffset: 0,
+              includeNetwork: true,
+              includeBalances: true,
+              includeHistory: false,
+              forceBalances: options.forceBalances === true,
+              expandAddresses: false,
+            }, options.timeoutMs ?? 0)
+              .then((snapshot) => ({ items, snapshot })),
+            options.timeoutMs,
+          )
         } catch {
-          return { items: await this.buildItems(chunk), snapshot: emptySnapshot() }
+          return timedOutBalanceFallback(chunk, items, options.timeoutMs)
         }
       }),
     )
@@ -191,7 +235,7 @@ export const walletSnapshotService = {
 
   async fetchSendReadyBalances(
     coins: Coin[],
-    options: { forceBalances?: boolean } = {},
+    options: { forceBalances?: boolean; timeoutMs?: number } = {},
   ): Promise<{ items: WalletSnapshotItem[]; snapshot: WalletSnapshotResponse }> {
     const enabled = coins.filter((coin) => coin.enabled)
     if (enabled.length === 0) return { items: [], snapshot: emptySnapshot() }
@@ -205,7 +249,7 @@ export const walletSnapshotService = {
       includeHistory: false,
       forceBalances: options.forceBalances === true,
       expandAddresses: false,
-    })
+    }, options.timeoutMs ?? 0)
     return { items, snapshot }
   },
 
@@ -219,10 +263,24 @@ export const walletSnapshotService = {
 
     const results = await Promise.all(
       chunkCoins(enabled, options.chunkSize ?? BALANCE_CHUNK_SIZE).map(async (chunk) => {
+        const items = await this.buildItems(chunk)
         try {
-          return await withTimeout(this.fetchSendReadyBalances(chunk, options), options.timeoutMs)
+          return await withTimeout(
+            coinApiService.getWalletSnapshot({
+              coins: items,
+              historyLimit: 0,
+              historyOffset: 0,
+              includeNetwork: false,
+              includeBalances: true,
+              includeHistory: false,
+              forceBalances: options.forceBalances === true,
+              expandAddresses: false,
+            }, options.timeoutMs ?? 0)
+              .then((snapshot) => ({ items, snapshot })),
+            options.timeoutMs,
+          )
         } catch {
-          return { items: await this.buildItems(chunk), snapshot: emptySnapshot() }
+          return { items, snapshot: emptySnapshot() }
         }
       }),
     )

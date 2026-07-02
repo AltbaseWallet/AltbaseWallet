@@ -823,7 +823,7 @@ export const coinApiService = {
     return getGlobal<{ ok: true; prices: Record<string, number>; updatedAt: number | null }>('/prices')
   },
 
-  async getWalletSnapshot(request: WalletSnapshotRequest): Promise<WalletSnapshotResponse> {
+  async getWalletSnapshot(request: WalletSnapshotRequest, timeoutMs = 0): Promise<WalletSnapshotResponse> {
     const key = JSON.stringify(request)
     const cacheable = request.includeHistory === false && request.forceBalances !== true
     const cached = cacheable ? walletSnapshotCache.get(key) : undefined
@@ -866,7 +866,7 @@ export const coinApiService = {
     }
 
     try {
-      const response = await postGlobal<{ ok: true } & WalletSnapshotResponse>('/wallet/snapshot', request, 0)
+      const response = await postGlobal<{ ok: true } & WalletSnapshotResponse>('/wallet/snapshot', request, timeoutMs)
       const value = {
         prices: response.prices ?? {},
         pricesUpdatedAt: response.pricesUpdatedAt ?? null,

@@ -3,7 +3,7 @@
 #define MyAppPublisher "Altbase"
 #define MyAppURL "https://altbase.io"
 #ifndef MyAppVersion
-  #define MyAppVersion "0.1.3"
+  #define MyAppVersion "0.1.4"
 #endif
 #ifndef SourceDir
   #define SourceDir "..\..\release\win-unpacked"
