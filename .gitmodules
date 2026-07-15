@@ -18,3 +18,99 @@
 	path = native/vendor/epic_src
 	url = https://github.com/AltbaseWallet/epic_src.git
 	branch = main
+[submodule "modules/bitcoin"]
+	path = modules/bitcoin
+	url = https://github.com/AltbaseWallet/module-bitcoin.git
+	branch = main
+[submodule "modules/bitcoin2"]
+	path = modules/bitcoin2
+	url = https://github.com/AltbaseWallet/module-bitcoin2.git
+	branch = main
+[submodule "modules/bitcoincashii"]
+	path = modules/bitcoincashii
+	url = https://github.com/AltbaseWallet/module-bitcoincashii.git
+	branch = main
+[submodule "modules/btgs"]
+	path = modules/btgs
+	url = https://github.com/AltbaseWallet/module-btgs.git
+	branch = main
+[submodule "modules/capstash"]
+	path = modules/capstash
+	url = https://github.com/AltbaseWallet/module-capstash.git
+	branch = main
+[submodule "modules/ckb"]
+	path = modules/ckb
+	url = https://github.com/AltbaseWallet/module-ckb.git
+	branch = main
+[submodule "modules/epic"]
+	path = modules/epic
+	url = https://github.com/AltbaseWallet/module-epic.git
+	branch = main
+[submodule "modules/firo"]
+	path = modules/firo
+	url = https://github.com/AltbaseWallet/module-firo.git
+	branch = main
+[submodule "modules/hypercoin"]
+	path = modules/hypercoin
+	url = https://github.com/AltbaseWallet/module-hypercoin.git
+	branch = main
+[submodule "modules/junkcoin"]
+	path = modules/junkcoin
+	url = https://github.com/AltbaseWallet/module-junkcoin.git
+	branch = main
+[submodule "modules/kaspa"]
+	path = modules/kaspa
+	url = https://github.com/AltbaseWallet/module-kaspa.git
+	branch = main
+[submodule "modules/kerrigan"]
+	path = modules/kerrigan
+	url = https://github.com/AltbaseWallet/module-kerrigan.git
+	branch = main
+[submodule "modules/litecoinii"]
+	path = modules/litecoinii
+	url = https://github.com/AltbaseWallet/module-litecoinii.git
+	branch = main
+[submodule "modules/mydogecoin"]
+	path = modules/mydogecoin
+	url = https://github.com/AltbaseWallet/module-mydogecoin.git
+	branch = main
+[submodule "modules/native-core-sdk"]
+	path = modules/native-core-sdk
+	url = https://github.com/AltbaseWallet/module-native-core-sdk.git
+	branch = main
+[submodule "modules/neoxa"]
+	path = modules/neoxa
+	url = https://github.com/AltbaseWallet/module-neoxa.git
+	branch = main
+[submodule "modules/pearl"]
+	path = modules/pearl
+	url = https://github.com/AltbaseWallet/module-pearl.git
+	branch = main
+[submodule "modules/pepecoin"]
+	path = modules/pepecoin
+	url = https://github.com/AltbaseWallet/module-pepecoin.git
+	branch = main
+[submodule "modules/quai"]
+	path = modules/quai
+	url = https://github.com/AltbaseWallet/module-quai.git
+	branch = main
+[submodule "modules/qubic"]
+	path = modules/qubic
+	url = https://github.com/AltbaseWallet/module-qubic.git
+	branch = main
+[submodule "modules/raptoreum"]
+	path = modules/raptoreum
+	url = https://github.com/AltbaseWallet/module-raptoreum.git
+	branch = main
+[submodule "modules/scash"]
+	path = modules/scash
+	url = https://github.com/AltbaseWallet/module-scash.git
+	branch = main
+[submodule "modules/terracoin"]
+	path = modules/terracoin
+	url = https://github.com/AltbaseWallet/module-terracoin.git
+	branch = main
+[submodule "modules/zano"]
+	path = modules/zano
+	url = https://github.com/AltbaseWallet/module-zano.git
+	branch = main
