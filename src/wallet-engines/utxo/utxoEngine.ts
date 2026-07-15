@@ -35,7 +35,7 @@ export const utxoEngine: WalletEngine = {
 
   async deriveAddress(coin, mnemonic) {
     if (!coin.cryptoParams) return undefined
-    const address = await nativeCoreService.deriveAddress(mnemonic, coin.cryptoParams)
+    const address = await nativeCoreService.deriveAddress(coin.id, mnemonic, coin.cryptoParams)
     return (await cashaddrVariantFor(address, coin))?.address ?? address
   },
 
@@ -48,7 +48,7 @@ export const utxoEngine: WalletEngine = {
     if (localVariants.length > 0) return localVariants
 
     try {
-      const variants = await nativeCoreService.addressVariantsFromLegacy(address, coin.cryptoParams)
+      const variants = await nativeCoreService.addressVariantsFromLegacy(coin.id, address, coin.cryptoParams)
       const merged = mergeAddressVariants(variants, localVariants)
       if (preferCashaddrCoinIds.has(coin.id) && merged.some((variant) => variant.id === 'cashaddr')) {
         return merged.filter((variant) => variant.id === 'cashaddr')
@@ -61,7 +61,7 @@ export const utxoEngine: WalletEngine = {
 
   async validateAddress(coin, address) {
     if (!coin.cryptoParams) return /^\S{8,}$/.test(address)
-    const localValidation = await nativeCoreService.validateAddress(address, coin.cryptoParams)
+    const localValidation = await nativeCoreService.validateAddress(coin.id, address, coin.cryptoParams)
     if (localValidation.isValid) return true
     const daemonValidation = await coinApiService.validateAddress(coin.id, address).catch(() => null)
     return daemonValidation?.isvalid === true
@@ -69,6 +69,18 @@ export const utxoEngine: WalletEngine = {
 
   async estimateFee(coin, options = {}) {
     if (!coin.cryptoParams) return null
+    if (options.fromAddress && options.toAddress && options.amountCoin) {
+      const estimate = await coinTxService.estimateSendFee({
+        coinId: coin.id,
+        cryptoParams: coin.cryptoParams,
+        satsPerCoin: coin.satsPerCoin ?? 100_000_000,
+        fromAddress: options.fromAddress,
+        toAddress: options.toAddress,
+        amountCoin: options.amountCoin,
+        force: options.force,
+      })
+      return { ...estimate, exact: true }
+    }
     return coinTxService.estimateFee(
       coin.id,
       coin.cryptoParams,
@@ -119,6 +131,6 @@ export const utxoEngine: WalletEngine = {
 
   async exportSecret(coin, mnemonic) {
     if (!coin.cryptoParams) throw new Error(`coin-not-supported:${coin.id}`)
-    return nativeCoreService.derivePrivateKeyWif(mnemonic, coin.cryptoParams)
+    return nativeCoreService.derivePrivateKeyWif(coin.id, mnemonic, coin.cryptoParams)
   },
 }

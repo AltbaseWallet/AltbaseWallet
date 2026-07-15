@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { AlertTriangle, Check, Loader2, RefreshCw, Search, SendHorizontal } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, Check, Loader2, RefreshCw, Search, SendHorizontal } from 'lucide-react'
 import { z } from 'zod'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
@@ -46,10 +46,16 @@ type SendForm = {
 }
 
 type FeeMode = 'auto' | 'manual'
-type ConfirmingData = SendForm & { estimatedFee: string; feeMode: FeeMode; sendMax?: boolean }
-type FeeEstimate = { satoshis: number; coin: string }
+type ConfirmingData = SendForm & {
+  estimatedFee: string
+  feeMode: FeeMode
+  sendMax?: boolean
+  lockFee?: boolean
+}
+type FeeEstimate = { satoshis: number; coin: string; exact?: boolean }
 
 const PENDING_OUTGOING_UI_LOCK_MS = 10 * 60_000
+const FORM_PREFLIGHT_TIMEOUT_MS = 20_000
 const SAMPLE_RECIPIENT_ADDRESSES: Record<string, string> = {
   bitcoin2: 'B2Qx4m9Vh7Kp2Nf6Rc8Tz5Yw3Ls1Aa9DqE',
   bitcoincashii: 'bch2q9m4n7p2x6r8t5v3w1z0k4s7d2f6h8j3l5c',
@@ -85,23 +91,38 @@ const subtractAmounts = (amount: string, fee: string, decimals = 8) => {
   return fromBaseUnits(next > 0n ? next : 0n, decimals)
 }
 
+const withPreflightTimeout = <T,>(promise: Promise<T>, label: string): Promise<T> =>
+  new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`${label} timed out`)), FORM_PREFLIGHT_TIMEOUT_MS)
+    promise.then(
+      (value) => {
+        clearTimeout(timer)
+        resolve(value)
+      },
+      (error) => {
+        clearTimeout(timer)
+        reject(error)
+      },
+    )
+  })
+
 export default function Send() {
   const t = useT()
   const language = useSettingsStore((s) => s.settings.language)
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const paramCoinId = params.get('coin')
-  const { coins, selectedCoinId, loadCoins, selectCoin: rememberCoin } = useCoinStore()
+  const { coins, selectedCoinId, selectCoin: rememberCoin } = useCoinStore()
   const hideBalances = useSettingsStore((state) => state.settings.hideBalances)
   const sendTransaction = useTransactionStore((state) => state.sendTransaction)
   const transactions = useTransactionStore((state) => state.transactions)
-  const loadTransactions = useTransactionStore((state) => state.loadTransactions)
   const sessionMnemonic = useAuthStore((state) => state.sessionMnemonic)
 
   const [confirming, setConfirming] = useState<ConfirmingData | null>(null)
   const [sendError, setSendError] = useState('')
   const [sending, setSending] = useState(false)
   const [query, setQuery] = useState('')
+  const [mobilePane, setMobilePane] = useState<'coins' | 'details'>(() => paramCoinId ? 'details' : 'coins')
   const [maxIntent, setMaxIntent] = useState<{ coinId: string; amount: string; fee: string } | null>(null)
   // Synchronous lock — useRef updates immediately, useState batches.
   // Without this, two rapid clicks within the same React batch could both pass the
@@ -171,6 +192,7 @@ export default function Send() {
     return locked
   }, [transactions, coins, pendingOutgoingNow])
   const liveCoin = enabledCoins.find((c) => c.id === liveCoinId) ?? enabledCoins[0]
+  const liveCoinRef = useRef(liveCoin)
   const liveCoinAddress = liveCoin?.address
   const liveCoinLocked = Boolean(liveCoin && pendingOutgoingCoins.has(liveCoin.id))
   const selectedCoin = useMemo(
@@ -241,8 +263,8 @@ export default function Send() {
     || waitingForAutoFee
 
   useEffect(() => {
-    void loadTransactions().finally(() => loadCoins({ forceBalances: true }))
-  }, [loadCoins, loadTransactions])
+    liveCoinRef.current = liveCoin
+  }, [liveCoin])
 
   useEffect(() => {
     const refreshPendingOutgoingNow = () => setPendingOutgoingNow(Date.now())
@@ -268,24 +290,26 @@ export default function Send() {
     void Promise.resolve().then(() => {
       if (requestSeq === minimumFeeRequestSeqRef.current) setMinimumFeeEstimate(null)
     })
-    if (!liveCoin || !liveCoinFeeId) return
+    const coin = liveCoinRef.current
+    if (!coin || !liveCoinFeeId) return
     if (liveCoinPrivacy) {
       const fee = privacyFeeForCoin(liveCoinFeeId, liveCoinSatsPerCoin)?.coin
       if (fee) {
-        const minFee = { satoshis: feeTextToSats(fee, liveCoinSatsPerCoin), coin: fee }
+        const minFee = { satoshis: feeTextToSats(fee, liveCoinSatsPerCoin), coin: fee, exact: true }
         void Promise.resolve().then(() => {
           if (requestSeq === minimumFeeRequestSeqRef.current) setMinimumFeeEstimate(minFee)
         })
       }
       return
     }
-    const estimateMinimum = liveCoinEngine?.estimateMinimumFee ?? liveCoinEngine?.estimateFee
+    const engine = walletEngineRegistry.get(coin)
+    const estimateMinimum = engine.estimateMinimumFee ?? engine.estimateFee
     if (!estimateMinimum) return
-    void estimateMinimum(liveCoin).then((est) => {
+    void withPreflightTimeout(estimateMinimum(coin), 'Minimum fee request').then((est) => {
       if (!est) return
       if (requestSeq === minimumFeeRequestSeqRef.current) setMinimumFeeEstimate(est)
     }).catch(() => undefined)
-  }, [liveCoin, liveCoinEngine, liveCoinEngineKind, liveCoinFeeId, liveCoinPrivacy, liveCoinSatsPerCoin])
+  }, [liveCoinAddress, liveCoinEngineKind, liveCoinFeeId, liveCoinPrivacy, liveCoinSatsPerCoin])
 
   // Keep MAX's exact fee stable. Fee fetching itself is coin-scoped below.
   useEffect(() => {
@@ -310,35 +334,73 @@ export default function Send() {
   }, [amount, feeMode, liveCoinFeeId])
 
   useEffect(() => {
+    if (feeDebounceRef.current) {
+      clearTimeout(feeDebounceRef.current)
+      feeDebounceRef.current = null
+    }
     const requestSeq = ++feeRequestSeqRef.current
     const setFeeState = (fee: FeeEstimate | null, loading = false) => {
       void Promise.resolve().then(() => {
         if (requestSeq !== feeRequestSeqRef.current) return
-        setFeeEstimate(fee)
+        setFeeEstimate((current) => {
+          if (current === fee) return current
+          if (!current || !fee) return fee
+          return current.satoshis === fee.satoshis
+            && current.coin === fee.coin
+            && current.exact === fee.exact
+            ? current
+            : fee
+        })
         setFeeLoading(loading)
       })
     }
-    if (feeMode !== 'auto' || !liveCoin || !liveCoinFeeId || !liveCoinEngine) {
+    const coin = liveCoinRef.current
+    if (feeMode !== 'auto' || !coin || !liveCoinFeeId) {
       setFeeState(null)
+      return
+    }
+    const maxFee = maxFeeEstimateRef.current
+    if (
+      maxFee
+      && maxFee.coinId === liveCoinFeeId
+      && maxFee.amount === amount
+    ) {
+      setFeeState(maxFee.fee)
+      setSendError('')
       return
     }
     if (liveCoinPrivacy) {
       const fee = privacyAutoFee
-      setFeeState(fee ? { satoshis: feeTextToSats(fee, liveCoinSatsPerCoin), coin: fee } : null)
+      setFeeState(fee ? { satoshis: feeTextToSats(fee, liveCoinSatsPerCoin), coin: fee, exact: true } : null)
       return
     }
-    void Promise.resolve().then(() => {
-      if (requestSeq === feeRequestSeqRef.current) setFeeLoading(true)
-    })
-    const request = liveCoinEngine.estimateFee(liveCoin, liveFeeContext)
-    void request.then((est) => {
-      if (requestSeq === feeRequestSeqRef.current) setFeeEstimate(est)
-    }).catch(() => {
-      if (requestSeq === feeRequestSeqRef.current) setFeeEstimate(null)
-    }).finally(() => {
-      if (requestSeq === feeRequestSeqRef.current) setFeeLoading(false)
-    })
-  }, [amount, feeMode, liveCoin, liveCoinEngine, liveCoinEngineKind, liveCoinFeeId, liveCoinPrivacy, liveCoinSatsPerCoin, liveFeeContext, privacyAutoFee])
+    const delayMs = amountLooksValid && recipientAddress.trim() ? 450 : 150
+    feeDebounceRef.current = setTimeout(() => {
+      feeDebounceRef.current = null
+      const currentCoin = liveCoinRef.current
+      if (!currentCoin || currentCoin.id !== liveCoinFeeId || requestSeq !== feeRequestSeqRef.current) return
+      const engine = walletEngineRegistry.get(currentCoin)
+      setFeeLoading(true)
+      void withPreflightTimeout(engine.estimateFee(currentCoin, liveFeeContext), 'Fee request').then((est) => {
+        if (requestSeq === feeRequestSeqRef.current) {
+          setFeeEstimate(est)
+          setSendError('')
+        }
+      }).catch((error) => {
+        if (requestSeq === feeRequestSeqRef.current && amountLooksValid && recipientAddress.trim()) {
+          setSendError(t('feeFetchFailed', { msg: (error as Error).message }))
+        }
+      }).finally(() => {
+        if (requestSeq === feeRequestSeqRef.current) setFeeLoading(false)
+      })
+    }, delayMs)
+    return () => {
+      if (feeDebounceRef.current) {
+        clearTimeout(feeDebounceRef.current)
+        feeDebounceRef.current = null
+      }
+    }
+  }, [amount, amountLooksValid, feeMode, liveCoinAddress, liveCoinEngineKind, liveCoinFeeId, liveCoinPrivacy, liveCoinSatsPerCoin, liveFeeContext, privacyAutoFee, recipientAddress, t])
 
   const selectCoin = (coinId: string) => {
     const changedCoin = coinId !== liveCoinId
@@ -361,6 +423,7 @@ export default function Send() {
     setFeeRefreshing(false)
     setManualFee('')
     setManualFeeError('')
+    setMobilePane('details')
   }
 
   const refreshAutoFee = async () => {
@@ -374,7 +437,10 @@ export default function Send() {
     setMaxIntent(null)
 
     try {
-      const est = await liveCoinEngine.estimateFee(liveCoin, { ...liveFeeContext, force: true })
+      const est = await withPreflightTimeout(
+        liveCoinEngine.estimateFee(liveCoin, { ...liveFeeContext, force: true }),
+        'Fee refresh',
+      )
       if (requestSeq === feeRequestSeqRef.current) setFeeEstimate(est)
 
       const estimateMinimum = liveCoinEngine.estimateMinimumFee
@@ -398,7 +464,7 @@ export default function Send() {
     }
   }
 
-  const resolveFeeCoin = async (coin: typeof liveCoin) => {
+  const resolveFee = async (coin: typeof liveCoin, options: { force?: boolean } = {}): Promise<FeeEstimate | null> => {
     if (feeMode === 'manual') {
       const feeText = manualFee.trim()
       const parsedFeeSats = /^\d+(\.\d+)?$/.test(feeText)
@@ -411,31 +477,40 @@ export default function Send() {
         }))
         return null
       }
-      return feeText
+      return { satoshis: parsedFeeSats, coin: feeText, exact: true }
     }
     if (maxIntent && maxIntent.coinId === coin?.id && maxIntent.amount === amount) {
-      return maxIntent.fee
+      return {
+        satoshis: feeTextToSats(maxIntent.fee, coin?.satsPerCoin ?? 100_000_000),
+        coin: maxIntent.fee,
+        exact: true,
+      }
     }
     if (coin && isPrivacyCoin(coin)) {
       const fee = feeEstimate?.coin ?? privacyFeeForCoin(coin.id, coin.satsPerCoin ?? 100_000_000)?.coin ?? '0'
       if (!feeEstimate && fee !== '0') {
-        setFeeEstimate({ satoshis: feeTextToSats(fee, coin.satsPerCoin ?? 100_000_000), coin: fee })
+        setFeeEstimate({ satoshis: feeTextToSats(fee, coin.satsPerCoin ?? 100_000_000), coin: fee, exact: true })
       }
-      return fee
+      return {
+        satoshis: feeTextToSats(fee, coin.satsPerCoin ?? 100_000_000),
+        coin: fee,
+        exact: true,
+      }
     }
-    if (feeEstimate) return feeEstimate.coin
+    if (feeEstimate && !options.force) return feeEstimate
     if (!coin) return null
 
     setFeeLoading(true)
     try {
-      const est = await walletEngineRegistry.get(coin).estimateFee(coin, {
+      const est = await withPreflightTimeout(walletEngineRegistry.get(coin).estimateFee(coin, {
+        force: options.force,
         fromAddress: coin.address,
         toAddress: recipientAddress.trim() || undefined,
         amountCoin: amountLooksValid ? amount.trim() : undefined,
-      })
+      }), 'Fee request')
       if (!est) return null
       setFeeEstimate(est)
-      return est.coin
+      return est
     } catch (error) {
       setSendError(t('feeFetchFailed', { msg: (error as Error).message }))
       return null
@@ -557,15 +632,23 @@ export default function Send() {
     }
 
     const to = values.to.trim()
-    const validAddress = await walletEngineRegistry.get(coin).validateAddress(coin, to)
+    const coinEngine = walletEngineRegistry.get(coin)
+    let validAddress: boolean
+    try {
+      validAddress = await withPreflightTimeout(coinEngine.validateAddress(coin, to), 'Address validation')
+    } catch (error) {
+      setSendError((error as Error).message)
+      return
+    }
     if (!validAddress) {
       setError('to', { message: t('invalidAddressLooks') })
       return
     }
 
     setManualFeeError('')
-    const feeCoin = await resolveFeeCoin(coin)
-    if (!feeCoin) return
+    const resolvedFee = await resolveFee(coin, { force: feeMode === 'auto' })
+    if (!resolvedFee) return
+    const feeCoin = resolvedFee.coin
     if (feeMode === 'manual' && (!/^\d+(\.\d+)?$/.test(feeCoin) || parseFloat(feeCoin) <= 0)) {
       setManualFeeError(t('manualFeeGreaterThanZero'))
       return
@@ -589,6 +672,10 @@ export default function Send() {
       estimatedFee: feeCoin,
       feeMode,
       sendMax: isMaxIntent,
+      lockFee: feeMode === 'manual'
+        || isMaxIntent
+        || isPrivacyCoin(coin)
+        || (coinEngine.id === 'bitcoin-utxo' && resolvedFee.exact === true),
     })
   }
 
@@ -618,9 +705,7 @@ export default function Send() {
         coinId: confirming.coinId,
         to: confirming.to,
         amount: confirming.amount,
-        fee: confirming.feeMode === 'manual' || confirming.sendMax || isPrivacyCoin(coins.find((c) => c.id === confirming.coinId))
-          ? confirming.estimatedFee
-          : undefined,
+        fee: confirming.lockFee ? confirming.estimatedFee : undefined,
         comment: confirming.comment,
         sendMax: confirming.sendMax,
         mnemonic: sessionMnemonic,
@@ -646,9 +731,31 @@ export default function Send() {
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(340px,430px)_minmax(0,1fr)]">
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 rounded-lg border border-white/10 bg-white/6 p-1 lg:hidden" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mobilePane === 'coins'}
+          className={`inline-flex h-10 items-center justify-center gap-2 rounded-lg px-3 text-sm font-semibold transition ${mobilePane === 'coins' ? 'bg-[var(--accent)] text-white' : 'text-slate-400'}`}
+          onClick={() => setMobilePane('coins')}
+        >
+          {mobilePane === 'details' && <ArrowLeft size={17} />}
+          {t('coins')}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mobilePane === 'details'}
+          className={`h-10 rounded-lg px-3 text-sm font-semibold transition ${mobilePane === 'details' ? 'bg-[var(--accent)] text-white' : 'text-slate-400'}`}
+          onClick={() => setMobilePane('details')}
+        >
+          {t('send')}
+        </button>
+      </div>
+      <div className="grid gap-6 lg:grid-cols-[minmax(340px,430px)_minmax(0,1fr)]">
       {/* coin selector */}
-      <Card className="space-y-4">
+      <Card className={`${mobilePane === 'coins' ? 'block' : 'hidden'} space-y-4 lg:block`}>
         <div>
           <h1 className="text-xl font-bold text-white">{t('sendCoins')}</h1>
           <p className="mt-1 text-sm text-slate-500">{t('selectCoinHint')}</p>
@@ -702,16 +809,16 @@ export default function Send() {
       </Card>
 
       {/* send form */}
-      <div className="space-y-6">
+      <div className={`${mobilePane === 'details' ? 'block' : 'hidden'} space-y-6 lg:block`}>
         <Card>
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex min-w-0 items-center gap-3">
               {liveCoin && <CoinIcon ticker={liveCoin.ticker} className="h-12 w-12" />}
-              <div>
-                <h2 className="text-xl font-bold text-white">
+              <div className="min-w-0">
+                <h2 className="truncate text-xl font-bold text-white">
                   {liveCoin?.name ?? t('selectCoinFirst')}
                 </h2>
-                <p className="text-sm text-slate-500">
+                <p className="truncate text-sm text-slate-500">
                   {liveCoin
                     ? `${liveCoin.ticker} · ${hideBalances ? '••••' : formatUsd(liveCoin.fiatValue)} · ${formatAddress(liveCoin.address)}`
                     : t('noCoinSelected')}
@@ -954,8 +1061,18 @@ export default function Send() {
           </form>
         </Card>
       </div>
+      </div>
 
-      <Modal open={Boolean(confirming)} title={t('confirmTitle')} onClose={() => { setConfirming(null); setSendError('') }}>
+      <Modal
+        open={Boolean(confirming)}
+        title={t('confirmTitle')}
+        closable={!sending}
+        onClose={() => {
+          if (sending) return
+          setConfirming(null)
+          setSendError('')
+        }}
+      >
         {confirming && selectedCoin && (
           <div className="space-y-4">
             <div className="rounded-2xl border border-white/10 bg-white/7 p-4 text-sm">
@@ -977,7 +1094,7 @@ export default function Send() {
                 <div>
                   <p className="text-slate-500">{t('fee')}</p>
                   <p className="text-white">
-                    {confirming.feeMode === 'auto' ? '~' : ''}{confirming.estimatedFee} {selectedCoin.ticker}
+                    {confirming.feeMode === 'auto' && !confirming.lockFee ? '~' : ''}{confirming.estimatedFee} {selectedCoin.ticker}
                   </p>
                 </div>
                 <div>

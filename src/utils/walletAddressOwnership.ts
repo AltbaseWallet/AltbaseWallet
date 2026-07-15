@@ -2,6 +2,7 @@ import type { CoinCryptoParams } from '../types/crypto'
 import { nativeCoreService } from '../services/nativeCoreService'
 
 export const walletAddressSetFromLegacy = async (
+  coinId: string,
   baseAddress: string,
   params?: CoinCryptoParams,
   options: { includeAliases?: boolean } = {},
@@ -11,7 +12,7 @@ export const walletAddressSetFromLegacy = async (
   if (!baseAddress || !params) return addresses
 
   try {
-    const variants = await nativeCoreService.addressVariantsFromLegacy(baseAddress, params)
+    const variants = await nativeCoreService.addressVariantsFromLegacy(coinId, baseAddress, params)
     for (const variant of variants) {
       if (variant.aliasOfLegacy && options.includeAliases === false) continue
       addresses.add(variant.address)
@@ -23,11 +24,12 @@ export const walletAddressSetFromLegacy = async (
 }
 
 export const isWalletAddressVariant = async (
+  coinId: string,
   address: string | undefined,
   baseAddress: string,
   params?: CoinCryptoParams,
 ) => {
   if (!address) return false
-  const addresses = await walletAddressSetFromLegacy(baseAddress, params)
+  const addresses = await walletAddressSetFromLegacy(coinId, baseAddress, params)
   return addresses.has(address)
 }

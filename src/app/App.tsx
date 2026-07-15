@@ -1,5 +1,5 @@
-import { HashRouter } from 'react-router-dom'
-import { useEffect } from 'react'
+import { HashRouter, useLocation } from 'react-router-dom'
+import { useEffect, useRef } from 'react'
 import { Providers } from './providers'
 import { AppRouter } from './router'
 import { GlobalToast } from '../components/wallet/GlobalToast'
@@ -42,13 +42,20 @@ function AutoLock() {
  */
 function AutoRefresh() {
   const isUnlocked = useAuthStore((state) => state.isUnlocked)
+  const location = useLocation()
+  const routeRef = useRef(location.pathname)
+  routeRef.current = location.pathname
 
   useEffect(() => {
     if (!isUnlocked) return undefined
 
     let inFlight = false
+    const shouldDeferRefresh = () => (
+      routeRef.current === '/app/send'
+      || useTransactionStore.getState().sending
+    )
     const refresh = () => {
-      if (inFlight) return
+      if (inFlight || shouldDeferRefresh()) return
       inFlight = true
       quaiDebugLog('autoRefresh.start', {
         storeQuai: useCoinStore.getState().coins
@@ -83,9 +90,10 @@ function AutoRefresh() {
     // dedicated tick so an incoming transfer surfaces sooner — without adding
     // extra request load to the UTXO coins on the main 15s loop.
     const privacyInterval = window.setInterval(() => {
+      if (shouldDeferRefresh()) return
       void useCoinStore.getState().refreshPrivacyBalances()
     }, 8_000)
-    void useCoinStore.getState().refreshPrivacyBalances()
+    if (!shouldDeferRefresh()) void useCoinStore.getState().refreshPrivacyBalances()
 
     return () => {
       window.clearInterval(interval)

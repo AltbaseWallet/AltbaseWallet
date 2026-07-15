@@ -6,8 +6,21 @@ SOURCE_DIR="${ALTBASE_LINUX_SOURCE_DIR:-$ROOT_DIR/source}"
 DOCKER_DIR="$ROOT_DIR/docker"
 DOWNLOADS_DIR="${ALTBASE_DOWNLOADS_DIR:-/var/www/altbase.io/downloads}"
 DISTROS="${ALTBASE_LINUX_DISTROS:-debian ubuntu24 fedora}"
+BUILD_JOBS="${ALTBASE_BUILD_JOBS:-2}"
+CACHE_DIR="${ALTBASE_LINUX_CACHE_DIR:-$ROOT_DIR/cache/linux}"
 
-mkdir -p "$DOCKER_DIR" "$DOWNLOADS_DIR"
+if ! [[ "$BUILD_JOBS" =~ ^[1-9][0-9]*$ ]]; then
+  echo "ALTBASE_BUILD_JOBS must be a positive integer: $BUILD_JOBS" >&2
+  exit 1
+fi
+
+mkdir -p \
+  "$DOCKER_DIR" \
+  "$DOWNLOADS_DIR" \
+  "$CACHE_DIR/npm" \
+  "$CACHE_DIR/cargo-registry" \
+  "$CACHE_DIR/cargo-git" \
+  "$CACHE_DIR/dependencies"
 
 write_dockerfiles() {
   cat > "$DOCKER_DIR/Dockerfile.debian" <<'DOCKER'
@@ -19,7 +32,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   libboost-system-dev libboost-filesystem-dev libboost-locale-dev libboost-thread-dev \
   libboost-timer-dev libboost-date-time-dev libboost-chrono-dev libboost-regex-dev \
   libboost-serialization-dev libboost-atomic-dev libboost-program-options-dev libboost-log-dev \
-  libssl-dev libcurl4-openssl-dev \
+  libssl-dev libcurl4-openssl-dev libsqlite3-dev \
   libarchive-tools libgtk-3-0 libnss3 libxss1 libasound2 libgbm1 libsecret-1-dev \
   libatk-bridge2.0-0 libdrm2 libxdamage1 libxrandr2 libxcomposite1 libxkbcommon0 \
   && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable \
@@ -38,7 +51,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   libboost-system-dev libboost-filesystem-dev libboost-locale-dev libboost-thread-dev \
   libboost-timer-dev libboost-date-time-dev libboost-chrono-dev libboost-regex-dev \
   libboost-serialization-dev libboost-atomic-dev libboost-program-options-dev libboost-log-dev \
-  libssl-dev libcurl4-openssl-dev \
+  libssl-dev libcurl4-openssl-dev libsqlite3-dev \
   libarchive-tools libgtk-3-0 libnss3 libxss1 libasound2t64 libgbm1 libsecret-1-dev \
   libatk-bridge2.0-0 libdrm2 libxdamage1 libxrandr2 libxcomposite1 libxkbcommon0 \
   && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
@@ -52,7 +65,7 @@ DOCKER
   cat > "$DOCKER_DIR/Dockerfile.fedora" <<'DOCKER'
 FROM fedora:42
 RUN dnf install -y \
-  nodejs npm git git-lfs python3 make gcc gcc-c++ cmake pkgconf-pkg-config openssl-devel libcurl-devel libxcrypt-compat \
+  nodejs npm git git-lfs python3 make gcc gcc-c++ cmake pkgconf-pkg-config openssl-devel libcurl-devel sqlite-devel libxcrypt-compat \
   clang clang-devel boost-devel \
   rpm-build rpmdevtools xz file bsdtar \
   gtk3 nss libXScrnSaver alsa-lib libsecret atk at-spi2-atk libdrm libXdamage \
@@ -67,23 +80,37 @@ DOCKER
 
 build_privacy_native() {
   cat <<'SCRIPT'
-    if [ ! -f native/epic_core/Cargo.toml ]; then
-      echo "Epic native source is missing: native/epic_core/Cargo.toml" >&2
-      exit 1
-    fi
+    for manifest in native/epic_transport/Cargo.toml native/epic_state/Cargo.toml native/epic_sender/Cargo.toml; do
+      if [ ! -f "$manifest" ]; then
+        echo "Epic native source is missing: $manifest" >&2
+        exit 1
+      fi
+    done
     if [ ! -d native/vendor/zano_native_lib/Zano ]; then
       echo "Zano native source is missing: native/vendor/zano_native_lib/Zano" >&2
       exit 1
     fi
 
-    if git -C native/vendor/zano_native_lib rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-      git -C native/vendor/zano_native_lib submodule update --init --depth 1 Zano || true
-    fi
-    if git -C native/vendor/zano_native_lib/Zano rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-      git -C native/vendor/zano_native_lib/Zano submodule update --init --depth 1 contrib/miniupnp contrib/jwt-cpp contrib/bitcoin-secp256k1 contrib/tor-connect || true
-    fi
+    for required in \
+      native/vendor/zano_native_lib/Zano/contrib/miniupnp/miniupnpc/CMakeLists.txt \
+      native/vendor/zano_native_lib/Zano/contrib/bitcoin-secp256k1/CMakeLists.txt \
+      native/vendor/zano_native_lib/Zano/src/wallet/wallet2.cpp; do
+      if [ ! -f "$required" ]; then
+        echo "Required Zano source is missing from the Windows snapshot: $required" >&2
+        exit 1
+      fi
+    done
 
-    cargo build --release --manifest-path native/epic_core/Cargo.toml
+    epic_target=native/target-epic-modular-linux
+    rm -rf "$epic_target" native/epic_core/target/release
+    cargo build --release --locked --manifest-path native/epic_transport/Cargo.toml --target-dir "$epic_target" -j "${ALTBASE_BUILD_JOBS:-2}"
+    export ALTBASE_EPIC_TRANSPORT_LIB_DIR="$PWD/$epic_target/release"
+    cargo build --release --locked --manifest-path native/epic_state/Cargo.toml --target-dir "$epic_target" -j "${ALTBASE_BUILD_JOBS:-2}"
+    cargo build --release --locked --manifest-path native/epic_sender/Cargo.toml --target-dir "$epic_target" -j "${ALTBASE_BUILD_JOBS:-2}"
+    mkdir -p native/epic_core/target/release
+    for module in state sender transport; do
+      cp "$epic_target/release/libaltbase_epic_${module}.so" native/epic_core/target/release/
+    done
 
     export ZANO_USE_SYSTEM_BOOST=1
     zano_build=native/vendor/zano_native_lib/Zano/build/altbase-linux-x64
@@ -93,10 +120,12 @@ build_privacy_native() {
       -DBUILD_GUI=OFF \
       -DDISABLE_TOR=ON \
       -DSTATIC=OFF \
+      -DCOMMIT_ID_IN_VERSION=OFF \
+      -DGIT=FALSE \
       -DBoost_NO_SYSTEM_PATHS=OFF \
       -DBoost_NO_WARN_NEW_VERSIONS=ON
     for target in common crypto currency_core rpc zlibstatic ethash libminiupnpc-static wallet; do
-      cmake --build "$zano_build" --target "$target" --parallel 2
+      cmake --build "$zano_build" --target "$target" --parallel "${ALTBASE_BUILD_JOBS:-2}"
     done
 SCRIPT
 }
@@ -114,8 +143,18 @@ ensure_container() {
   fi
   docker create -it \
     --name "$name" \
+    -e ALTBASE_BUILD_JOBS="$BUILD_JOBS" \
+    -e CARGO_NET_RETRY=100 \
+    -e CARGO_HTTP_TIMEOUT=600 \
+    -e CARGO_HTTP_LOW_SPEED_LIMIT=1 \
+    -e CARGO_HTTP_MULTIPLEXING=false \
+    -e ALTBASE_DEPENDENCY_CACHE_DIR=/dependencies \
     -v "$SOURCE_DIR:/workspace" \
     -v "$DOWNLOADS_DIR:/out" \
+    -v "$CACHE_DIR/npm:/root/.npm" \
+    -v "$CACHE_DIR/cargo-registry:/root/.cargo/registry" \
+    -v "$CACHE_DIR/cargo-git:/root/.cargo/git" \
+    -v "$CACHE_DIR/dependencies:/dependencies" \
     "altbase-wallet-builder:$distro" \
     /bin/bash >/dev/null
 }
@@ -129,18 +168,23 @@ build_in_container() {
   docker exec "$name" bash -lc "
     set -euo pipefail
     cd /workspace
-    rm -rf node_modules dist release native-core native/core/build/linux-x64-release native/epic_core/target/release native/vendor/zano_native_lib/Zano/build/altbase-linux-x64
-    npm install --no-audit --no-fund
+    rm -rf node_modules dist release native-core native/core/build/linux-x64-release native/epic_core/target/release native/target-epic-modular-linux native/vendor/zano_native_lib/Zano/build/altbase-linux-x64
+    bash scripts/build-kaspa-wallet-wasm.sh
+    npm ci --prefer-offline --no-audit --no-fund
 $(build_privacy_native)
     cmake --preset linux-x64-release -S native/core
-    cmake --build native/core/build/linux-x64-release --parallel 2
+    cmake --build native/core/build/linux-x64-release --parallel "${ALTBASE_BUILD_JOBS:-2}"
+    ctest --test-dir native/core/build/linux-x64-release --output-on-failure
     node scripts/copy-native-core.cjs
+    npm test
     npm run build
-    npx electron-builder --linux AppImage --x64
+    npx electron-builder --linux AppImage --x64 --publish never
     appimage=\$(find release -maxdepth 1 -type f -name '*.AppImage' | head -n 1)
     test -n \"\$appimage\"
     install -m 0755 \"\$appimage\" \"/out/$appimage_name\"
     file native-core/altbase_core_bridge
+    test \"\$(find native-core -maxdepth 1 -type f -name 'altbase_*_wallet.so' | wc -l)\" -eq 19
+    test \"\$(find native-core -maxdepth 1 -type f -name 'altbase_*_node.so' | wc -l)\" -eq 23
   "
 }
 
@@ -149,10 +193,12 @@ write_checksums() {
     cd "$DOWNLOADS_DIR"
     local files=()
     for file in \
-      Altbase-Wallet-Windows.exe \
+      Altbase-Wallet-Windows.msi \
       Altbase-Wallet-Ubuntu24.AppImage \
       Altbase-Wallet-Debian.AppImage \
-      Altbase-Wallet-Fedora.AppImage
+      Altbase-Wallet-Fedora.AppImage \
+      Altbase-Wallet.AppImage \
+      Altbase-Wallet-macOS-x64.zip
     do
       [[ -f "$file" ]] && files+=("$file")
     done
@@ -178,6 +224,7 @@ done
 
 if [[ " $DISTROS " == *" ubuntu24 "* ]]; then
   build_in_container ubuntu24 "Altbase-Wallet-Ubuntu24.AppImage"
+  install -m 0755 "$DOWNLOADS_DIR/Altbase-Wallet-Ubuntu24.AppImage" "$DOWNLOADS_DIR/Altbase-Wallet.AppImage"
 fi
 if [[ " $DISTROS " == *" debian "* ]]; then
   build_in_container debian "Altbase-Wallet-Debian.AppImage"

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Check, Copy, Search } from 'lucide-react'
+import { ArrowLeft, Check, Copy, Search } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
 import { Input } from '../../components/ui/Input'
@@ -39,6 +39,7 @@ export default function Receive() {
   const hideBalances = useSettingsStore((state) => state.settings.hideBalances)
   const [manualSelectedId, setManualSelectedId] = useState<string | null>(null)
   const [query, setQuery] = useState('')
+  const [mobilePane, setMobilePane] = useState<'coins' | 'details'>(() => paramCoinId ? 'details' : 'coins')
   const [toast, setToast] = useState<string | null>(null)
   const [addressType, setAddressType] = useState<AddressVariant['id']>('legacy')
   const [addressVariants, setAddressVariants] = useState<AddressVariant[]>([])
@@ -136,8 +137,30 @@ export default function Receive() {
   if (!coin) return <Card>{t('loadingAddress')}</Card>
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(340px,430px)_minmax(0,1fr)]">
-      <Card className="space-y-4">
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 rounded-lg border border-white/10 bg-white/6 p-1 lg:hidden" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mobilePane === 'coins'}
+          className={`inline-flex h-10 items-center justify-center gap-2 rounded-lg px-3 text-sm font-semibold transition ${mobilePane === 'coins' ? 'bg-[var(--accent)] text-white' : 'text-slate-400'}`}
+          onClick={() => setMobilePane('coins')}
+        >
+          {mobilePane === 'details' && <ArrowLeft size={17} />}
+          {t('coins')}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mobilePane === 'details'}
+          className={`h-10 rounded-lg px-3 text-sm font-semibold transition ${mobilePane === 'details' ? 'bg-[var(--accent)] text-white' : 'text-slate-400'}`}
+          onClick={() => setMobilePane('details')}
+        >
+          {t('receive')}
+        </button>
+      </div>
+      <div className="grid gap-6 lg:grid-cols-[minmax(340px,430px)_minmax(0,1fr)]">
+      <Card className={`${mobilePane === 'coins' ? 'block' : 'hidden'} space-y-4 lg:block`}>
         <div>
           <h1 className="text-xl font-bold text-white">{t('receiveTitle')}</h1>
           <p className="mt-1 text-sm text-slate-500">{t('receiveCoinHint')}</p>
@@ -156,6 +179,7 @@ export default function Receive() {
               onClick={() => {
                 setManualSelectedId(item.id)
                 selectCoin(item.id)
+                setMobilePane('details')
               }}
             >
               <div className="flex min-w-0 items-center gap-3">
@@ -183,13 +207,13 @@ export default function Receive() {
         </div>
       </Card>
 
-      <Card className="space-y-5">
+      <Card className={`${mobilePane === 'details' ? 'block' : 'hidden'} space-y-5 lg:block`}>
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 items-center gap-3">
             <CoinIcon ticker={coin.ticker} className="h-12 w-12" />
-            <div>
-              <h2 className="text-xl font-bold text-white">{coin.name}</h2>
-              <p className="text-sm text-slate-500">
+            <div className="min-w-0">
+              <h2 className="truncate text-xl font-bold text-white">{coin.name}</h2>
+              <p className="truncate text-sm text-slate-500">
                 {coin.ticker} · {statusLabel(coin.status)} · {hideBalances ? '••••' : formatUsd(coin.fiatValue)}
               </p>
             </div>
@@ -257,6 +281,7 @@ export default function Receive() {
           </Button>
         )}
       </Card>
+      </div>
       <Toast message={toast} />
     </div>
   )

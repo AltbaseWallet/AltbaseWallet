@@ -4,7 +4,8 @@ const fs = require('node:fs')
 
 const root = path.join(__dirname, '..')
 const pkg = require(path.join(root, 'package.json'))
-const exePath = path.join(root, 'release', 'win-unpacked', 'Altbase Wallet.exe')
+const releaseDir = process.env.ALTBASE_RELEASE_DIR || 'release'
+const exePath = path.join(root, releaseDir, 'win-unpacked', 'Altbase Wallet.exe')
 const iconPath = path.join(root, 'build', 'icon.ico')
 const rceditPath = path.join(root, 'node_modules', 'electron-winstaller', 'vendor', 'rcedit.exe')
 const appName = 'Altbase Wallet'
@@ -78,5 +79,5 @@ for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
 
 if (lastResult?.stdout) process.stdout.write(lastResult.stdout)
 if (lastResult?.stderr) process.stderr.write(lastResult.stderr)
-console.error('Failed to update Windows icon/version resources. Close Altbase Wallet from release\\win-unpacked and run the build again.')
+console.error(`Failed to update Windows icon/version resources. Close Altbase Wallet from ${releaseDir}\\win-unpacked and run the build again.`)
 process.exit(lastResult?.status ?? 1)

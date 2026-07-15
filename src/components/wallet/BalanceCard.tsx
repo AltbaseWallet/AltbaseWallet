@@ -31,22 +31,22 @@ export function BalanceCard() {
               {hideBalances ? <Eye size={16} /> : <EyeOff size={16} />}
             </Button>
           </div>
-          <p className="mt-2 text-4xl font-bold text-white md:text-5xl">{hideBalances ? '••••••' : formatUsd(total)}</p>
+          <p className="mt-2 break-words text-3xl font-bold text-white sm:text-4xl md:text-5xl">{hideBalances ? '••••••' : formatUsd(total)}</p>
         </div>
         <div className="grid grid-cols-3 gap-2">
           <Link to="/app/receive">
-            <Button variant="secondary" className="w-full" icon={<ArrowDownToLine size={17} />}>
-              {t('receive')}
+            <Button variant="secondary" className="w-full px-2 sm:px-4" icon={<ArrowDownToLine size={17} />}>
+              <span className="hidden sm:inline">{t('receive')}</span>
             </Button>
           </Link>
           <Link to="/app/send">
-            <Button className="w-full" icon={<Send size={17} />}>
-              {t('send')}
+            <Button className="w-full px-2 sm:px-4" icon={<Send size={17} />}>
+              <span className="hidden sm:inline">{t('send')}</span>
             </Button>
           </Link>
           <Link to="/app/history">
-            <Button variant="secondary" className="w-full" icon={<History size={17} />}>
-              {t('history')}
+            <Button variant="secondary" className="w-full px-2 sm:px-4" icon={<History size={17} />}>
+              <span className="hidden sm:inline">{t('history')}</span>
             </Button>
           </Link>
         </div>

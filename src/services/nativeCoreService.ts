@@ -169,7 +169,48 @@ export const nativeCoreService = {
     return bridge({ method: 'health', params: {} })
   },
 
+  async listWalletModules(): Promise<{ utxo: string[]; privacy: string[]; account: string[]; node: string[] }> {
+    const bridge = window.altbaseWallet?.core
+    if (!bridge) throw new Error('Native core bridge is not available')
+    const response = await bridge({ method: 'listWalletModules', params: {} })
+    if (!response.ok || !response.result) throw new Error(response.error ?? 'Native module discovery failed')
+    const parseList = (value?: string) => (value ?? '').split(',').map((item) => item.trim()).filter(Boolean)
+    return {
+      utxo: parseList(response.result.utxo),
+      privacy: parseList(response.result.privacy),
+      account: parseList(response.result.account),
+      node: parseList(response.result.node),
+    }
+  },
+
+  async coinNodeRequest(params: {
+    coinId: string
+    method: 'GET' | 'POST'
+    path: string
+    body?: string
+    timeoutMs?: number
+  }): Promise<{ status: number; body: string }> {
+    const bridge = window.altbaseWallet?.core
+    if (!bridge) throw new Error('Native core bridge is not available')
+    const response = await bridge({
+      method: 'coinNodeRequest',
+      params: {
+        coin: params.coinId,
+        httpMethod: params.method,
+        path: params.path,
+        body: params.body ?? '',
+        timeoutMs: String(params.timeoutMs ?? 10_000),
+      },
+    })
+    if (!response.ok || !response.result) throw new Error(response.error ?? 'Native node request failed')
+    return {
+      status: Number(response.result.status ?? 0),
+      body: response.result.body ?? '',
+    }
+  },
+
   async validateAddress(
+    coinId: string,
     address: string,
     params: CoinCryptoParams,
   ): Promise<NativeAddressValidation> {
@@ -179,6 +220,7 @@ export const nativeCoreService = {
     const response = await bridge({
       method: 'validateAddress',
       params: {
+        coin: coinId,
         address,
         p2pkhPrefix: params.p2pkhPrefix,
         p2shPrefix: params.p2shPrefix,
@@ -202,17 +244,18 @@ export const nativeCoreService = {
   async generateMnemonic(): Promise<string> {
     const bridge = window.altbaseWallet?.core
     if (!bridge) throw new Error('Native core bridge is not available')
-    const response = await bridge({ method: 'generateMnemonic', params: {} })
-    if (!response.ok || !response.result?.mnemonic) {
-      throw new Error(response.error ?? 'Native mnemonic generation failed')
+    const response = await bridge({ method: 'generatePhrase', params: {} })
+    const phrase = response.result?.phrase
+    if (!response.ok || !phrase) {
+      throw new Error(response.error ?? 'Native wallet phrase generation failed')
     }
-    return response.result.mnemonic
+    return phrase
   },
 
   async validateMnemonic(mnemonic: string): Promise<boolean> {
     const bridge = window.altbaseWallet?.core
     if (!bridge) return false
-    const response = await bridge({ method: 'validateMnemonic', params: { mnemonic } })
+    const response = await bridge({ method: 'validatePhrase', params: { phrase: mnemonic } })
     return response.ok && response.result?.isValid === 'true'
   },
 
@@ -226,10 +269,10 @@ export const nativeCoreService = {
     const response = await bridge({
       method: 'createWalletSecret',
       params: {
-        mnemonic,
+        phrase: mnemonic,
         password,
-        requireSeedSafetyAcknowledgement: options.requireSeedSafetyAcknowledgement ? 'true' : 'false',
-        seedSafetyAcknowledged: options.seedSafetyAcknowledged ? 'true' : 'false',
+        requirePhraseAcknowledgement: options.requireSeedSafetyAcknowledgement ? 'true' : 'false',
+        phraseAcknowledged: options.seedSafetyAcknowledged ? 'true' : 'false',
       },
     })
     const result = response.result
@@ -269,27 +312,28 @@ export const nativeCoreService = {
         salt: secret.salt,
       },
     })
-    if (!response.ok || !response.result?.mnemonic) {
+    const phrase = response.result?.phrase
+    if (!response.ok || !phrase) {
       throw new Error(response.error ?? 'Native wallet decryption failed')
     }
-    return response.result.mnemonic
+    return phrase
   },
 
   async privacyWalletSecret(coin: 'zano' | 'epic', mnemonic: string): Promise<NativePrivacyWalletSecret> {
     const bridge = window.altbaseWallet?.core
     if (!bridge) throw new Error('Native core bridge is not available')
     const response = await bridge({
-      method: 'privacyWalletSecret',
-      params: { coin, mnemonic },
+      method: 'privacyScope',
+      params: { coin, phrase: mnemonic },
     })
     const result = response.result
-    if (!response.ok || !result?.enginePassword || !result.scope || !result.seed) {
-      throw new Error(response.error ?? 'Native privacy seed derivation failed')
+    if (!response.ok || !result?.enginePassword || !result.scope || !result.payload) {
+      throw new Error(response.error ?? 'Native privacy scope derivation failed')
     }
     return {
       enginePassword: result.enginePassword,
       scope: result.scope,
-      seed: result.seed,
+      seed: result.payload,
     }
   },
 
@@ -305,8 +349,8 @@ export const nativeCoreService = {
     compactOnly?: string
     forceRescan?: string
     verifyCompact?: string
-    nativeWalletFileName?: string
-    nativeWalletFileBlob?: string
+    cachedWalletName?: string
+    cachedWalletState?: string
     to?: string
     amount?: string
     fee?: string
@@ -333,9 +377,13 @@ export const nativeCoreService = {
           })
         })
       : undefined
+    const { mnemonic, ...privacyParams } = params
+    const nativeParams = progressToken
+      ? { ...privacyParams, phrase: mnemonic, progressToken }
+      : { ...privacyParams, phrase: mnemonic }
     const response = await bridge({
       method: 'privacyLightWallet',
-      params: progressToken ? { ...params, progressToken } : params,
+      params: nativeParams,
     }).finally(() => unsubscribe?.())
     if (!response.ok || !response.result) {
       return { ok: false, code: 'native-core-error', error: response.error ?? 'Native privacy light wallet failed' }
@@ -365,13 +413,14 @@ export const nativeCoreService = {
     }
   },
 
-  async addressToScript(address: string, params: CoinCryptoParams): Promise<string> {
+  async addressToScript(coinId: string, address: string, params: CoinCryptoParams): Promise<string> {
     const bridge = window.altbaseWallet?.core
     if (!bridge) throw new Error('Native core bridge is not available')
 
     const response = await bridge({
       method: 'addressToScript',
       params: {
+        coin: coinId,
         address,
         p2pkhPrefix: params.p2pkhPrefix,
         p2shPrefix: params.p2shPrefix,
@@ -388,13 +437,14 @@ export const nativeCoreService = {
     return response.result.scriptPubKey
   },
 
-  async addressVariantsFromLegacy(address: string, params: CoinCryptoParams): Promise<AddressVariant[]> {
+  async addressVariantsFromLegacy(coinId: string, address: string, params: CoinCryptoParams): Promise<AddressVariant[]> {
     const bridge = window.altbaseWallet?.core
     if (!bridge) throw new Error('Native core bridge is not available')
 
     const response = await bridge({
       method: 'addressVariantsFromLegacy',
       params: {
+        coin: coinId,
         address,
         p2pkhPrefix: params.p2pkhPrefix,
         p2shPrefix: params.p2shPrefix,
@@ -408,14 +458,15 @@ export const nativeCoreService = {
     return parseAddressVariants(response.result?.variants)
   },
 
-  async deriveAddress(mnemonic: string, params: CoinCryptoParams): Promise<string> {
+  async deriveAddress(coinId: string, mnemonic: string, params: CoinCryptoParams): Promise<string> {
     const bridge = window.altbaseWallet?.core
     if (!bridge) throw new Error('Native core bridge is not available')
 
     const response = await bridge({
       method: 'deriveAddress',
       params: {
-        mnemonic,
+        coin: coinId,
+        phrase: mnemonic,
         derivationPath: params.derivationPath,
         p2pkhPrefix: params.p2pkhPrefix,
         wifPrefix: params.wifPrefix,
@@ -431,14 +482,15 @@ export const nativeCoreService = {
     return response.result.address
   },
 
-  async derivePrivateKeyWif(mnemonic: string, params: CoinCryptoParams): Promise<string> {
+  async derivePrivateKeyWif(coinId: string, mnemonic: string, params: CoinCryptoParams): Promise<string> {
     const bridge = window.altbaseWallet?.core
     if (!bridge) throw new Error('Native core bridge is not available')
 
     const response = await bridge({
-      method: 'derivePrivateKeyWif',
+      method: 'deriveWif',
       params: {
-        mnemonic,
+        coin: coinId,
+        phrase: mnemonic,
         derivationPath: params.derivationPath,
         p2pkhPrefix: params.p2pkhPrefix,
         wifPrefix: params.wifPrefix,
@@ -447,20 +499,22 @@ export const nativeCoreService = {
       },
     })
 
-    if (!response.ok || !response.result?.privateKeyWif) {
-      throw new Error(response.error ?? 'Native private key derivation failed')
+    const wif = response.result?.wif
+    if (!response.ok || !wif) {
+      throw new Error(response.error ?? 'Native export derivation failed')
     }
 
-    return response.result.privateKeyWif
+    return wif
   },
 
   async signTransaction(params: {
+    coinId: string
     mnemonic: string
     cryptoParams: CoinCryptoParams
     inputs: Array<{ txid: string; vout: number; satoshis: number; script: string }>
     outputs: Array<{ satoshis: bigint; script: string }>
     txVersion?: number
-  }): Promise<string> {
+  }): Promise<{ txHex: string; txid: string }> {
     const bridge = window.altbaseWallet?.core
     if (!bridge) throw new Error('Native core bridge is not available')
 
@@ -474,7 +528,8 @@ export const nativeCoreService = {
     const response = await bridge({
       method: 'signTransaction',
       params: {
-        mnemonic: params.mnemonic,
+        coin: params.coinId,
+        phrase: params.mnemonic,
         derivationPath: params.cryptoParams.derivationPath,
         txVersion: String(params.txVersion ?? params.cryptoParams.txVersion ?? 1),
         sighashStyle: params.cryptoParams.sighashStyle ?? 'legacy',
@@ -484,11 +539,11 @@ export const nativeCoreService = {
       },
     })
 
-    if (!response.ok || !response.result?.txHex) {
+    if (!response.ok || !response.result?.txHex || !response.result.txid) {
       throw new Error(response.error ?? 'Native transaction signing failed')
     }
 
-    return response.result.txHex
+    return { txHex: response.result.txHex, txid: response.result.txid }
   },
 
   async estimateFee(params: {

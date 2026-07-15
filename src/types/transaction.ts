@@ -19,6 +19,7 @@ export type Transaction = {
   spentOutpoints?: Array<{ txid: string; vout: number; satoshis?: number }>
   balanceBefore?: string
   expectedBalanceAfter?: string
+  broadcastUncertain?: boolean
 }
 
 export type SendPayload = {

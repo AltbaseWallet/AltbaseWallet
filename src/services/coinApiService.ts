@@ -14,7 +14,11 @@
 import type { CoinStatus } from '../types/coin'
 import type { Transaction } from '../types/transaction'
 import { storageService } from './storageService'
+import { nativeCoreService } from './nativeCoreService'
 import { coinDebugLog, coinDebugLogError, quaiDebugLog, quaiDebugLogError } from '../utils/quaiDebugLog'
+import { fromBaseUnits } from '../utils/decimalAmount'
+import { coinDecimalsFromSats, coinValueToUnits } from '../utils/transactionAmounts'
+import { resolveTransactionConfirmations } from '../utils/transactionConfirmations'
 
 const API_BASE = 'https://api.altbase.io/api/v1'
 
@@ -115,31 +119,51 @@ export const networkToStatus = (
 /* ───── balances / utxos ───── */
 
 export type CoinBalance = {
-  balance: number              // satoshis
-  balance_spendable: number
-  received: number
-  immature: number
-  pendingIncoming?: number
-  pendingOutgoing?: number
-  mempoolNet?: number
+  balance: number | string              // atomic units
+  balance_spendable: number | string
+  received: number | string
+  immature: number | string
+  pendingIncoming?: number | string
+  pendingOutgoing?: number | string
+  mempoolNet?: number | string
   pendingTxids?: string[]
   pendingOutgoingTxids?: string[]
   pendingTransactions?: AddressMempoolPending[]
   utxos?: Utxo[]
 }
 
+export const atomicAmountToBigInt = (value: unknown): bigint => {
+  if (typeof value === 'bigint') return value
+  if (typeof value === 'string' && /^-?\d+$/.test(value.trim())) return BigInt(value.trim())
+  if (typeof value === 'number' && Number.isFinite(value)) return BigInt(Math.trunc(value))
+  return 0n
+}
+
 export type Utxo = {
   txid: string
   outputIndex: number
   script: string
-  satoshis: number
+  satoshis: number | string
   height?: number
+  address?: string
+  blockDaaScore?: number | string
+  isCoinbase?: boolean
+  scriptPublicKeyVersion?: number
+  cellOutput?: {
+    capacity: string
+    lock: { codeHash: string; hashType: 'data' | 'type' | 'data1'; args: string }
+    type?: { codeHash: string; hashType: 'data' | 'type' | 'data1'; args: string }
+  }
+  outputData?: string
+  blockNumber?: string
+  txIndex?: string
 }
 
 /* ───── raw tx (shape varies per coin, we extract what we need) ───── */
 
-type RawTxVout = { value: number; n: number; scriptPubKey?: { address?: string; addresses?: string[] } }
-type RawTxVin  = { txid?: string; vout?: number; address?: string; value?: number; coinbase?: string }
+type AtomicAmount = number | string
+type RawTxVout = { value: AtomicAmount; n: number; scriptPubKey?: { address?: string; addresses?: string[] } }
+type RawTxVin  = { txid?: string; vout?: number; address?: string; value?: AtomicAmount; coinbase?: string }
 type RawTx     = {
   txid: string
   hash?: string
@@ -151,12 +175,12 @@ type RawTx     = {
   time?: number
   confirmations?: number
   /** Computed by the gateway: sum(vin.value) − sum(vout.value) in coin units. */
-  fee?: number
+  fee?: AtomicAmount
   error?: string
 }
 
-type AddressDelta = { txid: string; satoshis: number; height?: number; timestamp?: number }
-type MempoolDelta = { txid: string; satoshis: number; timestamp?: number }
+type AddressDelta = { txid: string; satoshis: AtomicAmount; height?: number; timestamp?: number }
+type MempoolDelta = { txid: string; satoshis: AtomicAmount; timestamp?: number }
 
 export type HistoryResponse = {
   ok: true
@@ -206,6 +230,7 @@ export type AccountTxContext = AccountFeeEstimate & {
   from: string
   to?: string
   nonce: number
+  targetTick?: number
 }
 
 export type WalletSnapshotRequest = {
@@ -238,6 +263,13 @@ export type WalletSnapshotResponse = {
 export type PrivacyCacheEnvelope = {
   encryptedBlob: string
   nonce?: string
+}
+
+export type ZanoTransactionStatus = {
+  found: boolean
+  confirmed: boolean
+  blockHeight?: number
+  timestamp?: number
 }
 
 /* ───── HTTP layer ───── */
@@ -392,15 +424,57 @@ const fetchJsonWithTimeout = async <T>(url: string, init: RequestInit = {}, time
   return request
 }
 
+const coinNodeJsonWithTimeout = async <T>(
+  coinId: string,
+  path: string,
+  method: 'GET' | 'POST',
+  body = '',
+  timeoutMs = 10_000,
+): Promise<T> => {
+  const key = `node ${timeoutMs} ${coinId} ${method} ${path} ${body}`
+  const pending = pendingRequests.get(key)
+  if (pending) return pending as Promise<T>
+
+  const request = (async () => {
+    let lastError: unknown
+    for (let attempt = 0; attempt <= RATE_LIMIT_RETRIES_MS.length; attempt += 1) {
+      try {
+        const response = await nativeCoreService.coinNodeRequest({ coinId, method, path, body, timeoutMs })
+        let data: T & GatewayErrorPayload
+        try {
+          data = (response.body ? JSON.parse(response.body) : {}) as T & GatewayErrorPayload
+        } catch {
+          throw new Error(`Node module returned invalid JSON (HTTP ${response.status})`)
+        }
+        if (response.status < 200 || response.status >= 300 || data.ok === false) {
+          const error = new Error(data.error ?? data.message ?? `HTTP ${response.status}`) as GatewayError
+          error.status = response.status
+          throw error
+        }
+        return data
+      } catch (error) {
+        lastError = normalizeNetworkError(error, timeoutMs)
+        if (!isRateLimited(lastError) || attempt === RATE_LIMIT_RETRIES_MS.length) break
+        await sleep(RATE_LIMIT_RETRIES_MS[attempt])
+      }
+    }
+    if (isRateLimited(lastError)) {
+      throw new Error('API rate limit exceeded. Please wait a few seconds and try again.')
+    }
+    throw lastError
+  })().finally(() => {
+    pendingRequests.delete(key)
+  })
+
+  pendingRequests.set(key, request)
+  return request
+}
+
 const postJson = <T>(coinId: string, path: string, body: unknown, timeoutMs = 10_000) =>
-  fetchJsonWithTimeout<T>(`${API_BASE}/${coinId}${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  }, timeoutMs)
+  coinNodeJsonWithTimeout<T>(coinId, path, 'POST', JSON.stringify(body), timeoutMs)
 
 const getJson = <T>(coinId: string, path: string, timeoutMs = 10_000) =>
-  fetchJsonWithTimeout<T>(`${API_BASE}/${coinId}${path}`, {}, timeoutMs)
+  coinNodeJsonWithTimeout<T>(coinId, path, 'GET', '', timeoutMs)
 
 const getGlobal = <T>(path: string) =>
   fetchJsonWithTimeout<T>(`${API_BASE}${path}`)
@@ -411,26 +485,6 @@ const postGlobal = <T>(path: string, body: unknown, timeoutMs = 10_000) =>
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   }, timeoutMs)
-
-const coinDecimalsFromSats = (satsPerCoin: number) => {
-  if (!Number.isFinite(satsPerCoin) || satsPerCoin <= 1) return 0
-  const rounded = Math.round(satsPerCoin)
-  if (rounded !== satsPerCoin) return 8
-  const text = String(rounded)
-  return /^10+$/.test(text) ? text.length - 1 : 8
-}
-
-const formatCoinFloor = (value: number, satsPerCoin: number) => {
-  if (!Number.isFinite(value) || value <= 0) return '0'
-  const safeSats = Math.max(1, Math.round(satsPerCoin || 100_000_000))
-  const decimals = coinDecimalsFromSats(safeSats)
-  const units = Math.max(0, Math.floor(value * safeSats + 1e-6))
-  const whole = Math.floor(units / safeSats)
-  const fractionUnits = units % safeSats
-  if (decimals === 0 || fractionUnits === 0) return String(whole)
-  const fraction = String(fractionUnits).padStart(decimals, '0').replace(/0+$/, '')
-  return fraction ? `${whole}.${fraction}` : String(whole)
-}
 
 /* ───── transaction mapper ───── */
 
@@ -448,16 +502,18 @@ const formatCoinFloor = (value: number, satsPerCoin: number) => {
  *   • The `fee` is what the gateway computed (sum vin − sum vout), or
  *     falls back to undefined when the gateway couldn't resolve every input.
  */
-const mapRawTxToTransaction = (
+export const mapRawTxToTransaction = (
   raw: RawTx,
   ownAddress: string,
-  satoshis: number,           // net delta in satoshis from getaddressdeltas (signed)
+  satoshis: AtomicAmount | bigint, // net delta in atomic units from getaddressdeltas (signed)
   coinId: string,
   satsPerCoin: number,
   status: Transaction['status'],
   walletAddresses: string[] = [ownAddress],
-  meta: { timestamp?: number; height?: number } = {},
+  meta: { timestamp?: number; height?: number; tipHeight?: number } = {},
 ): Transaction => {
+  const decimals = coinDecimalsFromSats(satsPerCoin)
+  const deltaUnits = atomicAmountToBigInt(satoshis)
   const ownAddressSet = new Set(walletAddresses.filter(Boolean))
   const isOwnAddress = (address?: string) => Boolean(address && ownAddressSet.has(address))
   const outputAddress = (output: RawTxVout) => output.scriptPubKey?.address ?? output.scriptPubKey?.addresses?.[0]
@@ -465,35 +521,35 @@ const mapRawTxToTransaction = (
     .map((i) => i.address)
     .filter(Boolean) as string[]
   const hasOwnInput = vinAddrs.some(isOwnAddress)
-  const type: Transaction['type'] = hasOwnInput || satoshis < 0 ? 'outgoing' : 'incoming'
+  const type: Transaction['type'] = hasOwnInput || deltaUnits < 0n ? 'outgoing' : 'incoming'
 
   // Sum of outputs paying THIS address — used as the "received amount"
   // on incoming txs (the gateway's net delta already gives this, but doing
   // it from raw vouts avoids needing the delta for some code paths).
   const valueToSelf = (raw.vout ?? []).reduce((sum, o) => {
     const addr = outputAddress(o)
-    return isOwnAddress(addr) ? sum + Number(o.value || 0) : sum
-  }, 0)
+    return isOwnAddress(addr) ? sum + coinValueToUnits(o.value, decimals) : sum
+  }, 0n)
   const ownOutputs = (raw.vout ?? []).filter((output) => isOwnAddress(outputAddress(output)))
 
   // Sum of outputs paying SOMEONE ELSE — the actual transfer amount on a send.
   const valueToOthers = (raw.vout ?? []).reduce((sum, o) => {
     const addr = outputAddress(o)
-    return addr && !isOwnAddress(addr) ? sum + Number(o.value || 0) : sum
-  }, 0)
+    return addr && !isOwnAddress(addr) ? sum + coinValueToUnits(o.value, decimals) : sum
+  }, 0n)
 
-  let amountCoin: number
+  let amountUnits: bigint
   if (type === 'outgoing') {
     // Prefer "sent to other parties" — that's what the user typed in the form.
     // Fall back to |net delta| when the raw tx is missing or all outputs went to self.
-    const selfSendAmount = hasOwnInput && valueToOthers === 0 && ownOutputs.length > 1
-      ? Number(ownOutputs[0]?.value || 0)
-      : 0
-    amountCoin = valueToOthers > 0 ? valueToOthers : (selfSendAmount > 0 ? selfSendAmount : Math.abs(satoshis) / satsPerCoin)
+    const selfSendAmount = hasOwnInput && valueToOthers === 0n && ownOutputs.length > 1
+      ? coinValueToUnits(ownOutputs[0]?.value, decimals)
+      : 0n
+    amountUnits = valueToOthers > 0n ? valueToOthers : (selfSendAmount > 0n ? selfSendAmount : (deltaUnits < 0n ? -deltaUnits : deltaUnits))
   } else {
-    amountCoin = valueToSelf > 0 ? valueToSelf : satoshis / satsPerCoin
+    amountUnits = valueToSelf > 0n ? valueToSelf : (deltaUnits > 0n ? deltaUnits : 0n)
   }
-  const amount = formatCoinFloor(amountCoin, satsPerCoin)
+  const amount = fromBaseUnits(amountUnits, decimals)
 
   // Counter-party address: for outgoing pick the first non-self output;
   // for incoming pick the first non-self vin (the gateway pre-fills it).
@@ -510,11 +566,12 @@ const mapRawTxToTransaction = (
     from = vinAddrs.find((a) => !isOwnAddress(a)) ?? vinAddrs[0]
   }
 
-  const vinValue = (raw.vin ?? []).reduce((sum, input) => sum + Number(input.value || 0), 0)
-  const voutValue = (raw.vout ?? []).reduce((sum, output) => sum + Number(output.value || 0), 0)
-  const inferredFee = vinValue > 0 && voutValue > 0 ? vinValue - voutValue : 0
-  const feeCoin = typeof raw.fee === 'number' && raw.fee > 0 ? raw.fee : inferredFee
-  const fee = feeCoin > 0 ? formatCoinFloor(feeCoin, satsPerCoin) : undefined
+  const vinValue = (raw.vin ?? []).reduce((sum, input) => sum + coinValueToUnits(input.value, decimals), 0n)
+  const voutValue = (raw.vout ?? []).reduce((sum, output) => sum + coinValueToUnits(output.value, decimals), 0n)
+  const inferredFee = vinValue > voutValue && voutValue > 0n ? vinValue - voutValue : 0n
+  const explicitFee = coinValueToUnits(raw.fee, decimals)
+  const feeUnits = explicitFee > 0n ? explicitFee : inferredFee
+  const fee = feeUnits > 0n ? fromBaseUnits(feeUnits, decimals) : undefined
 
   // Stable timestamp: blocktime for confirmed, server-supplied time for
   // mempool, and a fall-back of "now" only as a last resort. The CALLER
@@ -522,6 +579,13 @@ const mapRawTxToTransaction = (
   // list doesn't reorder when the same tx flips from pending→confirmed.
   const ts = raw.blocktime ?? raw.time ?? meta.timestamp ?? Math.floor(Date.now() / 1000)
   const resolvedStatus = raw.status === 'failed' || raw.status === 'error' ? 'failed' : status
+
+  const confirmations = resolveTransactionConfirmations(
+    resolvedStatus,
+    raw.confirmations,
+    meta.height,
+    meta.tipHeight,
+  )
 
   return {
     id: `${coinId}-${raw.txid}`,
@@ -535,7 +599,7 @@ const mapRawTxToTransaction = (
     to,
     internal: type === 'outgoing' && Boolean(to && isOwnAddress(to)),
     createdAt: new Date(ts * 1000).toISOString(),
-    confirmations: resolvedStatus === 'failed' ? 0 : raw.confirmations ?? (status === 'confirmed' ? 1 : 0),
+    confirmations,
     blockHeight: meta.height,
   }
 }
@@ -546,6 +610,7 @@ export const mapHistoryResponseToTransactions = (
   address: string,
   satsPerCoin: number,
   walletAddresses: string[] = [address],
+  tipHeight?: number,
 ): Transaction[] => {
   const hasPagedTxids = Array.isArray(history.txids)
   const pageTxids = new Set((history.txids ?? []).map((txid) => txid.trim().toLowerCase()).filter(Boolean))
@@ -569,19 +634,19 @@ export const mapHistoryResponseToTransactions = (
     if (t?.txid && belongsToPage(t.txid)) rawByTxid.set(t.txid, t)
   }
 
-  const pendingByTxid = new Map<string, { sats: number; ts?: number }>()
+  const pendingByTxid = new Map<string, { sats: bigint; ts?: number }>()
   for (const m of history.mempool ?? []) {
     if (!belongsToPage(m.txid)) continue
-    const cur = pendingByTxid.get(m.txid) ?? { sats: 0, ts: m.timestamp }
-    cur.sats += m.satoshis
+    const cur = pendingByTxid.get(m.txid) ?? { sats: 0n, ts: m.timestamp }
+    cur.sats += atomicAmountToBigInt(m.satoshis)
     pendingByTxid.set(m.txid, cur)
   }
 
-  const confirmedByTxid = new Map<string, { sats: number; height?: number; ts?: number }>()
+  const confirmedByTxid = new Map<string, { sats: bigint; height?: number; ts?: number }>()
   for (const d of history.deltas ?? []) {
     if (!belongsToPage(d.txid)) continue
-    const cur = confirmedByTxid.get(d.txid) ?? { sats: 0, height: d.height, ts: d.timestamp }
-    cur.sats += d.satoshis
+    const cur = confirmedByTxid.get(d.txid) ?? { sats: 0n, height: d.height, ts: d.timestamp }
+    cur.sats += atomicAmountToBigInt(d.satoshis)
     cur.height ??= d.height
     cur.ts ??= d.timestamp
     confirmedByTxid.set(d.txid, cur)
@@ -591,7 +656,10 @@ export const mapHistoryResponseToTransactions = (
   for (const [txid, item] of pendingByTxid) {
     const raw = rawByTxid.get(txid) ?? { txid }
     if (!rawTouchesWallet(rawByTxid.get(txid))) continue
-    rows.push(mapRawTxToTransaction(raw, address, item.sats, coinId, satsPerCoin, 'pending', walletAddresses, { timestamp: item.ts }))
+    rows.push(mapRawTxToTransaction(raw, address, item.sats, coinId, satsPerCoin, 'pending', walletAddresses, {
+      timestamp: item.ts,
+      tipHeight,
+    }))
   }
   for (const [txid, item] of confirmedByTxid) {
     const raw = rawByTxid.get(txid) ?? { txid }
@@ -599,6 +667,7 @@ export const mapHistoryResponseToTransactions = (
     rows.push(mapRawTxToTransaction(raw, address, item.sats, coinId, satsPerCoin, 'confirmed', walletAddresses, {
       height: item.height,
       timestamp: item.ts,
+      tipHeight,
     }))
   }
   const byHash = new Map<string, Transaction>()
@@ -614,6 +683,51 @@ export const mapHistoryResponseToTransactions = (
 /* ───── public API ───── */
 
 export const coinApiService = {
+  /** Public chain lookup used to reconcile outgoing transactions missing from native history. */
+  async getZanoTransactionStatus(txid: string): Promise<ZanoTransactionStatus> {
+    const normalizedTxid = txid.trim().toLowerCase()
+    if (!/^[0-9a-f]{64}$/.test(normalizedTxid)) {
+      return { found: false, confirmed: false }
+    }
+
+    const response = await coinNodeJsonWithTimeout<{
+      error?: { code?: number; message?: string }
+      result?: {
+        status?: string
+        tx_info?: {
+          id?: string
+          keeper_block?: number | string
+          timestamp?: number | string
+        }
+      }
+    }>('zano', '/json_rpc', 'POST', JSON.stringify({
+        jsonrpc: '2.0',
+        id: 'altbase-zano-tx-status',
+        method: 'get_tx_details',
+        params: { tx_hash: normalizedTxid },
+      }), 15_000)
+
+    const txInfo = response.result?.tx_info
+    const responseTxid = String(txInfo?.id ?? '').trim().toLowerCase()
+    if (
+      response.result?.status !== 'OK'
+      || !txInfo
+      || (responseTxid !== '' && responseTxid !== normalizedTxid)
+    ) {
+      return { found: false, confirmed: false }
+    }
+
+    const blockHeight = Number(txInfo.keeper_block ?? 0)
+    const timestamp = Number(txInfo.timestamp ?? 0)
+    const confirmed = Number.isFinite(blockHeight) && blockHeight > 0
+    return {
+      found: true,
+      confirmed,
+      blockHeight: confirmed ? Math.floor(blockHeight) : undefined,
+      timestamp: Number.isFinite(timestamp) && timestamp > 0 ? Math.floor(timestamp) : undefined,
+    }
+  },
+
   /** Raw network state. */
   async getNetwork(coinId: string): Promise<CoinNetwork> {
     return getJson<CoinNetwork>(coinId, '/network')
@@ -806,6 +920,7 @@ export const coinApiService = {
       gasPriceHex: response.gasPriceHex,
       chainId: response.chainId,
       source: response.source,
+      targetTick: response.targetTick,
     }
   },
 
@@ -901,13 +1016,13 @@ export const coinApiService = {
   },
 
   /** Broadcast a signed-hex transaction. Returns the txid. */
-  async broadcast(coinId: string, hex: string): Promise<string> {
+  async broadcast(coinId: string, hex: string, expectedTxid?: string): Promise<string> {
     const r = await postJson<{ ok: true; txid?: string; result?: { txid?: string } }>(coinId, '/tx/broadcast', { hex }, 25_000)
     const txid = r.txid ?? r.result?.txid
-    if (!txid) throw new Error('Broadcast succeeded but no txid returned')
+    if (!txid && !expectedTxid) throw new Error('Broadcast succeeded but no txid returned')
     clearUtxoCache(coinId)
     walletSnapshotCache.clear()
-    return txid
+    return txid ?? expectedTxid as string
   },
 
   /**

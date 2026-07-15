@@ -5,33 +5,39 @@
   "author": "Altbase",
   "homepage": "https://altbase.io",
   "private": true,
-  "version": "0.1.4",
+  "version": "0.1.5",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite",
     "build:zano": "node scripts/build-zano-native.cjs",
-    "build:epic": "set LIBCLANG_PATH=%APPDATA%\\Python\\Python314\\site-packages\\clang\\native&& set PATH=%USERPROFILE%\\.cargo\\bin;%PATH%&& cargo build --release --manifest-path native/epic_core/Cargo.toml",
-    "build:core": "npm run build:zano && npm run build:epic && set GIT_CEILING_DIRECTORIES=%USERPROFILE%\\Desktop&& cmake --preset vs2022-x64-release -S native/core && cmake --build native/core/build/vs2022-x64-release --config Release && node scripts/copy-native-core.cjs",
+    "build:epic": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-epic-resilient.ps1",
+    "build:kaspa-wallet-wasm": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-kaspa-wallet-wasm.ps1 -Threads 7",
+    "build:core": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-core-native.ps1",
     "build": "tsc -b && vite build",
     "cli:build": "vite build --config vite.cli.config.ts",
     "cli": "npm run -s cli:build && node cli-dist/altbase-cli.mjs",
     "electron": "electron .",
-    "dist:win": "npm run build:core && npm run build && electron-builder --win dir --x64 --config.win.signAndEditExecutable=false && node scripts/set-win-icon.cjs && electron-builder --win nsis --x64 --prepackaged release/win-unpacked --config.win.signAndEditExecutable=false",
+    "dist:win": "npm run build:core && npm run dist:win:dir && node scripts/build-native-installer.cjs",
     "dist:win:dir": "npm run build && electron-builder --win dir --x64 --config.win.signAndEditExecutable=false && node scripts/set-win-icon.cjs",
-    "dist:win:inno": "npm run build:core && npm run dist:win:dir && node scripts/build-inno-installer.cjs",
-    "dist:win:installer": "npm run dist:win",
+    "dist:win:msi": "npm run build:core && npm run dist:win:dir && node scripts/build-native-installer.cjs",
+    "dist:win:installer": "npm run dist:win:msi",
     "dist:linux:appimage": "npm run build && electron-builder --linux AppImage --x64",
     "dist:linux:dir": "npm run build && electron-builder --linux dir --x64",
     "dist:mac:dmg": "npm run build && electron-builder --mac dmg --x64",
     "dist:mac:zip": "npm run build && electron-builder --mac zip --x64",
     "lint": "eslint .",
+    "test": "node --experimental-strip-types --test tests/**/*.test.ts tests/**/*.test.cjs",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@ckb-ccc/core": "1.16.1",
     "@hookform/resolvers": "^5.2.2",
+    "@qubic-lib/qubic-ts-library": "0.1.6",
     "clsx": "^2.1.1",
     "framer-motion": "^12.38.0",
+    "ethers": "6.17.0",
+    "kaspa-wasm": "file:vendor/kaspa-wasm-v2.0.1",
     "lucide-react": "^1.14.0",
     "qrcode.react": "^4.2.0",
     "quais": "^1.0.0-alpha.54",
@@ -94,26 +100,8 @@
           "arch": [
             "x64"
           ]
-        },
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
         }
       ]
-    },
-    "nsis": {
-      "artifactName": "Altbase-Wallet-Windows.${ext}",
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": "always",
-      "createStartMenuShortcut": true,
-      "shortcutName": "Altbase Wallet",
-      "installerIcon": "build/icon.ico",
-      "uninstallerIcon": "build/icon.ico",
-      "runAfterFinish": true,
-      "deleteAppDataOnUninstall": false
     },
     "linux": {
       "category": "Finance",

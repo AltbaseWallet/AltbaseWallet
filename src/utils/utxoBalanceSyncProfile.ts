@@ -28,6 +28,10 @@ const PROFILES: Record<UtxoReadProfile, UtxoBalanceSyncProfile> = {
     refreshBeforeHistoryCommit: true,
     freshIncomingOverlay: true,
   },
+  'mempool-space': {
+    refreshBeforeHistoryCommit: true,
+    freshIncomingOverlay: true,
+  },
 }
 
 export const utxoBalanceSyncProfileFor = (

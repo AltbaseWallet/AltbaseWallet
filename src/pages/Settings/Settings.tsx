@@ -60,8 +60,8 @@ export default function Settings() {
   }, [section])
 
   return (
-    <div className="grid h-full min-h-0 gap-6 overflow-y-auto xl:grid-cols-[300px_minmax(0,1fr)] xl:items-start xl:overflow-hidden">
-      <Card className="self-start xl:sticky xl:top-0">
+    <div className="grid min-h-0 gap-6 xl:h-full xl:grid-cols-[300px_minmax(0,1fr)] xl:items-start xl:overflow-hidden">
+      <Card className="hidden self-start xl:sticky xl:top-0 xl:block">
         <h1 className="mb-4 text-xl font-bold text-white">{t('settingsTitle')}</h1>
         <div className="space-y-1">
           <Link

@@ -1,31 +1,85 @@
 type DebugFields = Record<string, unknown>
 
-const logKeyForCoin = (coin: string) => `${coin}-gui-debug-lines`
-const MAX_LINES = 200
+const SENSITIVE_LOG_KEY = /(?:mnemonic|phrase|password|private|secret|seed|wif|scanState|cachedWalletState|nativeWalletFileBlob)/i
+const MAX_ARRAY_ITEMS = 20
+const MAX_OBJECT_KEYS = 40
+const MAX_STRING_CHARS = 2_000
+const MAX_LINE_CHARS = 4_000
+const FLUSH_DELAY_MS = 50
+const MAX_PENDING_LINES = 100
 
-const safeJson = (value: unknown): string => JSON.stringify(value, (_key, item) => {
-  if (typeof item === 'bigint') return item.toString()
-  if (item instanceof Error) return { message: item.message, stack: item.stack }
-  return item
-})
+type PendingDebugLine = { coin: string; line: string }
 
-const readStoredLines = (coin: string) => {
+const pendingLines: PendingDebugLine[] = []
+let flushTimer: ReturnType<typeof setTimeout> | null = null
+let flushing = false
+
+const normalizeForLog = (value: unknown, key = '', depth = 0, seen = new WeakSet<object>()): unknown => {
+  if (key && SENSITIVE_LOG_KEY.test(key)) return '[redacted]'
+  if (value === null || value === undefined || typeof value === 'boolean' || typeof value === 'number') return value
+  if (typeof value === 'bigint') return value.toString()
+  if (typeof value === 'string') {
+    return value.length > MAX_STRING_CHARS ? `${value.slice(0, MAX_STRING_CHARS)}...[truncated]` : value
+  }
+  if (value instanceof Error) return { message: value.message }
+  if (value instanceof Date) return value.toISOString()
+  if (typeof value !== 'object') return String(value)
+  if (depth >= 5) return '[depth-limited]'
+  if (seen.has(value)) return '[circular]'
+
+  seen.add(value)
+  if (Array.isArray(value)) {
+    const items = value.slice(0, MAX_ARRAY_ITEMS).map((item) => normalizeForLog(item, '', depth + 1, seen))
+    if (value.length > MAX_ARRAY_ITEMS) items.push(`[${value.length - MAX_ARRAY_ITEMS} more items]`)
+    return items
+  }
+
+  const entries = Object.entries(value as Record<string, unknown>)
+  const normalized: Record<string, unknown> = {}
+  for (const [entryKey, entryValue] of entries.slice(0, MAX_OBJECT_KEYS)) {
+    normalized[entryKey] = normalizeForLog(entryValue, entryKey, depth + 1, seen)
+  }
+  if (entries.length > MAX_OBJECT_KEYS) normalized.__truncatedKeys = entries.length - MAX_OBJECT_KEYS
+  return normalized
+}
+
+const safeJson = (value: unknown): string => {
   try {
-    const raw = localStorage.getItem(`altbase_wallet:${logKeyForCoin(coin)}`)
-    const parsed = raw ? JSON.parse(raw) : []
-    return Array.isArray(parsed) ? parsed.filter((line) => typeof line === 'string') : []
+    return JSON.stringify(normalizeForLog(value))
   } catch {
-    return []
+    return JSON.stringify({ error: 'debug-payload-serialization-failed' })
   }
 }
 
-const writeStoredLine = (coin: string, line: string) => {
+const scheduleFlush = () => {
+  if (flushTimer || flushing || pendingLines.length === 0) return
+  flushTimer = setTimeout(() => {
+    flushTimer = null
+    void flushPendingLines()
+  }, FLUSH_DELAY_MS)
+}
+
+const flushPendingLines = async () => {
+  if (flushing) return
+  flushing = true
   try {
-    const lines = [...readStoredLines(coin), line].slice(-MAX_LINES)
-    localStorage.setItem(`altbase_wallet:${logKeyForCoin(coin)}`, JSON.stringify(lines))
-  } catch {
-    // Debug logging must never break wallet state updates.
+    while (pendingLines.length > 0) {
+      const batch = pendingLines.splice(0, 10)
+      await Promise.all(batch.map(({ coin, line }) =>
+        window.altbaseWallet?.debugLog?.({ coin, line }).catch(() => undefined),
+      ))
+    }
+  } finally {
+    flushing = false
+    scheduleFlush()
   }
+}
+
+const enqueueDebugLine = (coin: string, line: string) => {
+  if (!window.altbaseWallet?.debugLog) return
+  pendingLines.push({ coin, line })
+  if (pendingLines.length > MAX_PENDING_LINES) pendingLines.splice(0, pendingLines.length - MAX_PENDING_LINES)
+  scheduleFlush()
 }
 
 export const coinDebugLog = (coin: string, event: string, fields: DebugFields = {}) => {
@@ -35,14 +89,10 @@ export const coinDebugLog = (coin: string, event: string, fields: DebugFields = 
     event,
     ...fields,
   }
-  const line = `[${normalizedCoin.toUpperCase()}-GUI-DEBUG] ${safeJson(payload)}`
-  try {
-    console.info(line)
-  } catch {
-    // Console can be unavailable in some embedded contexts.
-  }
-  writeStoredLine(normalizedCoin, line)
-  void window.altbaseWallet?.debugLog?.({ coin: normalizedCoin, line }).catch(() => undefined)
+  const rawLine = `[${normalizedCoin.toUpperCase()}-GUI-DEBUG] ${safeJson(payload)}`
+  const line = rawLine.length > MAX_LINE_CHARS ? `${rawLine.slice(0, MAX_LINE_CHARS)}...[truncated]` : rawLine
+  if (import.meta.env.DEV) console.info(line)
+  enqueueDebugLine(normalizedCoin, line)
 }
 
 export const coinDebugLogError = (coin: string, event: string, error: unknown, fields: DebugFields = {}) => {

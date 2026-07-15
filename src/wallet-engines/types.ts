@@ -6,6 +6,7 @@ export type WalletEngineKind = 'utxo' | 'privacy' | 'account'
 export type WalletFeeEstimate = {
   satoshis: number
   coin: string
+  exact?: boolean
 }
 
 export type WalletFeeOptions = {

@@ -12,11 +12,35 @@ MACOS_MIN_VERSION="${ALTBASE_MACOS_MIN_VERSION:-12.0}"
 IMAGE_NAME="${ALTBASE_MACOS_IMAGE:-altbase-wallet-builder:macos-x64}"
 CONTAINER_NAME="${ALTBASE_MACOS_CONTAINER:-altbase-wallet-build-macos-x64}"
 ARTIFACT_NAME="${ALTBASE_MACOS_ARTIFACT:-Altbase-Wallet-macOS-x64.zip}"
+BUILD_JOBS="${ALTBASE_BUILD_JOBS:-2}"
+CACHE_DIR="${ALTBASE_MACOS_CACHE_DIR:-$ROOT_DIR/cache/macos}"
+ZANO_DEPS_DIR="${ALTBASE_ZANO_MACOS_DEPS_DIR:-$ROOT_DIR/dependencies/zano-macosx}"
 
-mkdir -p "$DOCKER_DIR" "$SDK_DIR" "$OSXCROSS_DIR" "$DOWNLOADS_DIR"
+if ! [[ "$BUILD_JOBS" =~ ^[1-9][0-9]*$ ]]; then
+  echo "ALTBASE_BUILD_JOBS must be a positive integer: $BUILD_JOBS" >&2
+  exit 1
+fi
+
+mkdir -p \
+  "$DOCKER_DIR" \
+  "$SDK_DIR" \
+  "$OSXCROSS_DIR" \
+  "$DOWNLOADS_DIR" \
+  "$CACHE_DIR/npm" \
+  "$CACHE_DIR/cargo-registry" \
+  "$CACHE_DIR/cargo-git" \
+  "$CACHE_DIR/dependencies" \
+  "$ZANO_DEPS_DIR"
 
 if [[ ! -f "$SOURCE_DIR/package.json" ]]; then
   echo "Source directory is missing package.json: $SOURCE_DIR" >&2
+  exit 1
+fi
+
+ZANO_PLAIN_WALLET="$ZANO_DEPS_DIR/libzano-plain-wallet.xcframework/macos-arm64_x86_64/libzano-plain-wallet.a"
+if [[ ! -f "$ZANO_PLAIN_WALLET" ]]; then
+  echo "The macOS Zano dependency cache is incomplete: $ZANO_PLAIN_WALLET" >&2
+  echo "Populate ALTBASE_ZANO_MACOS_DEPS_DIR before starting the container build." >&2
   exit 1
 fi
 
@@ -51,10 +75,21 @@ fi
 
 docker create -it \
   --name "$CONTAINER_NAME" \
+  -e ALTBASE_BUILD_JOBS="$BUILD_JOBS" \
+  -e CARGO_NET_RETRY=100 \
+  -e CARGO_HTTP_TIMEOUT=600 \
+  -e CARGO_HTTP_LOW_SPEED_LIMIT=1 \
+  -e CARGO_HTTP_MULTIPLEXING=false \
+  -e ALTBASE_DEPENDENCY_CACHE_DIR=/dependencies \
   -v "$SOURCE_DIR:/workspace" \
   -v "$SDK_DIR:/sdk" \
   -v "$OSXCROSS_DIR:/opt/osxcross" \
   -v "$DOWNLOADS_DIR:/out" \
+  -v "$ZANO_DEPS_DIR:/dependencies/zano-macosx:ro" \
+  -v "$CACHE_DIR/npm:/root/.npm" \
+  -v "$CACHE_DIR/cargo-registry:/usr/local/cargo/registry" \
+  -v "$CACHE_DIR/cargo-git:/usr/local/cargo/git" \
+  -v "$CACHE_DIR/dependencies:/dependencies" \
   "$IMAGE_NAME" \
   /bin/bash >/dev/null
 
@@ -108,17 +143,40 @@ docker exec \
     export CXXFLAGS_x86_64_apple_darwin="-fuse-ld=$LD_BIN"
     export MACOSX_DEPLOYMENT_TARGET="$MACOS_MIN_VERSION"
 
+    zano_macos_root=native/vendor/zano_native_lib/_install_macosx
+    rm -rf "$zano_macos_root"
+    mkdir -p "$zano_macos_root"
+    rsync -a /dependencies/zano-macosx/ "$zano_macos_root/"
+    for required in \
+      "$zano_macos_root/libzano-plain-wallet.xcframework/macos-arm64_x86_64/libzano-plain-wallet.a" \
+      "$zano_macos_root/libboost.xcframework/macos-arm64_x86_64/Headers/boost/version.hpp" \
+      "$zano_macos_root/libopenssl.xcframework/macos-arm64_x86_64/libopenssl.a" \
+      "$zano_macos_root/libiconv.xcframework/macos-arm64_x86_64/libiconv.a"; do
+      test -f "$required"
+    done
+
     rm -rf \
       dist \
       release \
       native-core \
       native/core/build/macos-x64-release \
-      native/epic_core/target/x86_64-apple-darwin/release
+      native/epic_core/target/x86_64-apple-darwin/release \
+      native/target-epic-modular-macos
 
-    npm install --no-audit --no-fund
-    cargo build --release --target x86_64-apple-darwin --manifest-path native/epic_core/Cargo.toml
-    "$INSTALL_NAME_TOOL" -id "@loader_path/libaltbase_epic_core.dylib" \
-      native/epic_core/target/x86_64-apple-darwin/release/libaltbase_epic_core.dylib
+    bash scripts/build-kaspa-wallet-wasm.sh
+    npm ci --prefer-offline --no-audit --no-fund
+    epic_target=native/target-epic-modular-macos
+    epic_release="$epic_target/x86_64-apple-darwin/release"
+    cargo build --release --locked --target x86_64-apple-darwin --manifest-path native/epic_transport/Cargo.toml --target-dir "$epic_target" -j "${ALTBASE_BUILD_JOBS:-2}"
+    "$INSTALL_NAME_TOOL" -id "@loader_path/libaltbase_epic_transport.dylib" "$epic_release/libaltbase_epic_transport.dylib"
+    export ALTBASE_EPIC_TRANSPORT_LIB_DIR="$PWD/$epic_release"
+    cargo build --release --locked --target x86_64-apple-darwin --manifest-path native/epic_state/Cargo.toml --target-dir "$epic_target" -j "${ALTBASE_BUILD_JOBS:-2}"
+    cargo build --release --locked --target x86_64-apple-darwin --manifest-path native/epic_sender/Cargo.toml --target-dir "$epic_target" -j "${ALTBASE_BUILD_JOBS:-2}"
+    mkdir -p native/epic_core/target/x86_64-apple-darwin/release
+    for module in state sender transport; do
+      "$INSTALL_NAME_TOOL" -id "@loader_path/libaltbase_epic_${module}.dylib" "$epic_release/libaltbase_epic_${module}.dylib"
+      cp "$epic_release/libaltbase_epic_${module}.dylib" native/epic_core/target/x86_64-apple-darwin/release/
+    done
 
     cmake \
       -S native/core \
@@ -140,10 +198,13 @@ docker exec \
       -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY \
       -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY \
       -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=BOTH
-    cmake --build native/core/build/macos-x64-release --parallel 2
+    cmake --build native/core/build/macos-x64-release --parallel "${ALTBASE_BUILD_JOBS:-2}"
 
     ALTBASE_TARGET_PLATFORM=darwin node scripts/copy-native-core.cjs
-    "$INSTALL_NAME_TOOL" -id "@loader_path/libaltbase_epic_core.dylib" native-core/libaltbase_epic_core.dylib
+    for module in state sender transport; do
+      "$INSTALL_NAME_TOOL" -id "@loader_path/libaltbase_epic_${module}.dylib" "native-core/libaltbase_epic_${module}.dylib"
+    done
+    npm test
     npm run build
     CSC_IDENTITY_AUTO_DISCOVERY=false npx electron-builder --mac zip --x64 --config.mac.identity=null --publish never
 
@@ -151,9 +212,16 @@ docker exec \
     test -n "$zip_path"
     install -m 0644 "$zip_path" "/out/$ARTIFACT_NAME"
     file native-core/altbase_core_bridge
-    file native-core/libaltbase_epic_core.dylib
+    test "$(find native-core -maxdepth 1 -type f -name '''altbase_*_wallet.dylib''' | wc -l)" -eq 19
+    test "$(find native-core -maxdepth 1 -type f -name '''altbase_*_node.dylib''' | wc -l)" -eq 23
+    file native-core/libaltbase_zano_core.dylib
+    for module in state sender transport; do
+      file "native-core/libaltbase_epic_${module}.dylib"
+    done
     unzip -l "/out/$ARTIFACT_NAME" | grep -F "native-core/altbase_core_bridge" >/dev/null
-    unzip -l "/out/$ARTIFACT_NAME" | grep -F "native-core/libaltbase_epic_core.dylib" >/dev/null
+    for module in state sender transport; do
+      unzip -l "/out/$ARTIFACT_NAME" | grep -F "native-core/libaltbase_epic_${module}.dylib" >/dev/null
+    done
     (cd /out && sha256sum "$ARTIFACT_NAME" > "${ARTIFACT_NAME}.sha256")
   '
 

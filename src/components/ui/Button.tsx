@@ -17,7 +17,7 @@ export function Button({ className, variant = 'primary', size = 'md', icon, chil
   return (
     <button
       className={clsx(
-        'btn-press inline-flex items-center justify-center gap-2 rounded-2xl font-semibold transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100',
+        'btn-press inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100',
         // Primary: solid accent with a subtle glow shadow tinted with the accent
         variant === 'primary' && 'border border-white/20 bg-[var(--accent)] text-[#f8fafc] shadow-[0_4px_16px_-6px_rgba(var(--accent-rgb),0.8)] hover:bg-[#6f7dff] hover:shadow-[0_6px_22px_-8px_rgba(var(--accent-rgb),0.9)]',
         variant === 'secondary' && 'btn-secondary border border-white/10 bg-white/8 text-slate-50 hover:bg-white/12',

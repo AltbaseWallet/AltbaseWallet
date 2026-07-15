@@ -20,14 +20,14 @@ export function Modal({ open, title, children, onClose, placement = 'center', cl
 
   return createPortal(
     <div
-      className={`fixed inset-0 z-[1000] flex overflow-y-auto bg-black/70 p-4 ${
-        placement === 'top' ? 'items-start justify-center pt-6 sm:pt-10' : 'items-center justify-center'
+      className={`fixed inset-0 z-[1000] flex overflow-y-auto bg-black/70 p-2 sm:p-4 ${
+        placement === 'top' ? 'items-start justify-center pt-3 sm:pt-10' : 'items-end justify-center sm:items-center'
       }`}
     >
       <motion.div
         initial={{ opacity: 0, y: placement === 'top' ? -10 : 20, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        className="w-full max-w-lg rounded-[24px] border border-white/10 bg-[#101827] p-5 shadow-soft"
+        className="max-h-[calc(100dvh-1rem)] w-full max-w-lg overflow-y-auto rounded-lg border border-white/10 bg-[#101827] p-4 shadow-soft sm:max-h-[calc(100dvh-2rem)] sm:p-5"
       >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-white">{title}</h2>

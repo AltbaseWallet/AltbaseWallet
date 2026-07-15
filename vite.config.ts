@@ -10,5 +10,8 @@ export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(packageJson.version),
   },
+  optimizeDeps: {
+    entries: ['index.html'],
+  },
   plugins: [react()],
 })

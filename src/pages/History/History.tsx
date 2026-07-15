@@ -6,6 +6,7 @@ import { useCoinStore } from '../../store/coinStore'
 import { useTransactionStore } from '../../store/transactionStore'
 import type { Transaction, TransactionStatus, TransactionType } from '../../types/transaction'
 import { useT } from '../../utils/i18n'
+import { hasLoadedHistoryPage } from '../../utils/historyPagination'
 
 export default function History() {
   const t = useT()
@@ -22,9 +23,25 @@ export default function History() {
   // (no coin's transactions can go missing, and filtered views never snap back).
   useEffect(() => {
     window.setTimeout(() => setPage(1), 0)
-    void loadTransactions({ page: 1, pageSize, force: true })
-      .finally(() => { void loadCoins({ forceBalances: true }) })
+    let refreshInFlight = false
+    const refreshLatest = () => {
+      if (refreshInFlight || document.visibilityState === 'hidden') return
+      refreshInFlight = true
+      void loadTransactions({ page: 1, pageSize, force: true })
+        .finally(() => loadCoins({ forceBalances: true }))
+        .finally(() => { refreshInFlight = false })
+    }
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') refreshLatest()
+    }
+    refreshLatest()
     void loadAllTransactions()
+    const interval = window.setInterval(refreshLatest, 15_000)
+    document.addEventListener('visibilitychange', refreshWhenVisible)
+    return () => {
+      window.clearInterval(interval)
+      document.removeEventListener('visibilitychange', refreshWhenVisible)
+    }
   }, [loadCoins, loadTransactions, loadAllTransactions])
 
   const matchesFilters = useCallback((tx: Transaction) => {
@@ -48,9 +65,7 @@ export default function History() {
   }, [allHistoryLoaded, filtered.length, page])
 
   const pagePending = visible.length === 0 && !allHistoryLoaded && allHistoryLoading
-  const nextDisabled = allHistoryLoaded
-    ? filtered.length <= page * pageSize
-    : filtered.length <= page * pageSize && !allHistoryLoading
+  const nextDisabled = !hasLoadedHistoryPage(filtered.length, page, pageSize)
   const goPage = (nextPage: number) => setPage(Math.max(1, nextPage))
 
   return (
@@ -107,7 +122,7 @@ export default function History() {
         </button>
         <span className="min-w-20 rounded-xl border border-white/10 px-3 py-2 text-center text-slate-300">
           {t('pageLabel', { page })}
-          {allHistoryLoading && !allHistoryLoaded ? '…' : ''}
+          {allHistoryLoading && !allHistoryLoaded ? '...' : ''}
         </span>
         <button
           type="button"

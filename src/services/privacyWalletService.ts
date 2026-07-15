@@ -127,35 +127,44 @@ const zanoCachedRestoreStartFrom = (cached: {
   lastScannedHeight?: number
   scanState?: string
   transactions?: unknown[]
+  nativeWalletFileName?: string
 } | null) => {
-  if (!cached?.scanState) return undefined
+  if (!cached) return undefined
   const heights: number[] = []
   let scanStateHeight: number | undefined
-  try {
-    const parsed = JSON.parse(cached.scanState) as { height?: unknown; outputs?: Array<{ height?: unknown }> }
-    scanStateHeight = positiveHeight(parsed.height)
-    for (const output of parsed.outputs ?? []) {
-      const height = positiveHeight(output.height)
-      if (height > 0) heights.push(height)
+  if (cached.scanState) {
+    try {
+      const parsed = JSON.parse(cached.scanState) as { height?: unknown; outputs?: Array<{ height?: unknown }> }
+      scanStateHeight = positiveHeight(parsed.height)
+      for (const output of parsed.outputs ?? []) {
+        const height = positiveHeight(output.height)
+        if (height > 0) heights.push(height)
+      }
+    } catch {
+      // Other cached anchors can still recover the wallet.
     }
-  } catch {
-    return undefined
   }
   for (const raw of cached.transactions ?? []) {
     const tx = raw as { height?: unknown; blockHeight?: unknown; block_height?: unknown; tipHeight?: unknown; tip_height?: unknown }
     const height = positiveHeight(tx.height ?? tx.blockHeight ?? tx.block_height ?? tx.tipHeight ?? tx.tip_height)
     if (height > 0) heights.push(height)
   }
+
+  const restoreCandidates: number[] = []
   const cachedFloor = positiveHeight(cached.restoreStartHeight)
+  if (cachedFloor > 0) restoreCandidates.push(cachedFloor)
+  const fileHeightMatch = cached.nativeWalletFileName?.match(/-h(\d+)-/i)
+  const fileHeight = positiveHeight(fileHeightMatch?.[1])
+  if (fileHeight > 0) restoreCandidates.push(fileHeight)
+  for (const height of heights) {
+    restoreCandidates.push(Math.max(0, height - ZANO_SCAN_STATE_REORG_OVERLAP))
+  }
+  if (restoreCandidates.length > 0) return Math.min(...restoreCandidates)
+
   const cachedScannedHeight = Math.max(scanStateHeight ?? 0, positiveHeight(cached.lastScannedHeight))
-  const restoreAnchor = cachedScannedHeight > 0
-    ? cachedScannedHeight
-    : (heights.length ? Math.min(...heights) : 0)
-  if (restoreAnchor <= 0) return undefined
-  const cacheBackfillStart = Math.max(0, restoreAnchor - ZANO_SCAN_STATE_REORG_OVERLAP)
-  return cachedFloor > 0
-    ? Math.max(cachedFloor, cacheBackfillStart)
-    : cacheBackfillStart
+  return cachedScannedHeight > 0
+    ? Math.max(0, cachedScannedHeight - ZANO_SCAN_STATE_REORG_OVERLAP)
+    : undefined
 }
 
 const privacyTxKey = (tx: unknown, fallback: number) => {
@@ -575,6 +584,7 @@ const callNativeLightWallet = async (
       restoreStartHeight = cachedRestoreStartHeight
       restoreStartSource = 'cache-floor'
     } else if (coin === 'zano') {
+      restoreStartHeight = await privacyBirthService.restoreStartHeight(coin)
       restoreStartSource = 'zano-default-compact-window'
     } else {
       restoreStartHeight = await privacyBirthService.restoreStartHeight(coin)
@@ -639,8 +649,8 @@ const callNativeLightWallet = async (
       expectedSpendable,
       scanState,
       fastCompact,
-      nativeWalletFileName: cached?.nativeWalletFileName,
-      nativeWalletFileBlob: cached?.nativeWalletFileBlob,
+      cachedWalletName: cached?.nativeWalletFileName,
+      cachedWalletState: cached?.nativeWalletFileBlob,
       verifyCompact,
       ...body,
     }, (progress) => {
@@ -947,8 +957,8 @@ export const privacyWalletService = {
       compactOnly: coin === 'zano' ? 'true' : undefined,
       forceRescan: coin === 'zano' ? 'true' : undefined,
       verifyCompact: coin === 'zano' ? 'true' : undefined,
-      nativeWalletFileName: '',
-      nativeWalletFileBlob: '',
+      cachedWalletName: '',
+      cachedWalletState: '',
     }, onProgress))
     const finalResponse = { ...response, restoreStartHeight }
     updateNativeReadiness(coin, finalResponse, 'snapshot')

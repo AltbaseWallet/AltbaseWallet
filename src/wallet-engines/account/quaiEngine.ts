@@ -1,4 +1,3 @@
-import { coinApiService } from '../../services/coinApiService'
 import { quaiWalletService } from '../../services/quaiWalletService'
 import type { AddressVariant } from '../../types/crypto'
 import type { WalletEngine } from '../types'
@@ -22,10 +21,8 @@ export const quaiEngine: WalletEngine = {
     return [accountAddressVariant(address)]
   },
 
-  async validateAddress(coin, address) {
-    if (!quaiWalletService.isValidAddress(address)) return false
-    const daemonValidation = await coinApiService.validateAddress(coin.id, address).catch(() => null)
-    return daemonValidation?.isvalid === true
+  async validateAddress(_coin, address) {
+    return quaiWalletService.isValidAddress(address)
   },
 
   async estimateFee(coin, options = {}) {

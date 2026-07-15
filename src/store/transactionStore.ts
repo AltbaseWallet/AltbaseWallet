@@ -1,7 +1,18 @@
 import { create } from 'zustand'
-import { coinApiService, mapHistoryResponseToTransactions } from '../services/coinApiService'
+import {
+  coinApiService,
+  atomicAmountToBigInt,
+  mapHistoryResponseToTransactions,
+  type ZanoTransactionStatus,
+} from '../services/coinApiService'
 import { coinService, cryptoParamsFor } from '../services/coinService'
-import { coinTxService } from '../services/coinTxService'
+import { coinTxService, UtxoBroadcastError } from '../services/coinTxService'
+import { reconcileEpicPendingDuplicates } from '../services/epicTransactionReconciliation'
+import {
+  dedupeTransactionsByIdentity,
+  normalizedTransactionHash,
+  transactionIdentityKey,
+} from '../services/transactionIdentity'
 import { privacyCacheService } from '../services/privacyCacheService'
 import { privacyWalletService, type PrivacyCoin } from '../services/privacyWalletService'
 import { quaiWalletService } from '../services/quaiWalletService'
@@ -12,12 +23,18 @@ import { useCoinStore } from './coinStore'
 import type { Coin } from '../types/coin'
 import type { SendPayload, Transaction } from '../types/transaction'
 import { coinDebugLog, quaiDebugLog, quaiDebugLogError } from '../utils/quaiDebugLog'
+import { privacyStatusAfterConfirmations } from '../utils/privacyTransactionStatus'
 import { isWalletAddressVariant } from '../utils/walletAddressOwnership'
 import { walletEngineRegistry } from '../wallet-engines/registry'
 import { fromBaseUnits, toBaseUnits } from '../utils/decimalAmount'
 import { shouldRefreshUtxoBalanceBeforeHistoryCommit } from '../utils/utxoBalanceSyncProfile'
 
 type SendWithMnemonic = SendPayload & { mnemonic: string }
+
+const usesDedicatedRemoteWalletEngine = (coin: Coin) =>
+  coin.walletEngine === 'qubic-account'
+  || coin.walletEngine === 'kaspa-utxo'
+  || coin.walletEngine === 'ckb-cell'
 
 type LoadTransactionsResult = {
   pageLoaded: boolean
@@ -107,14 +124,17 @@ const ZANO_PRIVACY_HISTORY_TIMEOUT_MS = 45_000
 const PRIVACY_HISTORY_SIDELOAD_TIMEOUT_MS = 10 * 60_000
 const LOCAL_PENDING_GRACE_MS = 10 * 60_000
 const LONG_LOCAL_PENDING_GRACE_MS = 7 * 24 * 60 * 60_000
+const ZANO_PENDING_STATUS_CACHE_MS = 30_000
+const ZANO_PENDING_STATUS_BATCH_SIZE = 12
 const CONFIRMED_RESERVATION_TTL_MS = 90_000
 const SPENT_OUTPOINT_LOCK_MS = 24 * 60 * 60_000
 const INCOMING_NOTIFICATION_WINDOW_MS = 60 * 60_000
-const PRIVACY_CONFIRMED_MIN_CONFIRMATIONS: Record<string, number> = {
-  zano: 10,
-}
 let privacyHistorySideloadInFlight = false
 let allHistorySideloadInFlight: Promise<void> | null = null
+const zanoPendingStatusCache = new Map<string, {
+  checkedAt: number
+  status: ZanoTransactionStatus | null
+}>()
 
 const decimalsForSatsPerCoin = (satsPerCoin = 100_000_000) => {
   let scale = Math.max(1, Math.trunc(satsPerCoin))
@@ -214,9 +234,9 @@ const mempoolPendingToTransaction = (
 const privacyAmount = (raw: unknown, satsPerCoin: number) => {
   const tx = raw as { subtransfers?: Array<{ asset_id?: string; amount?: number | string; is_income?: boolean }> }
   const native = tx.subtransfers?.find((item) => item && item.amount !== undefined)
-  const amount = Number(native?.amount ?? 0)
+  const amount = atomicAmountToBigInt(native?.amount)
   return {
-    amount: (amount / satsPerCoin).toFixed(12).replace(/\.?0+$/, '') || '0',
+    amount: fromBaseUnits(amount, decimalsForSatsPerCoin(satsPerCoin)),
     incoming: native?.is_income === true,
   }
 }
@@ -291,16 +311,6 @@ const privacyConfirmations = (
   return 1
 }
 
-const privacyStatusWithMinConfirmations = (
-  coinId: string,
-  status: Transaction['status'],
-  confirmations: number,
-): Transaction['status'] => {
-  const minConfirmations = PRIVACY_CONFIRMED_MIN_CONFIRMATIONS[coinId]
-  if (status !== 'confirmed' || !minConfirmations) return status
-  return confirmations >= minConfirmations ? 'confirmed' : 'pending'
-}
-
 const privacyTipHeightFrom = (snapshot: { lastScannedHeight?: number; transactions?: unknown[] } | null | undefined) => {
   let best = Number(snapshot?.lastScannedHeight ?? 0)
   for (const raw of snapshot?.transactions ?? []) {
@@ -365,7 +375,7 @@ const privacyTransferToTransaction = (
     const height = Math.floor(privacyNumeric(tx.height, tx.blockHeight, tx.block_height))
     const tipHeight = Math.floor(privacyNumeric(options.tipHeight, tx.tipHeight, tx.tip_height))
     const confirmations = privacyConfirmations(baseStatus, height, tx.confirmations, tipHeight)
-    const status = privacyStatusWithMinConfirmations(coinId, baseStatus, confirmations)
+    const status = privacyStatusAfterConfirmations(baseStatus, confirmations)
     const txHash = privacyTxHash(coinId, normalizedHash, [
       height,
       tx.amount,
@@ -410,7 +420,7 @@ const privacyTransferToTransaction = (
   const tipHeight = Math.floor(privacyNumeric(options.tipHeight, tx.tipHeight, tx.tip_height))
   const baseStatus = height > 0 ? 'confirmed' : 'pending'
   const confirmations = privacyConfirmations(baseStatus, height, tx.confirmations, tipHeight)
-  const status = privacyStatusWithMinConfirmations(coinId, baseStatus, confirmations)
+  const status = privacyStatusAfterConfirmations(baseStatus, confirmations)
   const txHash = privacyTxHash(coinId, tx.tx_hash, [
     height,
     native.amount,
@@ -436,7 +446,9 @@ const privacyTransferToTransaction = (
     coinId,
     type: native.incoming ? 'incoming' : 'outgoing',
     amount: native.amount,
-    fee: tx.fee !== undefined ? (Number(tx.fee) / satsPerCoin).toFixed(12).replace(/\.?0+$/, '') : undefined,
+    fee: tx.fee !== undefined
+      ? fromBaseUnits(atomicAmountToBigInt(tx.fee), decimalsForSatsPerCoin(satsPerCoin))
+      : undefined,
     status,
     txHash,
     from: native.incoming ? remote : walletService.getWalletAddresses()[coinId],
@@ -477,9 +489,81 @@ const txSignature = (transactions: Transaction[]) =>
     .sort()
     .join('|')
 
-const normalizedTxHash = (hash: string) => hash.trim().toLowerCase()
+const normalizedTxHash = normalizedTransactionHash
 
-const txKey = (tx: Pick<Transaction, 'coinId' | 'txHash'>) => `${tx.coinId}:${normalizedTxHash(tx.txHash)}`
+const txKey = (tx: Pick<Transaction, 'coinId' | 'txHash' | 'id'>) => transactionIdentityKey(tx)
+
+const reconcileZanoPendingOutgoing = async (
+  transactions: Transaction[],
+  incomingKeys: Set<string>,
+  tipHeight?: number,
+) => {
+  const candidateByHash = new Map<string, Transaction>()
+  for (const tx of transactions) {
+    const hash = normalizedTxHash(tx.txHash)
+    if (
+      tx.coinId !== 'zano'
+      || tx.type !== 'outgoing'
+      || tx.status !== 'pending'
+      || incomingKeys.has(txKey(tx))
+      || !/^[0-9a-f]{64}$/.test(hash)
+    ) continue
+    candidateByHash.set(hash, tx)
+  }
+
+  const candidates = [...candidateByHash.values()]
+    .sort((a, b) => {
+      const aTime = Date.parse(a.createdAt)
+      const bTime = Date.parse(b.createdAt)
+      return (Number.isFinite(aTime) ? aTime : 0) - (Number.isFinite(bTime) ? bTime : 0)
+    })
+    .slice(0, ZANO_PENDING_STATUS_BATCH_SIZE)
+  if (candidates.length === 0) {
+    return { transactions, checkedCount: 0, updatedCount: 0, confirmedCount: 0 }
+  }
+
+  const now = Date.now()
+  const statusByHash = new Map<string, ZanoTransactionStatus | null>()
+  let checkedCount = 0
+  await Promise.all(candidates.map(async (tx) => {
+    const hash = normalizedTxHash(tx.txHash)
+    const cached = zanoPendingStatusCache.get(hash)
+    if (cached && now - cached.checkedAt < ZANO_PENDING_STATUS_CACHE_MS) {
+      statusByHash.set(hash, cached.status)
+      return
+    }
+
+    checkedCount += 1
+    const status: ZanoTransactionStatus | null = await coinApiService
+      .getZanoTransactionStatus(hash)
+      .catch(() => null)
+    zanoPendingStatusCache.set(hash, { checkedAt: Date.now(), status })
+    statusByHash.set(hash, status)
+  }))
+
+  let updatedCount = 0
+  let confirmedCount = 0
+  const reconciled = transactions.map((tx) => {
+    if (tx.coinId !== 'zano' || tx.type !== 'outgoing' || tx.status !== 'pending') return tx
+    const status = statusByHash.get(normalizedTxHash(tx.txHash))
+    const blockHeight = Number(status?.blockHeight ?? 0)
+    if (!status?.confirmed || !Number.isFinite(blockHeight) || blockHeight <= 0) return tx
+
+    const confirmations = privacyConfirmations('confirmed', blockHeight, undefined, tipHeight)
+    const nextStatus = privacyStatusAfterConfirmations('confirmed', confirmations)
+    updatedCount += 1
+    if (nextStatus === 'confirmed') confirmedCount += 1
+    return {
+      ...tx,
+      status: nextStatus,
+      confirmations,
+      blockHeight: Math.floor(blockHeight),
+    }
+  })
+
+  return { transactions: reconciled, checkedCount, updatedCount, confirmedCount }
+}
+
 const notificationKeysInFlight = new Set<string>()
 const claimFreshIncomingNotifications = (
   candidates: Transaction[],
@@ -626,7 +710,7 @@ const isDroppedLocalPending = (tx: Transaction, coin: Awaited<ReturnType<typeof 
   if (tx.type !== 'outgoing' || tx.status !== 'pending') return false
   const createdAtMs = Date.parse(tx.createdAt)
   if (!Number.isFinite(createdAtMs)) return true
-  const graceMs = walletEngineRegistry.isAccount(coin) || walletEngineRegistry.isPrivacy(coin)
+  const graceMs = tx.broadcastUncertain || walletEngineRegistry.isAccount(coin) || walletEngineRegistry.isPrivacy(coin)
     ? LONG_LOCAL_PENDING_GRACE_MS
     : LOCAL_PENDING_GRACE_MS
   return now - createdAtMs >= graceMs
@@ -641,7 +725,7 @@ const pendingOutgoingBlocksSend = (
   if (walletEngineRegistry.isPrivacy(coin) && !tx.balanceBefore && !tx.expectedBalanceAfter) return false
   const createdAtMs = Date.parse(tx.createdAt)
   if (!Number.isFinite(createdAtMs)) return true
-  const graceMs = walletEngineRegistry.isAccount(coin) || walletEngineRegistry.isPrivacy(coin)
+  const graceMs = tx.broadcastUncertain || walletEngineRegistry.isAccount(coin)
     ? LONG_LOCAL_PENDING_GRACE_MS
     : LOCAL_PENDING_GRACE_MS
   return now - createdAtMs < graceMs
@@ -668,8 +752,8 @@ const activeSpentOutpointsForCoin = (coinId: string, transactions: Transaction[]
   for (const tx of transactions) {
     if (tx.coinId !== coinId || tx.type !== 'outgoing' || tx.status === 'failed') continue
     const createdAtMs = Date.parse(tx.createdAt)
-    if (Number.isFinite(createdAtMs) && now - createdAtMs >= SPENT_OUTPOINT_LOCK_MS) continue
-    if (tx.status !== 'pending' && Number.isFinite(createdAtMs) && now - createdAtMs >= SPENT_OUTPOINT_LOCK_MS) continue
+    const lockMs = tx.broadcastUncertain ? LONG_LOCAL_PENDING_GRACE_MS : SPENT_OUTPOINT_LOCK_MS
+    if (Number.isFinite(createdAtMs) && now - createdAtMs >= lockMs) continue
     for (const outpoint of tx.spentOutpoints ?? []) {
       if (!outpoint.txid || !Number.isInteger(outpoint.vout) || outpoint.vout < 0) continue
       byOutpoint.set(`${outpoint.txid}:${outpoint.vout}`, { txid: outpoint.txid, vout: outpoint.vout })
@@ -697,26 +781,7 @@ const normalizeStoredTransaction = (tx: Transaction): Transaction => {
 }
 
 const dedupeTransactions = (transactions: Transaction[]) => {
-  const byKey = new Map<string, Transaction>()
-  for (const tx of transactions) {
-    const key = txKey(tx)
-    const prev = byKey.get(key)
-    if (!prev) {
-      byKey.set(key, tx)
-      continue
-    }
-    const mergedMetadata = {
-      balanceBefore: tx.balanceBefore ?? prev.balanceBefore,
-      expectedBalanceAfter: tx.expectedBalanceAfter ?? prev.expectedBalanceAfter,
-      spentOutpoints: tx.spentOutpoints ?? prev.spentOutpoints,
-    }
-    if (prev.status === 'pending' && tx.status === 'confirmed') {
-      byKey.set(key, { ...tx, ...mergedMetadata })
-    } else {
-      byKey.set(key, { ...prev, ...mergedMetadata })
-    }
-  }
-  return sortTransactions(Array.from(byKey.values()))
+  return sortTransactions(dedupeTransactionsByIdentity(transactions))
 }
 
 const readStoredTransactions = () =>
@@ -779,12 +844,12 @@ const sideloadPrivacyHistory = async (
     await Promise.all(privacyCoins.map(async (coin) => {
       try {
         const snapshot = await getPrivacyHistorySnapshot(coin, mnemonic, PRIVACY_HISTORY_SIDELOAD_TIMEOUT_MS)
-        if (!snapshot.ok || !snapshot.transactions?.length) return
+        if (!snapshot.ok) return
         if (!stillSameWallet(expectedScope, mnemonic)) return
         const tipHeight = await privacyNetworkTipHeight(coin.id, snapshot)
         await useTransactionStore.getState().mergePrivacyTransactions(
           coin.id,
-          snapshot.transactions,
+          snapshot.transactions ?? [],
           coin.satsPerCoin ?? 100_000_000,
           { ...options, tipHeight, expectedMnemonic: mnemonic, expectedScope },
         )
@@ -861,8 +926,10 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
     let remoteLoaded = false
     const historyVerifiedCoins = new Set<string>()
     try {
-      const { items, snapshot } = await walletSnapshotService.fetchHistory(historyCoins, pageSize, historyOffset, {
+      const { items, snapshot } = await walletSnapshotService.fetchHistoryChunked(historyCoins, pageSize, historyOffset, {
         utxoOverlay: options.utxoOverlay !== false,
+        chunkSize: 1,
+        timeoutMs: 20_000,
       })
       const quaiItem = items.find((item) => item.coin === 'quai')
       const quaiSnapshot = snapshot.coins.quai
@@ -953,7 +1020,14 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
         return historyAddresses.flatMap((address) => {
           const history = coinSnapshot.histories?.[address]
           if (!history) return []
-          return mapHistoryResponseToTransactions(history, coin.id, address, coin.satsPerCoin ?? 100_000_000, addresses)
+          return mapHistoryResponseToTransactions(
+            history,
+            coin.id,
+            address,
+            coin.satsPerCoin ?? 100_000_000,
+            addresses,
+            coinSnapshot.network?.blocks,
+          )
         })
       })
       if (page === 1) {
@@ -1086,6 +1160,7 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
         spentOutpoints: prev.spentOutpoints ?? tx.spentOutpoints,
         balanceBefore: prev.balanceBefore ?? tx.balanceBefore,
         expectedBalanceAfter: prev.expectedBalanceAfter ?? tx.expectedBalanceAfter,
+        broadcastUncertain: tx.status === 'confirmed' ? false : prev.broadcastUncertain,
         // Keep the FIRST time we ever saw this tx. Adopting the block time on
         // confirmation yanked freshly-received rows down the list (the
         // "jumping"/transient-duplicate effect); the first-seen time keeps them
@@ -1487,14 +1562,39 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
   mergePrivacyTransactions: async (coinId, rawTransactions, satsPerCoin, options = {}) => {
     if (!stillSameWallet(options.expectedScope, options.expectedMnemonic)) return
     const tipHeight = options.tipHeight ?? await privacyNetworkTipHeight(coinId, { transactions: rawTransactions })
-    const incoming = rawTransactions
+    const mappedIncoming = rawTransactions
       .map((tx) => privacyTransferToTransaction(coinId, tx, satsPerCoin, { tipHeight }))
       .filter((tx): tx is Transaction => Boolean(tx))
+    const incomingPendingReconciliation = coinId === 'zano'
+      ? await reconcileZanoPendingOutgoing(mappedIncoming, new Set<string>(), tipHeight)
+      : { transactions: mappedIncoming, checkedCount: 0, updatedCount: 0, confirmedCount: 0 }
+    const incoming = incomingPendingReconciliation.transactions
+    const incomingKeys = new Set(incoming.map((tx) => txKey(tx)))
+    const prevState = get()
+    const prevTransactions = prevState.transactions.length > 0 ? prevState.transactions : readStoredTransactions()
+    const previousPendingReconciliation = coinId === 'zano'
+      ? await reconcileZanoPendingOutgoing(prevTransactions, incomingKeys, tipHeight)
+      : { transactions: prevTransactions, checkedCount: 0, updatedCount: 0, confirmedCount: 0 }
+    const zanoPendingReconciliation = {
+      transactions: previousPendingReconciliation.transactions,
+      checkedCount: incomingPendingReconciliation.checkedCount + previousPendingReconciliation.checkedCount,
+      updatedCount: incomingPendingReconciliation.updatedCount + previousPendingReconciliation.updatedCount,
+      confirmedCount: incomingPendingReconciliation.confirmedCount + previousPendingReconciliation.confirmedCount,
+    }
+    if (!stillSameWallet(options.expectedScope, options.expectedMnemonic)) return
+    const epicPendingReconciliation = coinId === 'epic'
+      ? reconcileEpicPendingDuplicates(zanoPendingReconciliation.transactions, incoming)
+      : { transactions: zanoPendingReconciliation.transactions, removedCount: 0 }
+    const reconciledPrevTransactions = epicPendingReconciliation.transactions
     if (coinId === 'zano' || coinId === 'epic') {
       coinDebugLog(coinId, 'tx.privacy.merge.start', {
         rawCount: rawTransactions.length,
         mappedCount: incoming.length,
         tipHeight,
+        pendingStatusChecked: zanoPendingReconciliation.checkedCount,
+        pendingStatusUpdated: zanoPendingReconciliation.updatedCount,
+        pendingStatusConfirmed: zanoPendingReconciliation.confirmedCount,
+        epicPendingDuplicatesRemoved: epicPendingReconciliation.removedCount,
         options: {
           silent: options.silent === true,
           startup: options.startup === true,
@@ -1503,15 +1603,13 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
         mapped: incoming.slice(0, 20).map(summarizeTxForDebug),
       })
     }
-    if (incoming.length === 0) return
+    if (incoming.length === 0 && zanoPendingReconciliation.updatedCount === 0) return
 
     const coins = await coinService.getCoins()
     if (!stillSameWallet(options.expectedScope, options.expectedMnemonic)) return
     const coinById = new Map(coins.map((coin) => [coin.id, coin]))
-    const prevState = get()
-    const prevTransactions = prevState.transactions.length > 0 ? prevState.transactions : readStoredTransactions()
     const prevSyntheticKeys = new Set(
-      prevTransactions
+      reconciledPrevTransactions
         .map(privacySyntheticMatchKey)
         .filter((key): key is string => Boolean(key)),
     )
@@ -1520,10 +1618,9 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
         .map(privacySyntheticMatchKey)
         .filter((key): key is string => Boolean(key)),
     )
-    const incomingKeys = new Set(incoming.map((tx) => txKey(tx)))
     const now = Date.now()
     const prevTransactionsForMerge = coinId === 'epic'
-      ? prevTransactions.filter((tx) => {
+      ? reconciledPrevTransactions.filter((tx) => {
         if (tx.coinId !== coinId) return true
         if (incomingKeys.has(txKey(tx))) return false
         if (tx.type === 'outgoing') {
@@ -1537,12 +1634,12 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
           && now - createdAtMs < LONG_LOCAL_PENDING_GRACE_MS
       })
       : (incomingSyntheticKeys.size > 0
-        ? prevTransactions.filter((tx) => {
+        ? reconciledPrevTransactions.filter((tx) => {
           if (tx.coinId !== 'epic') return true
           const syntheticKey = privacySyntheticMatchKey(tx)
           return !syntheticKey || !incomingSyntheticKeys.has(syntheticKey)
         })
-        : prevTransactions)
+        : reconciledPrevTransactions)
     const prevByHash = new Map(prevTransactionsForMerge.map((tx) => [txKey(tx), tx]))
     const wasAlreadyKnown = (tx: Transaction) => {
       const syntheticKey = privacySyntheticMatchKey(tx)
@@ -1758,6 +1855,7 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
     allHistorySideloadInFlight = null
     privacyHistorySideloadInFlight = false
     notificationKeysInFlight.clear()
+    zanoPendingStatusCache.clear()
     set({
       transactions: [],
       allHistoryLoaded: false,
@@ -1782,8 +1880,8 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
 
   sendTransaction: async (payload) => {
     if (sendInFlight) throw new Error('A previous send is still in progress')
-    // Privacy engines (Epic/Zano) enforce their own spend-locking; a phantom
-    // snapshot-derived pending outgoing must not block a send the user wants.
+    // Privacy engines enforce spendability themselves. Keep only the short
+    // local propagation guard so stale cached history cannot lock the wallet.
     const lockCoin = await coinService.getCoinById(payload.coinId)
     if (get().transactions.some((tx) =>
       tx.coinId === payload.coinId && pendingOutgoingBlocksSend(tx, lockCoin ?? undefined)
@@ -1815,7 +1913,7 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
       if (coinMeta?.walletEngine === 'zano-light' || coinMeta?.walletEngine === 'epic-light') {
         const storeCoinBeforePrivacySend = useCoinStore.getState().coins.find((coin) => coin.id === coinId)
         const nativeReadinessBeforeSend = privacyWalletService.getNativeReadiness(coinId as PrivacyCoin)
-        const canSkipWarmBeforePrivacySend = false
+        const nativeSendChecksReadiness = coinId === 'zano'
         coinDebugLog(coinId, 'send.privacy.start', {
           amount,
           fee: payload.fee,
@@ -1828,9 +1926,9 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
           },
           storeCoin: storeCoinBeforePrivacySend,
           nativeReadiness: nativeReadinessBeforeSend,
-          canSkipWarmBeforePrivacySend,
+          nativeSendChecksReadiness,
         })
-        if (nativeReadinessBeforeSend !== 'ready' && !canSkipWarmBeforePrivacySend) {
+        if (nativeReadinessBeforeSend !== 'ready' && !nativeSendChecksReadiness) {
           const coinLabel = coinId === 'zano' ? 'Zano' : 'Epic'
           coinDebugLog(coinId, 'send.privacy.blockedNativeNotReady', {
             nativeReadiness: nativeReadinessBeforeSend,
@@ -1964,7 +2062,8 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
           ])
           if (!provisionalFee && estimatedFee?.coin) provisionalFee = estimatedFee.coin
           const decimals = decimalsForSatsPerCoin(coinMeta?.satsPerCoin ?? 100_000_000)
-          const freshUnits = BigInt(Math.max(0, Math.floor(Number(freshBalance.balance_spendable ?? freshBalance.balance ?? 0))))
+          const rawFreshUnits = atomicAmountToBigInt(freshBalance.balance_spendable ?? freshBalance.balance)
+          const freshUnits = rawFreshUnits > 0n ? rawFreshUnits : 0n
           if (freshUnits > 0n) {
             const visibleUnits = visibleBalanceBeforeSend ? toBaseUnits(visibleBalanceBeforeSend, decimals) : 0n
             const hiddenIncomingUnits = visibleUnits > 0n && freshUnits > visibleUnits
@@ -2167,6 +2266,61 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
         return tx
       }
 
+      if (coinMeta && usesDedicatedRemoteWalletEngine(coinMeta)) {
+        const fromAddress = walletService.getWalletAddresses()[coinId]
+        if (!fromAddress) throw new Error(`Address for ${coinId} not derived yet - reopen the wallet`)
+        const result = await walletEngineRegistry.get(coinMeta).send({
+          coin: coinMeta,
+          mnemonic,
+          fromAddress,
+          toAddress: to,
+          amountCoin: amount,
+          feeCoin: payload.fee,
+          sendMax: payload.sendMax,
+          memo: payload.comment,
+        })
+        if (!result.txid) throw new Error(`${coinMeta.name} wallet engine did not return a transaction id`)
+
+        const actualAmount = result.amountCoin ?? amount
+        const actualFee = result.feeCoin ?? payload.fee ?? '0'
+        const internal = fromAddress.trim().toLowerCase() === to.trim().toLowerCase()
+        let expectedBalanceAfter: string | undefined
+        if (balanceBeforeSend) {
+          const decimals = decimalsForSatsPerCoin(coinMeta.satsPerCoin ?? 100_000_000)
+          const beforeUnits = toBaseUnits(balanceBeforeSend, decimals)
+          const amountUnits = internal ? 0n : toBaseUnits(actualAmount, decimals)
+          const deltaUnits = amountUnits + toBaseUnits(actualFee, decimals)
+          expectedBalanceAfter = fromBaseUnits(beforeUnits > deltaUnits ? beforeUnits - deltaUnits : 0n, decimals)
+        }
+        const tx: Transaction = {
+          id: `${coinId}-${result.txid}`,
+          coinId,
+          type: 'outgoing',
+          amount: actualAmount,
+          fee: actualFee,
+          status: 'pending',
+          txHash: result.txid,
+          from: fromAddress,
+          to,
+          internal,
+          createdAt: new Date().toISOString(),
+          confirmations: 0,
+          balanceBefore: balanceBeforeSend,
+          expectedBalanceAfter,
+        }
+        const nextTransactions = dedupeTransactions([tx, ...get().transactions])
+        set({ transactions: nextTransactions, lastSentAt: Date.now() })
+        saveStoredTransactions(nextTransactions)
+        await useCoinStore.getState().applyTransactionBalanceDelta(tx)
+        setTimeout(() => {
+          void (async () => {
+            await get().loadTransactions({ force: true, silent: true, onlyCoinIds: [coinId] })
+            await useCoinStore.getState().loadCoins({ forceBalances: true, onlyCoinIds: [coinId] })
+          })()
+        }, 3_000)
+        return tx
+      }
+
       const params = cryptoParamsFor(coinId)
       if (!params) throw new Error(`Coin "${coinId}" has no crypto parameters configured`)
 
@@ -2174,46 +2328,120 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
       if (!fromAddress) throw new Error(`Address for ${coinId} not derived yet — reopen the wallet`)
 
       const satsPerCoin = coinMeta?.satsPerCoin ?? 100_000_000
-      const internal = await isWalletAddressVariant(to, fromAddress, params)
+      const internal = await isWalletAddressVariant(coinId, to, fromAddress, params)
 
-      const result = await coinTxService.send({
-        coinId,
-        cryptoParams: params,
-        satsPerCoin,
-        mnemonic,
-        fromAddress,
-        toAddress: to,
-        amountCoin: amount,
-        feeCoin: payload.fee,
-        sendMax: payload.sendMax,
-        excludeOutpoints: activeSpentOutpointsForCoin(coinId, get().transactions),
-      })
-      const sentAmount = result.amountCoin ?? amount
+      let preparedTx: Transaction | null = null
+      let preparedBalanceApplied = false
+      let result: Awaited<ReturnType<typeof coinTxService.send>>
+      try {
+        result = await coinTxService.send({
+          coinId,
+          cryptoParams: params,
+          satsPerCoin,
+          mnemonic,
+          fromAddress,
+          toAddress: to,
+          amountCoin: amount,
+          feeCoin: payload.fee,
+          sendMax: payload.sendMax,
+          excludeOutpoints: activeSpentOutpointsForCoin(coinId, get().transactions),
+          onPrepared: async (prepared) => {
+            const tx: Transaction = {
+              id: `${coinId}-${prepared.txid}`,
+              coinId,
+              type: 'outgoing',
+              amount: prepared.amountCoin,
+              fee: prepared.feeCoin,
+              status: 'pending',
+              txHash: prepared.txid,
+              from: fromAddress,
+              to,
+              internal,
+              createdAt: new Date().toISOString(),
+              confirmations: 0,
+              spentOutpoints: prepared.spentOutpoints,
+              balanceBefore: balanceBeforeSend,
+            }
+            preparedTx = tx
+            const nextTransactions = dedupeTransactions([tx, ...get().transactions])
+            set({ transactions: nextTransactions })
+            saveStoredTransactions(nextTransactions)
+            preparedBalanceApplied = await useCoinStore.getState().applyTransactionBalanceDelta(tx)
+          },
+        })
+      } catch (error) {
+        const pendingPrepared = preparedTx as Transaction | null
+        if (pendingPrepared && error instanceof UtxoBroadcastError && error.uncertain) {
+          const uncertainTx: Transaction = { ...pendingPrepared, broadcastUncertain: true }
+          const nextTransactions = dedupeTransactions([
+            uncertainTx,
+            ...get().transactions.filter((item) => txKey(item) !== txKey(pendingPrepared)),
+          ])
+          set({ transactions: nextTransactions, lastSentAt: Date.now() })
+          saveStoredTransactions(nextTransactions)
+          setTimeout(() => {
+            void get().loadTransactions({ force: true, silent: true, onlyCoinIds: [coinId] })
+          }, 3_000)
+          throw new Error(
+            `Broadcast status is uncertain. The wallet will monitor transaction ${pendingPrepared.txHash} before allowing another send.`,
+            { cause: error },
+          )
+        }
 
-      const tx: Transaction = {
-        id: `${coinId}-${result.txid}`,
-        coinId,
-        type: 'outgoing',
-        amount: sentAmount,
-        fee: result.feeCoin,
-        status: 'pending',
-        txHash: result.txid,
-        from: fromAddress,
-        to,
-        internal,
-        createdAt: new Date().toISOString(),
-        confirmations: 0,
-        spentOutpoints: result.spentOutpoints,
-        balanceBefore: balanceBeforeSend,
+        if (pendingPrepared) {
+          useCoinStore.getState().releaseOutgoingReservation(pendingPrepared.txHash)
+          const rollbackTransactions = get().transactions.filter((item) => txKey(item) !== txKey(pendingPrepared))
+          set({ transactions: rollbackTransactions })
+          saveStoredTransactions(rollbackTransactions)
+          if (preparedBalanceApplied && balanceBeforeSend) {
+            await useCoinStore.getState().restoreCoinBalance(
+              coinId,
+              balanceBeforeSend,
+              coinMeta?.spendableBalance,
+            ).catch(() => undefined)
+          }
+        }
+        throw error
       }
 
-      const nextTransactions = dedupeTransactions([tx, ...get().transactions])
+      const sentAmount = result.amountCoin ?? amount
+      const preparedTransaction = (preparedTx ?? null) as Transaction | null
+      const tx: Transaction = preparedTransaction
+        ? {
+            ...preparedTransaction,
+            id: `${coinId}-${result.txid}`,
+            txHash: result.txid,
+            amount: sentAmount,
+            fee: result.feeCoin,
+            broadcastUncertain: false,
+          }
+        : {
+            id: `${coinId}-${result.txid}`,
+            coinId,
+            type: 'outgoing',
+            amount: sentAmount,
+            fee: result.feeCoin,
+            status: 'pending',
+            txHash: result.txid,
+            from: fromAddress,
+            to,
+            internal,
+            createdAt: new Date().toISOString(),
+            confirmations: 0,
+            spentOutpoints: result.spentOutpoints,
+            balanceBefore: balanceBeforeSend,
+          }
+
+      const nextTransactions = dedupeTransactions([
+        tx,
+        ...get().transactions.filter((item) => !preparedTransaction || txKey(item) !== txKey(preparedTransaction)),
+      ])
       set({
         transactions: nextTransactions,
         lastSentAt: Date.now(),
       })
       saveStoredTransactions(nextTransactions)
-      await useCoinStore.getState().applyTransactionBalanceDelta(tx)
+      if (!preparedBalanceApplied) await useCoinStore.getState().applyTransactionBalanceDelta(tx)
 
       // Refresh real history in background — replaces local entry once node sees it
       setTimeout(() => {

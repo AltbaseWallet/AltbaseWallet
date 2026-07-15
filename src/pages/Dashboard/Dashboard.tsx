@@ -8,6 +8,7 @@ import { TransactionRow } from '../../components/wallet/TransactionRow'
 import { useCoinStore } from '../../store/coinStore'
 import { useTransactionStore } from '../../store/transactionStore'
 import { useT } from '../../utils/i18n'
+import { hasLoadedHistoryPage } from '../../utils/historyPagination'
 
 export default function Dashboard() {
   const t = useT()
@@ -18,9 +19,7 @@ export default function Dashboard() {
   const historyPageSize = 8
   const visibleTransactions = transactions.slice((historyPage - 1) * historyPageSize, historyPage * historyPageSize)
   const historyPagePending = visibleTransactions.length === 0 && !allHistoryLoaded && allHistoryLoading
-  const historyNextDisabled = allHistoryLoaded
-    ? transactions.length <= historyPage * historyPageSize
-    : transactions.length <= historyPage * historyPageSize && !allHistoryLoading
+  const historyNextDisabled = !hasLoadedHistoryPage(transactions.length, historyPage, historyPageSize)
 
   useEffect(() => {
     if (coins.length === 0) void loadCoins()
@@ -55,12 +54,12 @@ export default function Dashboard() {
   const refreshSpinning = refreshing || refreshTapped
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-6">
-      <div className="shrink-0">
+    <div className="space-y-4 xl:flex xl:h-full xl:min-h-0 xl:flex-col xl:gap-6 xl:space-y-0">
+      <div className="xl:shrink-0">
         <BalanceCard />
       </div>
-      <section className="grid min-h-0 flex-1 gap-6 xl:grid-cols-[1fr_380px]">
-        <Card className="flex min-h-0 flex-col">
+      <section className="grid gap-4 xl:min-h-0 xl:flex-1 xl:grid-cols-[1fr_380px] xl:gap-6">
+        <Card className="xl:flex xl:min-h-0 xl:flex-col">
           <CoinList
             coins={coins}
             loading={loading}
@@ -90,10 +89,10 @@ export default function Dashboard() {
             scrollable
           />
         </Card>
-        <Card className="flex min-h-0 flex-col">
-          <div className="mb-4 flex shrink-0 items-center justify-between gap-3">
+        <Card className="xl:flex xl:min-h-0 xl:flex-col">
+          <div className="mb-4 flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-lg font-semibold text-white">{t('recentHistory')}</h2>
-            <div className="flex items-center gap-2 text-xs text-slate-400">
+            <div className="flex max-w-full items-center gap-1.5 text-xs text-slate-400 sm:gap-2">
               <button
                 type="button"
                 className="rounded-xl border border-white/10 px-2.5 py-2 transition hover:bg-white/10 disabled:opacity-40"
@@ -124,7 +123,7 @@ export default function Dashboard() {
               </button>
             </div>
           </div>
-          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+          <div className="space-y-2 xl:min-h-0 xl:flex-1 xl:overflow-y-auto xl:pr-1">
             {historyPagePending && (
               <div className="flex min-h-32 items-center justify-center rounded-2xl border border-dashed border-white/15">
                 <Loader2 size={22} className="animate-spin text-[var(--accent)]" />

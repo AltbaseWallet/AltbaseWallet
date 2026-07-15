@@ -222,3 +222,14 @@ export const addressVariantsFromLegacyAddress = async (
 
   return variants
 }
+
+export const legacyAddressForNativeScript = async (
+  address: string,
+  params: CoinCryptoParams,
+) => {
+  if (!params.cashaddrPrefix) return address.trim()
+  const variants = await addressVariantsFromLegacyAddress(address, params)
+  const legacy = variants.find((variant) => variant.id === 'legacy')
+  if (!legacy) throw new Error('legacy address variant is unavailable')
+  return legacy.address
+}

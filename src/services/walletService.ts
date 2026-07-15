@@ -7,13 +7,17 @@ import { storageService } from './storageService'
 import { getWalletStorageScope, walletFingerprintFromMnemonic } from './walletScopeService'
 import { buildWalletLoadProgress, type WalletLoadProgressHandler } from '../types/walletLoadProgress'
 import { walletEngineRegistry } from '../wallet-engines/registry'
+import { coinDebugLog, coinDebugLogError } from '../utils/quaiDebugLog'
 
 const WALLET_KEY = 'wallet-meta'
 const WALLET_ADDRESSES_KEY = 'wallet-addresses'
 let sessionMnemonicCache: string | null = null
 let pendingWalletSetupId = 0
 let walletSessionRevision = 0
+const STANDARD_ADDRESS_DERIVATION_TIMEOUT_MS = 20_000
+const STANDARD_ADDRESS_RETRY_DELAY_MS = 5_000
 const ALWAYS_REDERIVE_STANDARD_COIN_IDS = new Set([
+  'bitcoin',
   'bitcoincashii',
   'firo',
   'junkcoin',
@@ -71,6 +75,24 @@ export type WalletAddresses = Record<string, string | undefined>
 const privacyCoins = () =>
   allCoins().filter((coin) => coin.walletEngine === 'zano-light' || coin.walletEngine === 'epic-light')
 
+const withTimeout = <T>(operation: Promise<T>, timeoutMs: number, label: string): Promise<T> =>
+  new Promise((resolve, reject) => {
+    const timer = globalThis.setTimeout(
+      () => reject(new Error(`${label} timed out after ${timeoutMs}ms`)),
+      timeoutMs,
+    )
+    operation.then(
+      (value) => {
+        globalThis.clearTimeout(timer)
+        resolve(value)
+      },
+      (error: unknown) => {
+        globalThis.clearTimeout(timer)
+        reject(error)
+      },
+    )
+  })
+
 const deriveStandardCoinAddresses = async (
   mnemonic: string,
   previous: WalletAddresses = {},
@@ -84,10 +106,25 @@ const deriveStandardCoinAddresses = async (
   // Derive every coin's address in parallel — they're independent computations.
   const results = await Promise.all(
     coinsToDerive.map(async (coin) => {
+      const startedAt = Date.now()
       try {
-        const addr = await walletEngineRegistry.get(coin).deriveAddress?.(coin, mnemonic)
+        const deriveAddress = walletEngineRegistry.get(coin).deriveAddress
+        const addr = deriveAddress
+          ? await withTimeout(
+              Promise.resolve(deriveAddress(coin, mnemonic)),
+              STANDARD_ADDRESS_DERIVATION_TIMEOUT_MS,
+              `${coin.id} address derivation`,
+            )
+          : undefined
+        coinDebugLog(coin.id, 'wallet.address.derive.done', {
+          durationMs: Date.now() - startedAt,
+          hasAddress: Boolean(addr),
+        })
         return [coin.id, addr] as const
-      } catch {
+      } catch (error) {
+        coinDebugLogError(coin.id, 'wallet.address.derive.error', error, {
+          durationMs: Date.now() - startedAt,
+        })
         return [coin.id, undefined] as const
       }
     }),
@@ -178,20 +215,32 @@ const migrateLegacyWallet = async (legacy: LegacyWalletMeta, password: string) =
 }
 
 const savePublicAddresses = async (mnemonic: string, includePrivacy = true, forceStandard = false) => {
+  const revision = walletSessionRevision
   const previous = storageService.get<WalletAddresses>(WALLET_ADDRESSES_KEY, {})
   const standard = await deriveStandardCoinAddresses(mnemonic, forceStandard ? {} : previous)
-  const addresses = forceStandard ? standard : { ...previous, ...standard }
-  if (forceStandard || Object.keys(standard).length > 0) storageService.set(WALLET_ADDRESSES_KEY, addresses)
+  const addresses = { ...previous, ...standard }
+  if (revision !== walletSessionRevision) return previous
+  if (Object.keys(standard).length > 0) storageService.set(WALLET_ADDRESSES_KEY, addresses)
   if (includePrivacy) return refreshPrivacyAddresses(mnemonic)
   return addresses
 }
 
+const retryMissingStandardAddressesInBackground = (mnemonic: string) => {
+  const revision = walletSessionRevision
+  globalThis.setTimeout(() => {
+    if (revision !== walletSessionRevision || sessionMnemonicCache !== mnemonic) return
+    void savePublicAddresses(mnemonic, false, false).catch(() => undefined)
+  }, STANDARD_ADDRESS_RETRY_DELAY_MS)
+}
+
 const trySavePublicAddresses = async (mnemonic: string, includePrivacy = true, forceStandard = false) => {
   try {
-    return await savePublicAddresses(mnemonic, includePrivacy, forceStandard)
+    const addresses = await savePublicAddresses(mnemonic, includePrivacy, forceStandard)
+    retryMissingStandardAddressesInBackground(mnemonic)
+    return addresses
   } catch {
-    storageService.set<WalletAddresses>(WALLET_ADDRESSES_KEY, {})
-    return {}
+    retryMissingStandardAddressesInBackground(mnemonic)
+    return storageService.get<WalletAddresses>(WALLET_ADDRESSES_KEY, {})
   }
 }
 

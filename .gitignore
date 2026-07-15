@@ -27,6 +27,9 @@ native-core/*
 !native-core/.gitkeep
 native/core/build
 native/epic_core/target
+native/kaspa_wallet_wasm/Cargo.toml
+native/kaspa_wallet_wasm/generated
+native/kaspa_wallet_wasm/target
 
 # Heavy optional third-party native dependencies
 native/vendor/*

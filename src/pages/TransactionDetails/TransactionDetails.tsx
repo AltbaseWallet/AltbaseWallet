@@ -48,8 +48,8 @@ export default function TransactionDetails() {
 
   return (
     <Card className="w-full">
-      <div className="mb-5 flex items-center justify-between">
-        <div>
+      <div className="mb-5 flex min-w-0 items-start justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="text-xl font-bold text-white">{t('txDetailsTitle')}</h1>
           <p className="text-sm text-slate-500">{coin?.ticker ?? tx.coinId}</p>
         </div>

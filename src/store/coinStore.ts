@@ -1,7 +1,7 @@
 ﻿import { create } from 'zustand'
 import type { Coin } from '../types/coin'
 import type { Transaction } from '../types/transaction'
-import { coinApiService, networkToStatus, type CoinBalance, type Utxo, type WalletSnapshotCoin, type WalletSnapshotResponse } from '../services/coinApiService'
+import { atomicAmountToBigInt, coinApiService, networkToStatus, type CoinBalance, type Utxo, type WalletSnapshotCoin, type WalletSnapshotResponse } from '../services/coinApiService'
 import { coinService } from '../services/coinService'
 import { privacyWalletService, type NativePrivacyRecoveryProgress, type PrivacyCoin, type PrivacyWalletResponse } from '../services/privacyWalletService'
 import { privacyBirthService } from '../services/privacyBirthService'
@@ -271,7 +271,10 @@ const zanoSnapshotRegressesCachedHistory = (
 }
 
 const snapshotPendingOutgoingUnits = (snapshot: WalletSnapshotCoin | undefined) =>
-  BigInt(Math.max(0, Math.floor(Number(snapshot?.walletBalance?.pendingOutgoing ?? 0))))
+  (() => {
+    const value = atomicAmountToBigInt(snapshot?.walletBalance?.pendingOutgoing)
+    return value > 0n ? value : 0n
+  })()
 
 const snapshotPendingOutgoingTxids = (snapshot: WalletSnapshotCoin | undefined) => {
   const txids = new Set<string>()
@@ -536,23 +539,28 @@ const balanceStringFromSnapshot = (
     .map((address) => coinSnapshot?.balances?.[address])
     .filter((item): item is NonNullable<typeof item> => Boolean(item))
   if (isAccountCoin(coin) && addressBalances.length > 0) {
-    const sats = addressBalances.reduce((sum, item) => sum + (item.balance ?? item.balance_spendable ?? 0), 0)
-    const sat = coin.satsPerCoin ?? 100_000_000
-    return (sats / sat).toFixed(8).replace(/\.?0+$/, '') || '0'
+    const units = addressBalances.reduce(
+      (sum, item) => sum + atomicAmountToBigInt(item.balance ?? item.balance_spendable),
+      0n,
+    )
+    return fromBaseUnits(units, decimalsForSatsPerCoin(coin.satsPerCoin ?? 100_000_000))
   }
   const walletBalance = coinSnapshot?.walletBalance
   if (walletBalance) {
-    const sats = walletBalance.balance ?? walletBalance.balance_spendable ?? 0
-    const sat = coin.satsPerCoin ?? 100_000_000
-    return (sats / sat).toFixed(8).replace(/\.?0+$/, '') || '0'
+    return fromBaseUnits(
+      atomicAmountToBigInt(walletBalance.balance ?? walletBalance.balance_spendable),
+      decimalsForSatsPerCoin(coin.satsPerCoin ?? 100_000_000),
+    )
   }
   const sourceBalances = addressBalances.length > 0
     ? addressBalances
     : (addresses.length === 0 ? [coinSnapshot?.walletBalance].filter((item): item is NonNullable<typeof item> => Boolean(item)) : [])
   if (sourceBalances.length === 0) return null
-  const sats = sourceBalances.reduce((sum, item) => sum + (item.balance ?? item.balance_spendable ?? 0), 0)
-  const sat = coin.satsPerCoin ?? 100_000_000
-  return (sats / sat).toFixed(8).replace(/\.?0+$/, '') || '0'
+  const units = sourceBalances.reduce(
+    (sum, item) => sum + atomicAmountToBigInt(item.balance ?? item.balance_spendable),
+    0n,
+  )
+  return fromBaseUnits(units, decimalsForSatsPerCoin(coin.satsPerCoin ?? 100_000_000))
 }
 
 const mergeWalletSnapshotResults = (
@@ -594,16 +602,20 @@ const spendableStringFromSnapshot = (
       .map((address) => coinSnapshot?.balances?.[address])
       .filter((item): item is NonNullable<typeof item> => Boolean(item))
     if (balances.length > 0) {
-      const sats = balances.reduce((sum, item) => sum + (item.balance_spendable ?? item.balance ?? 0), 0)
-      const sat = coin.satsPerCoin ?? 100_000_000
-      return (sats / sat).toFixed(8).replace(/\.?0+$/, '') || '0'
+      const units = balances.reduce(
+        (sum, item) => sum + atomicAmountToBigInt(item.balance_spendable ?? item.balance),
+        0n,
+      )
+      return fromBaseUnits(units, decimalsForSatsPerCoin(coin.satsPerCoin ?? 100_000_000))
     }
   }
   const balances = snapshotBalancesForAddresses(coinSnapshot, addresses)
   if (balances.length === 0) return null
-  const sats = balances.reduce((sum, item) => sum + (item.balance_spendable ?? item.balance ?? 0), 0)
-  const sat = coin.satsPerCoin ?? 100_000_000
-  return (sats / sat).toFixed(8).replace(/\.?0+$/, '') || '0'
+  const units = balances.reduce(
+    (sum, item) => sum + atomicAmountToBigInt(item.balance_spendable ?? item.balance),
+    0n,
+  )
+  return fromBaseUnits(units, decimalsForSatsPerCoin(coin.satsPerCoin ?? 100_000_000))
 }
 
 const snapshotBalancesForAddresses = (
@@ -1340,7 +1352,7 @@ const privacyHideBalanceDecision = (
       recoveryPending,
     }
   }
-  const hide = nativeReadiness !== 'ready' && !visibleCandidate
+  const hide = nativeReadiness !== 'ready' && !visibleCandidate && !privacyDisplayIsReady(coin)
   return {
     hide,
     reason: hide ? 'native-not-ready-empty-candidate' : 'keep-visible-candidate',
@@ -1524,7 +1536,7 @@ const mergePrivacySnapshotTransactions = async (
   transactions: unknown[] | undefined,
   options: { expectedScope?: string; expectedMnemonic?: string; primeNotifications?: boolean; tipHeight?: number } = {},
 ) => {
-  if (!transactions?.length) return
+  if (!Array.isArray(transactions)) return
   if (!stillSameWallet(options.expectedScope, options.expectedMnemonic)) return
   const { useTransactionStore } = await import('./transactionStore')
   if (!stillSameWallet(options.expectedScope, options.expectedMnemonic)) return
@@ -1734,6 +1746,10 @@ const syntheticIncomingTransactionsFromSnapshot = (
     if (sats <= 0n) continue
     covered += sats
     const utxoHeight = Number(utxo.height ?? 0)
+    const tipHeight = Number(coinSnapshot.network?.blocks ?? coinSnapshot.network?.headers ?? 0)
+    const confirmations = utxoHeight > 0
+      ? Math.max(1, tipHeight >= utxoHeight ? Math.floor(tipHeight - utxoHeight + 1) : 1)
+      : 0
     transactions.push({
       id: `${coin.id}-${utxo.txid}`,
       coinId: coin.id,
@@ -1743,7 +1759,7 @@ const syntheticIncomingTransactionsFromSnapshot = (
       txHash: utxo.txid,
       to: Array.from(addressSet)[0] ?? fallbackAddress,
       createdAt: new Date().toISOString(),
-      confirmations: utxoHeight > 0 ? 1 : 0,
+      confirmations,
       // Carry the real block height so a confirmed synthetic row isn't mistaken
       // for an unverified optimistic row and pruned before the paged history
       // catches up (which made deposits briefly disappear).
@@ -1943,7 +1959,6 @@ const statusWithPrivacyRuntime = (coin: Coin, status: Coin['status']) => {
     && walletService.getSessionMnemonic()
     && privacyWalletService.getNativeReadiness(coin.id as PrivacyCoin) !== 'ready'
   ) {
-    if (privacyDisplayIsReady(coin)) return recoveredStatus
     return privacyPendingStatus(coin)
   }
   return recoveredStatus
@@ -3817,10 +3832,6 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
             && privacyCoinNeedsNativeReadiness(coin)
             && privacyCoinShouldShowNativePending(coin),
           )
-          .filter((coin) =>
-            privacyBirthService.isRecoveryPending(coin.id as PrivacyCoin)
-            || !privacyDisplayIsReady(coin),
-          )
           .map((coin) => coin.id),
       )
       const current = get().coins.length > 0 ? get().coins : await coinService.getCoins()
@@ -4352,7 +4363,7 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
     }
     const internal = tx.internal === true || (
       tx.type === 'outgoing' && txCoin
-        ? sameKnownAddress(tx.from, tx.to) || await isWalletAddressVariant(tx.to, tx.from ?? txCoin.address, txCoin.cryptoParams)
+        ? sameKnownAddress(tx.from, tx.to) || await isWalletAddressVariant(tx.coinId, tx.to, tx.from ?? txCoin.address, txCoin.cryptoParams)
         : false
     )
     if (tx.type === 'outgoing' && tx.status === 'pending') {
@@ -4521,7 +4532,9 @@ privacyWalletService.onNativeReadinessChange((coinId, readiness) => {
     const next = current.map((coin) => {
       if (coin.id !== coinId) return coin
       if (coin.status === 'maintenance' || coin.status === 'offline') return coin
-      const nextStatus: Coin['status'] = readiness === 'ready' || privacyDisplayIsReady(coin) ? 'active' : privacyPendingStatus(coin)
+      const nextStatus: Coin['status'] = readiness === 'ready'
+        ? 'active'
+        : privacyPendingStatus(coin)
       const status: Coin['status'] = privacyRecoveryIsPending(coin)
         ? privacyPendingStatus(coin)
         : nextStatus

@@ -163,13 +163,45 @@ export const walletSnapshotService = {
       coins: items,
       historyLimit,
       historyOffset,
-      includeNetwork: false,
+      includeNetwork: true,
       includeBalances: false,
       includeHistory: true,
       historyUtxoOverlay: options.utxoOverlay === true,
       expandAddresses: true,
     })
     return { items, snapshot }
+  },
+
+  async fetchHistoryChunked(
+    coins: Coin[],
+    historyLimit = 25,
+    historyOffset = 0,
+    options: { utxoOverlay?: boolean; chunkSize?: number; timeoutMs?: number } = {},
+  ): Promise<{ items: WalletSnapshotItem[]; snapshot: WalletSnapshotResponse }> {
+    const enabled = coins.filter((coin) => coin.enabled)
+    if (enabled.length === 0) return { items: [], snapshot: emptySnapshot() }
+    const timeoutMs = options.timeoutMs ?? BALANCE_CHUNK_TIMEOUT_MS
+    const results = await Promise.all(
+      chunkCoins(enabled, options.chunkSize ?? BALANCE_CHUNK_SIZE).map(async (chunk) => {
+        const items = await this.buildItems(chunk)
+        try {
+          const snapshot = await withTimeout(coinApiService.getWalletSnapshot({
+            coins: items,
+            historyLimit,
+            historyOffset,
+            includeNetwork: true,
+            includeBalances: false,
+            includeHistory: true,
+            historyUtxoOverlay: options.utxoOverlay === true,
+            expandAddresses: true,
+          }, timeoutMs), timeoutMs)
+          return { items, snapshot }
+        } catch {
+          return { items, snapshot: emptySnapshot() }
+        }
+      }),
+    )
+    return mergeSnapshotResults(results)
   },
 
   async fetchBalancesChunked(
@@ -194,8 +226,7 @@ export const walletSnapshotService = {
               includeHistory: false,
               forceBalances: options.forceBalances === true,
               expandAddresses: false,
-            }, options.timeoutMs ?? 0)
-              .then((snapshot) => ({ items, snapshot })),
+            }, options.timeoutMs ?? 0).then((snapshot) => ({ items, snapshot })),
             options.timeoutMs,
           )
         } catch {
@@ -244,7 +275,7 @@ export const walletSnapshotService = {
       coins: items,
       historyLimit: 0,
       historyOffset: 0,
-      includeNetwork: false,
+      includeNetwork: true,
       includeBalances: true,
       includeHistory: false,
       forceBalances: options.forceBalances === true,
@@ -270,13 +301,12 @@ export const walletSnapshotService = {
               coins: items,
               historyLimit: 0,
               historyOffset: 0,
-              includeNetwork: false,
+            includeNetwork: true,
               includeBalances: true,
               includeHistory: false,
               forceBalances: options.forceBalances === true,
               expandAddresses: false,
-            }, options.timeoutMs ?? 0)
-              .then((snapshot) => ({ items, snapshot })),
+            }, options.timeoutMs ?? 0).then((snapshot) => ({ items, snapshot })),
             options.timeoutMs,
           )
         } catch {

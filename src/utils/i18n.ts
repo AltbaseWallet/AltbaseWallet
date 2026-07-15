@@ -1,3 +1,4 @@
+import { useCallback } from 'react'
 import type { Language, Settings } from '../types/settings'
 import { useSettingsStore } from '../store/settingsStore'
 
@@ -1555,8 +1556,10 @@ export const translate = (
 /** React hook — returns a t() bound to the current language from settingsStore. */
 export const useT = () => {
   const language = useSettingsStore((s) => s.settings.language)
-  return (key: TranslationKey, vars?: Record<string, string | number>) =>
-    translate(language, key, vars)
+  return useCallback(
+    (key: TranslationKey, vars?: Record<string, string | number>) => translate(language, key, vars),
+    [language],
+  )
 }
 
 /** Settings type re-export for legacy callers. */

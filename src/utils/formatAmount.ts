@@ -65,6 +65,8 @@ export const formatUsdPrice = (value?: number) => {
     // 6 decimals is enough for ~$0.0001–$0.01
     return '$' + value.toFixed(8).replace(/0+$/, '').replace(/\.$/, '')
   }
-  // Very small: 4 significant figures, lossless for display
-  return '$' + value.toPrecision(4)
+  // Keep very small prices readable in wallet UI instead of showing "$4.796e-7".
+  const magnitude = Math.floor(Math.log10(Math.abs(value)))
+  const decimals = Math.min(20, Math.max(8, -magnitude + 3))
+  return '$' + value.toFixed(decimals).replace(/0+$/, '').replace(/\.$/, '')
 }

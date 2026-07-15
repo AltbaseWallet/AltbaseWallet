@@ -1,6 +1,7 @@
 import { clsx } from 'clsx'
 
 // Static asset imports — Vite hashes & inlines these into the bundle.
+import bitcoinLogo from '../../assets/coins/bitcoin.png'
 import bitcoinIILogo from '../../assets/coins/bitcoinII.png'
 import bch2Logo from '../../assets/coins/bch2.png'
 import btgsLogo from '../../assets/coins/btgs.png'
@@ -20,9 +21,13 @@ import zanoLogo from '../../assets/coins/zano.png'
 import epicLogo from '../../assets/coins/epiccash.png'
 import quaiLogo from '../../assets/coins/quai.png'
 import pearlLogo from '../../assets/coins/prl.png'
+import qubicLogo from '../../assets/coins/qubic.png'
+import kaspaLogo from '../../assets/coins/kaspa.png'
+import ckbLogo from '../../assets/coins/ckb.svg'
 
 /** Map ticker → bundled PNG. Lookup is case-insensitive. */
 const LOGO_MAP: Record<string, string> = {
+  BTC:   bitcoinLogo,
   BC2:   bitcoinIILogo,
   BCH2:  bch2Logo,
   BTGS:  btgsLogo,
@@ -42,6 +47,9 @@ const LOGO_MAP: Record<string, string> = {
   EPIC:  epicLogo,
   QUAI:  quaiLogo,
   PRL:   pearlLogo,
+  QUBIC: qubicLogo,
+  KAS:   kaspaLogo,
+  CKB:   ckbLogo,
 }
 
 /** Fallback gradients for tickers that don't have a bundled PNG (e.g. BMC). */
@@ -72,6 +80,10 @@ export function CoinIcon({ ticker, className }: { ticker: string; className?: st
             'pointer-events-none select-none',
             normalizedTicker === 'ZANO'
               ? 'h-[76%] w-[76%] object-contain'
+              : normalizedTicker === 'QUBIC'
+                ? 'h-[72%] w-[72%] object-contain'
+                : normalizedTicker === 'CKB'
+                  ? 'h-[66%] w-[66%] object-contain invert'
               : 'h-full w-full rounded-full object-cover',
           )}
           loading="lazy"

@@ -15,6 +15,7 @@ import { useTransactionStore } from '../../store/transactionStore'
 import { copyToClipboard } from '../../utils/clipboard'
 import { formatAmount, formatUsd } from '../../utils/formatAmount'
 import { useT } from '../../utils/i18n'
+import { hasLoadedHistoryPage } from '../../utils/historyPagination'
 import { isPrivacyCoin } from '../../utils/privacyCoins'
 
 export default function CoinDetails() {
@@ -35,17 +36,27 @@ export default function CoinDetails() {
   const coinTx = useMemo(() => transactions.filter((tx) => tx.coinId === coinId), [coinId, transactions])
   const visibleCoinTx = coinTx.slice((txPage - 1) * txPageSize, txPage * txPageSize)
   const txPagePending = visibleCoinTx.length === 0 && !allHistoryLoaded && allHistoryLoading
-  const txNextDisabled = allHistoryLoaded
-    ? coinTx.length <= txPage * txPageSize
-    : coinTx.length <= txPage * txPageSize && !allHistoryLoading
+  const txNextDisabled = !hasLoadedHistoryPage(coinTx.length, txPage, txPageSize)
   const canDeriveAddresses = walletService.hasStoredSeedPhrase()
 
   // Load this coin's first page fast, then pull the FULL history for every coin
   // in the background so pagination is purely client-side and nothing vanishes.
   useEffect(() => {
     window.setTimeout(() => setTxPage(1), 0)
-    void loadTransactions({ page: 1, pageSize: txPageSize, force: true, silent: true })
-      .finally(() => { void loadCoins({ forceBalances: true }) })
+    void loadTransactions({
+      page: 1,
+      pageSize: txPageSize,
+      force: true,
+      silent: true,
+      onlyCoinIds: coinId ? [coinId] : undefined,
+      skipAllHistorySideload: true,
+    }).finally(() => {
+      void loadCoins({
+        forceBalances: true,
+        onlyCoinIds: coinId ? [coinId] : undefined,
+        skipHistoryRefresh: true,
+      })
+    })
     void loadAllTransactions()
   }, [coinId, loadCoins, loadTransactions, loadAllTransactions])
 
@@ -64,9 +75,49 @@ export default function CoinDetails() {
     if (txPage > maxPage) window.setTimeout(() => setTxPage(maxPage), 0)
   }, [allHistoryLoaded, coinTx.length, txPage])
 
-  // No per-coin force polling here. The app-wide AutoRefresh already keeps
-  // balances current; another loop can make the combined snapshot pile up
-  // behind a slow coin and delay history/balance reconciliation.
+  // Keep the open coin responsive even when another module makes the global
+  // refresh slow. This targeted poll is intentionally serialized and never
+  // requests the all-coin snapshot.
+  useEffect(() => {
+    if (!coinId) return undefined
+
+    let stopped = false
+    let inFlight = false
+    const refreshOpenCoin = async () => {
+      if (stopped || inFlight || document.visibilityState === 'hidden') return
+      inFlight = true
+      try {
+        await loadTransactions({
+          page: 1,
+          pageSize: txPageSize,
+          force: true,
+          silent: true,
+          onlyCoinIds: [coinId],
+          skipAllHistorySideload: true,
+        })
+        await loadCoins({
+          forceBalances: true,
+          onlyCoinIds: [coinId],
+          skipHistoryRefresh: true,
+        })
+      } catch {
+        // A later tick retries; keep the last known balance visible meanwhile.
+      } finally {
+        inFlight = false
+      }
+    }
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') void refreshOpenCoin()
+    }
+    const interval = window.setInterval(() => { void refreshOpenCoin() }, 5_000)
+    document.addEventListener('visibilitychange', refreshWhenVisible)
+
+    return () => {
+      stopped = true
+      window.clearInterval(interval)
+      document.removeEventListener('visibilitychange', refreshWhenVisible)
+    }
+  }, [coinId, loadCoins, loadTransactions])
 
   const goTxPage = (nextPage: number) => setTxPage(Math.max(1, nextPage))
 
@@ -119,8 +170,8 @@ export default function CoinDetails() {
               </p>
             </div>
           </div>
-          <div className="text-left md:text-right">
-            <p className="text-3xl font-bold text-white">{hideBalances ? '\u2022\u2022\u2022\u2022' : formatAmount(coin.balance, coin.ticker)}</p>
+          <div className="min-w-0 text-left md:text-right">
+            <p className="break-all text-2xl font-bold text-white sm:text-3xl">{hideBalances ? '\u2022\u2022\u2022\u2022' : formatAmount(coin.balance, coin.ticker)}</p>
             <p className="text-slate-500">{hideBalances ? '\u2022\u2022\u2022\u2022' : formatUsd(coin.fiatValue)}</p>
           </div>
         </div>

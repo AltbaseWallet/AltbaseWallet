@@ -106,9 +106,38 @@ class NativeCoreClient {
   }
 
   timeoutFor(method, params = {}) {
-    if (method !== 'privacyLightWallet') return 180_000
-    if (params.action === 'send') return 120_000
-    return 10 * 60_000
+    if (method === 'coinNodeRequest') {
+      const requested = Number(params.timeoutMs)
+      const requestTimeout = Number.isFinite(requested) && requested > 0 ? requested : 10_000
+      return Math.min(Math.max(requestTimeout + 5_000, 6_000), 65_000)
+    }
+    if (method === 'privacyLightWallet') {
+      if (params.action === 'send') return params.coin === 'epic' ? 240_000 : 120_000
+      return 10 * 60_000
+    }
+    if (method === 'signTransaction') return 60_000
+    return 30_000
+  }
+
+  hasPendingEpicSend() {
+    return Array.from(this.pending.values()).some((slot) => (
+      slot.method === 'privacyLightWallet'
+      && slot.params?.coin === 'epic'
+      && slot.params?.action === 'send'
+    ))
+  }
+
+  waitForEpicSend(timeoutMs = 250_000) {
+    if (!this.hasPendingEpicSend()) return Promise.resolve()
+    return new Promise((resolve) => {
+      const startedAt = Date.now()
+      const timer = setInterval(() => {
+        if (!this.hasPendingEpicSend() || Date.now() - startedAt >= timeoutMs) {
+          clearInterval(timer)
+          resolve()
+        }
+      }, 100)
+    })
   }
 
   restartAfterTimeout(message) {
@@ -149,11 +178,11 @@ class NativeCoreClient {
           ? `${nativeParams.coin || 'privacy'} ${nativeParams.action || 'request'}`
           : method
         reject(new Error(`native core timeout during ${details} after ${Math.round(timeoutMs / 1000)}s`))
-        if (method === 'privacyLightWallet' && nativeParams.action === 'send') {
-          this.restartAfterTimeout(`native core restarted after ${details} timeout`)
-        }
+        this.restartAfterTimeout(`native core restarted after ${details} timeout`)
       }, timeoutMs)
       this.pending.set(id, {
+        method,
+        params: nativeParams,
         onProgress,
         resolve: (value) => {
           clearTimeout(timer)
@@ -164,7 +193,20 @@ class NativeCoreClient {
           reject(error)
         },
       })
-      this.child.stdin.write(payload)
+      const failWrite = (error) => {
+        const slot = this.pending.get(id)
+        if (!slot) return
+        this.pending.delete(id)
+        slot.reject(error instanceof Error ? error : new Error(String(error)))
+        this.restartAfterTimeout('native core restarted after request write failure')
+      }
+      try {
+        this.child.stdin.write(payload, (error) => {
+          if (error) failWrite(error)
+        })
+      } catch (error) {
+        failWrite(error)
+      }
     })
   }
 

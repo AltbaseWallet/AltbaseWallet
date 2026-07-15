@@ -6,6 +6,7 @@
  */
 
 import type { CoinCryptoParams } from '../types/crypto'
+import { addressVariantsFromLegacyAddress, legacyAddressForNativeScript } from '../utils/addressVariants'
 import { coinApiService, type FeeRateInfo, type Utxo } from './coinApiService'
 import { nativeCoreService } from './nativeCoreService'
 
@@ -48,7 +49,7 @@ const toNativeUtxos = (utxos: Utxo[]) =>
   utxos.map((utxo) => ({
     txid: utxo.txid,
     vout: utxo.outputIndex,
-    satoshis: utxo.satoshis,
+    satoshis: Number(utxo.satoshis),
     script: utxo.script,
   }))
 
@@ -65,10 +66,12 @@ const filterExcludedUtxos = (
 }
 
 const fundingAddressesFor = async (
+  coinId: string,
   fromAddress: string,
   cryptoParams: CoinCryptoParams,
 ): Promise<string[]> => {
-  const addressVariants = await nativeCoreService.addressVariantsFromLegacy(fromAddress, cryptoParams)
+  const addressVariants = await addressVariantsFromLegacyAddress(fromAddress, cryptoParams)
+    .catch(() => nativeCoreService.addressVariantsFromLegacy(coinId, fromAddress, cryptoParams))
   const fundingAddresses = addressVariants
     .filter((variant) => !variant.aliasOfLegacy && (variant.scriptKind === 'p2pkh' || variant.scriptKind === 'p2wpkh' || variant.scriptKind === 'p2tr'))
     .map((variant) => variant.address)
@@ -81,7 +84,7 @@ const fetchFundingUtxos = async (
   cryptoParams: CoinCryptoParams,
   options: { force?: boolean; fast?: boolean; excludeOutpoints?: Array<{ txid: string; vout: number }> } = {},
 ): Promise<FundingUtxo[]> => {
-  const uniqueFundingAddresses = await fundingAddressesFor(fromAddress, cryptoParams)
+  const uniqueFundingAddresses = await fundingAddressesFor(coinId, fromAddress, cryptoParams)
   const rows = (await coinApiService.getUtxosForAddresses(coinId, uniqueFundingAddresses, options))
     .map((utxo) => ({ ...utxo, sourceAddress: fromAddress })) as FundingUtxo[]
   const byOutpoint = new Map<string, FundingUtxo>()
@@ -92,9 +95,28 @@ const fetchFundingUtxos = async (
   return filterExcludedUtxos(Array.from(byOutpoint.values()), options.excludeOutpoints)
 }
 
-const isRetryableBroadcastError = (error: unknown) =>
+const isAlreadyAcceptedBroadcastError = (error: unknown) =>
   error instanceof Error
-  && /bad-txns-inputs-missingorspent|missing.?or.?spent|txn-mempool-conflict|already in block chain|min relay fee not met/i.test(error.message)
+  && /already in block chain|already known|already have transaction|already in (?:the )?mempool|txn-already-known/i.test(error.message)
+
+const isDeterministicBroadcastRejection = (error: unknown) => {
+  if (!(error instanceof Error)) return false
+  const status = Number((error as Error & { status?: number }).status)
+  if (Number.isFinite(status) && status >= 400 && status < 500 && status !== 408) return true
+  return /bad-txns-inputs-missingorspent|missing.?or.?spent|txn-mempool-conflict|min relay fee not met|mandatory-script-verify|non-mandatory-script-verify|bad-txns|insufficient fee|dust/i.test(error.message)
+}
+
+export class UtxoBroadcastError extends Error {
+  readonly txid: string
+  readonly uncertain: boolean
+
+  constructor(message: string, txid: string, uncertain: boolean) {
+    super(message)
+    this.name = 'UtxoBroadcastError'
+    this.txid = txid
+    this.uncertain = uncertain
+  }
+}
 
 const getFeeRateInfo = async (coinId: string, options: { force?: boolean } = {}): Promise<FeeRateInfo> => {
   let rate = COIN_FALLBACK_FEE_RATE_PER_KB[coinId] ?? FALLBACK_FEE_RATE_PER_KB
@@ -155,6 +177,8 @@ export type CoinSendResult = {
   spentOutpoints?: Array<{ txid: string; vout: number; satoshis?: number }>
 }
 
+export type PreparedCoinSend = CoinSendResult
+
 type FundingUtxo = Utxo & { sourceAddress: string }
 
 export type CoinMaxSendResult = {
@@ -179,6 +203,59 @@ export const coinTxService = {
     const sats = await nativeCoreService.estimateFee({ feeRatePerKb: rate, satsPerCoin, nIn, nOut })
     const coin = (sats / satsPerCoin).toFixed(8).replace(/\.?0+$/, '')
     return { satoshis: sats, coin }
+  },
+
+  /** Exact fee for the current recipient, amount and spendable UTXO set. */
+  async estimateSendFee(params: {
+    coinId: string
+    cryptoParams: CoinCryptoParams
+    satsPerCoin: number
+    fromAddress: string
+    toAddress: string
+    amountCoin: string
+    force?: boolean
+    excludeOutpoints?: Array<{ txid: string; vout: number }>
+  }): Promise<{ satoshis: number; coin: string }> {
+    const {
+      coinId,
+      cryptoParams,
+      satsPerCoin,
+      fromAddress,
+      toAddress,
+      amountCoin,
+      force = false,
+      excludeOutpoints,
+    } = params
+    const amountSats = coinAmountToSats(amountCoin, satsPerCoin, 'amount')
+    if (amountSats <= 0n) throw new Error('Amount must be greater than 0')
+
+    const nativeToAddress = await legacyAddressForNativeScript(toAddress, cryptoParams)
+    const nativeChangeAddress = await legacyAddressForNativeScript(fromAddress, cryptoParams)
+    const [toScript, changeScript, utxos, feeRatePerKb] = await Promise.all([
+      nativeCoreService.addressToScript(coinId, nativeToAddress, cryptoParams),
+      nativeCoreService.addressToScript(coinId, nativeChangeAddress, cryptoParams),
+      fetchFundingUtxos(coinId, fromAddress, cryptoParams, {
+        force,
+        fast: true,
+        excludeOutpoints,
+      }),
+      getFeeRate(coinId, { force }),
+    ])
+    if (utxos.length === 0) throw new Error('No spendable UTXOs (balance is 0 or unconfirmed)')
+
+    const plan = await nativeCoreService.planTransaction({
+      mode: 'send',
+      utxos: toNativeUtxos(utxos),
+      satsPerCoin,
+      feeRatePerKb,
+      amountSats,
+      toScript,
+      changeScript,
+    })
+    return {
+      satoshis: plan.feeSatoshis,
+      coin: satsToCoinText(plan.feeSatoshis, satsPerCoin),
+    }
   },
 
   estimateMinimumRelayFee,
@@ -229,6 +306,7 @@ export const coinTxService = {
     feeCoin?: string
     sendMax?: boolean
     excludeOutpoints?: Array<{ txid: string; vout: number }>
+    onPrepared?: (prepared: PreparedCoinSend) => void | Promise<void>
   }): Promise<CoinSendResult> {
     const { coinId, cryptoParams, satsPerCoin, mnemonic, fromAddress, toAddress, amountCoin, feeCoin, sendMax, excludeOutpoints } = params
 
@@ -238,69 +316,67 @@ export const coinTxService = {
 
     // 2. UTXOs
     // 3. Native fee, UTXO selection, change and output planning
-    const toScript     = await nativeCoreService.addressToScript(toAddress, cryptoParams)
-    const changeScript = await nativeCoreService.addressToScript(fromAddress, cryptoParams)
+    const nativeToAddress = await legacyAddressForNativeScript(toAddress, cryptoParams)
+    const nativeChangeAddress = await legacyAddressForNativeScript(fromAddress, cryptoParams)
+    const toScript     = await nativeCoreService.addressToScript(coinId, nativeToAddress, cryptoParams)
+    const changeScript = await nativeCoreService.addressToScript(coinId, nativeChangeAddress, cryptoParams)
     const manualFeeSats = feeCoin ? coinAmountToSats(feeCoin, satsPerCoin, 'fee') : undefined
 
-    let retryExcludedOutpoints = excludeOutpoints ?? []
-    for (let attempt = 0; attempt < 2; attempt += 1) {
-      const utxos = await fetchFundingUtxos(coinId, fromAddress, cryptoParams, {
-        force: attempt > 0,
-        fast: attempt === 0,
-        excludeOutpoints: retryExcludedOutpoints,
-      })
-      if (utxos.length === 0) throw new Error('No spendable UTXOs (balance is 0 or unconfirmed)')
+    const utxos = await fetchFundingUtxos(coinId, fromAddress, cryptoParams, {
+      force: true,
+      fast: false,
+      excludeOutpoints,
+    })
+    if (utxos.length === 0) throw new Error('No spendable UTXOs (balance is 0 or unconfirmed)')
 
-      const plan = await nativeCoreService.planTransaction({
-        mode: sendMax ? 'max' : 'send',
-        utxos: toNativeUtxos(utxos),
-        satsPerCoin,
-        feeRatePerKb: feeCoin ? (COIN_FALLBACK_FEE_RATE_PER_KB[coinId] ?? FALLBACK_FEE_RATE_PER_KB) : await getFeeRate(coinId, { force: attempt > 0 }),
-        amountSats: sendMax ? undefined : amountSat,
-        manualFeeSats,
-        toScript,
-        changeScript,
-      })
-      if (manualFeeSats !== undefined) {
-        await assertManualFeeAboveRelay(coinId, satsPerCoin, manualFeeSats, plan.inputCount, plan.outputs.length)
-      }
-
-      // 4. Native build + sign. JS only fetches UTXOs and broadcasts the result.
-      const txHex = await nativeCoreService.signTransaction({
-        mnemonic,
-        cryptoParams,
-        inputs: plan.selectedInputs,
-        outputs: plan.outputs,
-      })
-
-      try {
-        // 5. Broadcast
-        const txid = await coinApiService.broadcast(coinId, txHex)
-        return {
-          txid,
-          hex: txHex,
-          amountCoin: satsToCoinText(plan.amountSatoshis, satsPerCoin),
-          feeSatoshis: plan.feeSatoshis,
-          feeCoin: satsToCoinText(plan.feeSatoshis, satsPerCoin),
-          spentOutpoints: plan.selectedInputs.map((input) => ({
-            txid: input.txid,
-            vout: input.vout,
-            satoshis: input.satoshis,
-          })),
-        }
-      } catch (error) {
-        if (attempt === 0 && isRetryableBroadcastError(error)) {
-          retryExcludedOutpoints = [
-            ...retryExcludedOutpoints,
-            ...plan.selectedInputs.map((input) => ({ txid: input.txid, vout: input.vout })),
-          ]
-          coinApiService.invalidateCoinCache(coinId)
-          continue
-        }
-        throw error
-      }
+    const plan = await nativeCoreService.planTransaction({
+      mode: sendMax ? 'max' : 'send',
+      utxos: toNativeUtxos(utxos),
+      satsPerCoin,
+      feeRatePerKb: feeCoin
+        ? (COIN_FALLBACK_FEE_RATE_PER_KB[coinId] ?? FALLBACK_FEE_RATE_PER_KB)
+        : await getFeeRate(coinId, { force: true }),
+      amountSats: sendMax ? undefined : amountSat,
+      manualFeeSats,
+      toScript,
+      changeScript,
+    })
+    if (manualFeeSats !== undefined) {
+      await assertManualFeeAboveRelay(coinId, satsPerCoin, manualFeeSats, plan.inputCount, plan.outputs.length)
     }
 
-    throw new Error('Broadcast failed after refreshing spendable outputs')
+    const signed = await nativeCoreService.signTransaction({
+      coinId,
+      mnemonic,
+      cryptoParams,
+      inputs: plan.selectedInputs,
+      outputs: plan.outputs,
+    })
+    const prepared: CoinSendResult = {
+      txid: signed.txid,
+      hex: signed.txHex,
+      amountCoin: satsToCoinText(plan.amountSatoshis, satsPerCoin),
+      feeSatoshis: plan.feeSatoshis,
+      feeCoin: satsToCoinText(plan.feeSatoshis, satsPerCoin),
+      spentOutpoints: plan.selectedInputs.map((input) => ({
+        txid: input.txid,
+        vout: input.vout,
+        satoshis: input.satoshis,
+      })),
+    }
+    await params.onPrepared?.(prepared)
+
+    try {
+      const broadcastTxid = await coinApiService.broadcast(coinId, signed.txHex, signed.txid)
+      if (broadcastTxid.trim().toLowerCase() !== signed.txid.toLowerCase()) {
+        throw new UtxoBroadcastError('Broadcast gateway returned a different transaction id', signed.txid, true)
+      }
+      return prepared
+    } catch (error) {
+      if (error instanceof UtxoBroadcastError) throw error
+      if (isAlreadyAcceptedBroadcastError(error)) return prepared
+      const message = error instanceof Error ? error.message : String(error)
+      throw new UtxoBroadcastError(message, signed.txid, !isDeterministicBroadcastRejection(error))
+    }
   },
 }

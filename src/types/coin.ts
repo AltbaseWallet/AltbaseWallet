@@ -1,8 +1,16 @@
 import type { CoinCryptoParams } from './crypto'
 
 export type CoinStatus = 'active' | 'syncing' | 'preparing' | 'recovering' | 'offline' | 'maintenance'
-export type CoinWalletEngine = 'bitcoin-utxo' | 'pearl-utxo' | 'zano-light' | 'epic-light' | 'quai-account'
-export type UtxoReadProfile = 'address-index' | 'scan-utxo' | 'local-index' | 'blockbook'
+export type CoinWalletEngine =
+  | 'bitcoin-utxo'
+  | 'pearl-utxo'
+  | 'zano-light'
+  | 'epic-light'
+  | 'quai-account'
+  | 'qubic-account'
+  | 'kaspa-utxo'
+  | 'ckb-cell'
+export type UtxoReadProfile = 'address-index' | 'scan-utxo' | 'local-index' | 'blockbook' | 'mempool-space'
 
 export type CoinRecoveryProgress = {
   fromHeight: number

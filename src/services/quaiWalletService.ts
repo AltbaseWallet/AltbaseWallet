@@ -3,11 +3,11 @@ import {
   QuaiTransaction,
   Zone,
   formatQuai,
-  isQuaiAddress,
   parseQuai,
 } from 'quais'
-import { coinApiService } from './coinApiService'
+import { atomicAmountToBigInt, coinApiService } from './coinApiService'
 import { quaiDebugLog } from '../utils/quaiDebugLog'
+import { isValidQuaiAddress } from '../utils/quaiAddress'
 
 const QUAI_COIN_ID = 'quai'
 const WEI_PER_UI_BASE = 10_000_000_000n
@@ -122,7 +122,7 @@ export const quaiWalletService = {
   },
 
   isValidAddress(address: string) {
-    return isQuaiAddress(address)
+    return isValidQuaiAddress(address)
   },
 
   async estimateFee(coinId = QUAI_COIN_ID, options: {
@@ -131,8 +131,8 @@ export const quaiWalletService = {
     toAddress?: string
     amountCoin?: string
   } = {}) {
-    const from = options.fromAddress && isQuaiAddress(options.fromAddress) ? options.fromAddress : undefined
-    const to = options.toAddress && isQuaiAddress(options.toAddress) ? options.toAddress : undefined
+    const from = options.fromAddress && isValidQuaiAddress(options.fromAddress) ? options.fromAddress : undefined
+    const to = options.toAddress && isValidQuaiAddress(options.toAddress) ? options.toAddress : undefined
     const amountWei = (() => {
       if (!options.amountCoin || !/^\d+(\.\d+)?$/.test(options.amountCoin.trim())) return undefined
       try {
@@ -159,13 +159,14 @@ export const quaiWalletService = {
   },
 
   async estimateMaxSend(coinId: string, address: string, feeCoin?: string, toAddress?: string) {
-    const recipient = toAddress && isQuaiAddress(toAddress) ? toAddress : undefined
+    const recipient = toAddress && isValidQuaiAddress(toAddress) ? toAddress : undefined
     const [balance, context, freshFee] = await Promise.all([
       coinApiService.getBalance(coinId, address),
       coinApiService.getAccountTxContext(coinId, address, recipient),
       coinApiService.getAccountFeeEstimate(coinId, 8_000, { force: true }).catch(() => null),
     ])
-    const spendableBase = BigInt(Math.max(0, Math.floor(balance.balance_spendable ?? balance.balance ?? 0)))
+    const rawSpendableBase = atomicAmountToBigInt(balance.balance_spendable ?? balance.balance)
+    const spendableBase = rawSpendableBase > 0n ? rawSpendableBase : 0n
     const spendableWei = spendableBase * WEI_PER_UI_BASE
     const { signGasLimit, gasPrice, reserveFeeWei, feeWei } = effectiveGasPlan(context, freshFee, feeCoin)
     const maxWei = spendableWei > reserveFeeWei ? spendableWei - reserveFeeWei : 0n
@@ -211,7 +212,7 @@ export const quaiWalletService = {
     sendMax?: boolean
     onPrepared?: (prepared: PreparedQuaiTransaction) => void | Promise<void>
   }) {
-    if (!isQuaiAddress(params.toAddress)) throw new Error('Invalid Quai address')
+    if (!isValidQuaiAddress(params.toAddress)) throw new Error('Invalid Quai address')
 
     const { wallet, address } = ensureQuaiWallet(params.mnemonic)
     const fromAddress = params.fromAddress || address
@@ -235,7 +236,8 @@ export const quaiWalletService = {
       coinApiService.getAccountFeeEstimate(params.coinId, 8_000, { force: true }).catch(() => null),
     ])
     const { signGasLimit, gasPrice, reserveFeeWei, feeWei } = effectiveGasPlan(context, freshFee, params.feeCoin)
-    const spendableBase = BigInt(Math.max(0, Math.floor(balance.balance_spendable ?? balance.balance ?? 0)))
+    const rawSpendableBase = atomicAmountToBigInt(balance.balance_spendable ?? balance.balance)
+    const spendableBase = rawSpendableBase > 0n ? rawSpendableBase : 0n
     const spendableWei = spendableBase * WEI_PER_UI_BASE
     const valueWei = params.sendMax
       ? (() => {
