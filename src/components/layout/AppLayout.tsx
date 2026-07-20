@@ -15,7 +15,11 @@ export function AppLayout() {
   const t = useT()
   const location = useLocation()
   const navigate = useNavigate()
-  const showBack = location.pathname !== '/app'
+  const miningView = location.pathname === '/app/mining'
+  const miningCoinId = miningView ? new URLSearchParams(location.search).get('coin') : null
+  const safeMiningCoinId = miningCoinId && /^[a-z0-9][a-z0-9._-]{0,63}$/i.test(miningCoinId) ? miningCoinId : null
+  const showBack = location.pathname !== '/app' && (!miningView || Boolean(safeMiningCoinId))
+  const backTarget = safeMiningCoinId ? `/app/coin/${safeMiningCoinId}` : backTargetFor(location.pathname)
 
   return (
     <div className="h-dvh min-h-0 overflow-hidden bg-ink text-slate-100">
@@ -28,14 +32,16 @@ export function AppLayout() {
               <button
                 type="button"
                 className="inline-flex h-9 items-center gap-2 rounded-lg px-2 text-sm font-medium text-slate-300 transition hover:bg-white/8 hover:text-white"
-                onClick={() => navigate(backTargetFor(location.pathname))}
+                onClick={() => navigate(backTarget)}
               >
                 <ArrowLeft size={18} />
                 {t('back')}
               </button>
             </div>
           )}
-          <main className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-3 py-4 sm:px-4 sm:py-5 lg:px-5 xl:px-6">
+          <main className={miningView
+            ? 'min-h-0 min-w-0 flex-1 overflow-hidden'
+            : 'min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-3 py-4 sm:px-4 sm:py-5 lg:px-5 xl:px-6'}>
             <Outlet />
           </main>
         </div>

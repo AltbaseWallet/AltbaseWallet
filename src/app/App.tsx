@@ -23,7 +23,7 @@ function AutoLock() {
       window.clearTimeout(timer)
       timer = window.setTimeout(lock, autoLockMinutes * 60 * 1000)
     }
-    const events = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart']
+    const events = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart', 'altbase:user-activity']
     events.forEach((event) => window.addEventListener(event, reset))
     reset()
     return () => {
@@ -44,7 +44,10 @@ function AutoRefresh() {
   const isUnlocked = useAuthStore((state) => state.isUnlocked)
   const location = useLocation()
   const routeRef = useRef(location.pathname)
-  routeRef.current = location.pathname
+
+  useEffect(() => {
+    routeRef.current = location.pathname
+  }, [location.pathname])
 
   useEffect(() => {
     if (!isUnlocked) return undefined

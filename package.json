@@ -5,29 +5,35 @@
   "author": "Altbase",
   "homepage": "https://altbase.io",
   "private": true,
-  "version": "0.1.5",
+  "version": "0.1.6",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
-    "dev": "vite",
+    "sync:mining": "node scripts/sync-mining-frontend.cjs",
+    "build:mining": "node scripts/build-mining-module.cjs",
+    "qa:mining-ui": "electron scripts/qa-mining-ui.cjs",
+    "release:mining": "node scripts/package-mining-module-release.cjs",
+    "dev": "npm run sync:mining && vite",
     "build:zano": "node scripts/build-zano-native.cjs",
     "build:epic": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-epic-resilient.ps1",
     "build:kaspa-wallet-wasm": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-kaspa-wallet-wasm.ps1 -Threads 7",
     "build:core": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-core-native.ps1",
-    "build": "tsc -b && vite build",
+    "build": "npm run sync:mining && npm run build:mining && tsc -b && vite build",
+    "build:release": "npm run sync:mining && node scripts/build-mining-module.cjs --require-signature && tsc -b && vite build",
     "cli:build": "vite build --config vite.cli.config.ts",
     "cli": "npm run -s cli:build && node cli-dist/altbase-cli.mjs",
     "electron": "electron .",
     "dist:win": "npm run build:core && npm run dist:win:dir && node scripts/build-native-installer.cjs",
-    "dist:win:dir": "npm run build && electron-builder --win dir --x64 --config.win.signAndEditExecutable=false && node scripts/set-win-icon.cjs",
+    "dist:win:dir": "npm run build:release && electron-builder --win dir --x64 --config.win.signAndEditExecutable=false && node scripts/set-win-icon.cjs",
     "dist:win:msi": "npm run build:core && npm run dist:win:dir && node scripts/build-native-installer.cjs",
     "dist:win:installer": "npm run dist:win:msi",
-    "dist:linux:appimage": "npm run build && electron-builder --linux AppImage --x64",
-    "dist:linux:dir": "npm run build && electron-builder --linux dir --x64",
-    "dist:mac:dmg": "npm run build && electron-builder --mac dmg --x64",
-    "dist:mac:zip": "npm run build && electron-builder --mac zip --x64",
+    "dist:linux:appimage": "npm run build:release && electron-builder --linux AppImage --x64",
+    "dist:linux:dir": "npm run build:release && electron-builder --linux dir --x64",
+    "dist:mac:dmg": "npm run build:release && electron-builder --mac dmg --universal",
+    "dist:mac:zip": "npm run build:release && electron-builder --mac zip --universal",
     "lint": "eslint .",
-    "test": "node --experimental-strip-types --test tests/**/*.test.ts tests/**/*.test.cjs",
+    "pretest": "npm run sync:mining && npm run build:mining",
+    "test": "node --experimental-strip-types --test tests/**/*.test.ts tests/**/*.test.cjs && node --test modules/mining/dist/tests/*.test.js",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -35,8 +41,8 @@
     "@hookform/resolvers": "^5.2.2",
     "@qubic-lib/qubic-ts-library": "0.1.6",
     "clsx": "^2.1.1",
-    "framer-motion": "^12.38.0",
     "ethers": "6.17.0",
+    "framer-motion": "^12.38.0",
     "kaspa-wasm": "file:vendor/kaspa-wasm-v2.0.1",
     "lucide-react": "^1.14.0",
     "qrcode.react": "^4.2.0",
@@ -55,8 +61,8 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
     "autoprefixer": "^10.5.0",
-    "electron": "^41.5.0",
-    "electron-builder": "^26.8.1",
+    "electron": "^43.1.1",
+    "electron-builder": "^26.15.3",
     "eslint": "^10.2.1",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
@@ -89,6 +95,19 @@
       {
         "from": "build/icon.ico",
         "to": "build/icon.ico"
+      },
+      {
+        "from": "modules/mining",
+        "to": "modules/mining",
+        "filter": [
+          "module.json",
+          "package.json",
+          "package.manifest.json",
+          "catalog/**/*",
+          "docs/**/*",
+          "dist/src/**/*",
+          "dist/frontend/**/*"
+        ]
       }
     ],
     "win": {
@@ -118,15 +137,22 @@
     },
     "mac": {
       "category": "public.app-category.finance",
+      "minimumSystemVersion": "12.0",
+      "extendInfo": {
+        "LSArchitecturePriority": [
+          "arm64",
+          "x86_64"
+        ]
+      },
       "target": [
         {
-          "target": "dmg",
+          "target": "zip",
           "arch": [
-            "x64"
+            "universal"
           ]
         }
       ],
-      "artifactName": "Altbase-Wallet-macOS.${ext}"
+      "artifactName": "Altbase-Wallet-macOS-universal.${ext}"
     }
   }
 }

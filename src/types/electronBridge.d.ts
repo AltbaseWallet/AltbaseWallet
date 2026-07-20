@@ -14,6 +14,17 @@ declare global {
           result?: Record<string, string>
           error?: string
         }>
+        mining: {
+          request: (request: {
+            method: string
+            params?: Record<string, unknown>
+          }) => Promise<{
+            ok: boolean
+            result?: unknown
+            error?: string
+          }>
+          onEvent: (callback: (payload: unknown) => void) => () => void
+        }
         onCoreProgress: (callback: (payload: unknown) => void) => () => void
       }
     }

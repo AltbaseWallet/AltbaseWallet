@@ -18,6 +18,7 @@ const Receive = lazy(() => import('../pages/Receive/Receive'))
 const History = lazy(() => import('../pages/History/History'))
 const TransactionDetails = lazy(() => import('../pages/TransactionDetails/TransactionDetails'))
 const Settings = lazy(() => import('../pages/Settings/Settings'))
+const Mining = lazy(() => import('../pages/Mining/Mining'))
 
 function Loader() {
   const t = useT()
@@ -75,6 +76,7 @@ export function AppRouter() {
             <Route path="send" element={<Send />} />
             <Route path="receive" element={<Receive />} />
             <Route path="history" element={<History />} />
+            <Route path="mining" element={<Mining />} />
             <Route path="tx/:txId" element={<TransactionDetails />} />
             <Route path="settings" element={<Settings />} />
             <Route path="settings/:section" element={<Settings />} />

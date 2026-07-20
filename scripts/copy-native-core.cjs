@@ -5,6 +5,11 @@ const { spawnSync } = require('node:child_process')
 const root = path.resolve(__dirname, '..')
 const rawTargetPlatform = process.env.ALTBASE_TARGET_PLATFORM || process.platform
 const targetPlatform = rawTargetPlatform === 'macos' ? 'darwin' : rawTargetPlatform
+const targetArchitecture = process.env.ALTBASE_TARGET_ARCH || process.arch
+if (targetPlatform === 'darwin' && !['x64', 'arm64'].includes(targetArchitecture)) {
+  throw new Error(`Unsupported macOS native architecture: ${targetArchitecture}`)
+}
+const macosBuildFolder = `macos-${targetArchitecture}-release`
 const exeName = targetPlatform === 'win32' ? 'altbase_core_bridge.exe' : 'altbase_core_bridge'
 const platformCandidates = {
   win32: [
@@ -12,8 +17,8 @@ const platformCandidates = {
     path.join(root, 'native', 'core', 'build', 'vs2022-x64-release', 'bin', exeName),
   ],
   darwin: [
-    path.join(root, 'native', 'core', 'build', 'macos-x64-release', 'bin', exeName),
-    path.join(root, 'native', 'core', 'build', 'macos-x64-release', 'bin', 'Release', exeName),
+    path.join(root, 'native', 'core', 'build', macosBuildFolder, 'bin', exeName),
+    path.join(root, 'native', 'core', 'build', macosBuildFolder, 'bin', 'Release', exeName),
   ],
   linux: [
     path.join(root, 'native', 'core', 'build', 'linux-x64-release', 'bin', exeName),
@@ -29,6 +34,7 @@ if (!source) {
 }
 
 const targetDir = path.join(root, 'native-core')
+fs.rmSync(targetDir, { recursive: true, force: true })
 fs.mkdirSync(targetDir, { recursive: true })
 fs.copyFileSync(source, path.join(targetDir, exeName))
 console.log(`copied native core: ${source} -> ${path.join(targetDir, exeName)}`)
@@ -55,7 +61,7 @@ const utxoCoinIds = [
 const nodeCoinIds = [...utxoCoinIds, 'zano', 'epic', 'quai', 'qubic', 'kaspa', 'ckb']
 const nativeBuildFolder = {
   win32: 'vs2022-x64-release',
-  darwin: 'macos-x64-release',
+  darwin: macosBuildFolder,
   linux: 'linux-x64-release',
 }[targetPlatform]
 const builtModuleCandidates = (name) => [
@@ -152,11 +158,25 @@ const bundleLinuxSharedLibraries = (binary) => {
       if (!lib || skipLib(lib) || bundledLibNames.has(path.basename(lib))) continue
       bundledLibNames.add(path.basename(lib))
       const target = path.join(targetDir, path.basename(lib))
-      fs.copyFileSync(lib, target)
+      if (path.resolve(lib) !== path.resolve(target)) fs.copyFileSync(lib, target)
       fs.chmodSync(target, 0o755)
       console.log(`bundled native core library: ${lib} -> ${target}`)
     }
   }
+}
+
+const bundleAllLinuxSharedLibraries = () => {
+  if (targetPlatform !== 'linux' || process.platform !== 'linux') return
+  for (let round = 0; round < 12; round += 1) {
+    const before = bundledLibNames.size
+    const binaries = fs.readdirSync(targetDir)
+      .filter((name) => name === exeName || name.includes('.so'))
+      .map((name) => path.join(targetDir, name))
+      .filter((file) => fs.statSync(file).isFile())
+    for (const binary of binaries) bundleLinuxSharedLibraries(binary)
+    if (bundledLibNames.size === before) return
+  }
+  throw new Error('Linux native dependency bundling did not converge')
 }
 
 bundleLinuxSharedLibraries(source)
@@ -204,8 +224,9 @@ if (targetPlatform === 'win32') {
   copyCommonNativeModules()
   for (const moduleName of ['state', 'sender', 'transport']) {
     const moduleFile = `libaltbase_epic_${moduleName}.dylib`
+    const rustTarget = targetArchitecture === 'arm64' ? 'aarch64-apple-darwin' : 'x86_64-apple-darwin'
     const candidates = [
-      path.join(root, 'native', 'epic_core', 'target', 'x86_64-apple-darwin', 'release', moduleFile),
+      path.join(root, 'native', 'epic_core', 'target', rustTarget, 'release', moduleFile),
       path.join(root, 'native', 'epic_core', 'target', 'release', moduleFile),
     ]
     const moduleSource = candidates.find((candidate) => fs.existsSync(candidate))
@@ -233,6 +254,7 @@ if (targetPlatform === 'win32') {
     bundleLinuxSharedLibraries(moduleSource)
     }
   }
+  bundleAllLinuxSharedLibraries()
   const staleEpicCore = path.join(targetDir, 'libaltbase_epic_core.so')
   if (fs.existsSync(staleEpicCore)) fs.rmSync(staleEpicCore)
 }

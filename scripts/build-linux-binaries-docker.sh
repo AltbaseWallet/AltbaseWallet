@@ -102,7 +102,9 @@ build_privacy_native() {
     done
 
     epic_target=native/target-epic-modular-linux
-    rm -rf "$epic_target" native/epic_core/target/release
+    if [ "${ALTBASE_INCREMENTAL_BUILD:-0}" != "1" ]; then
+      rm -rf "$epic_target" native/epic_core/target/release
+    fi
     cargo build --release --locked --manifest-path native/epic_transport/Cargo.toml --target-dir "$epic_target" -j "${ALTBASE_BUILD_JOBS:-2}"
     export ALTBASE_EPIC_TRANSPORT_LIB_DIR="$PWD/$epic_target/release"
     cargo build --release --locked --manifest-path native/epic_state/Cargo.toml --target-dir "$epic_target" -j "${ALTBASE_BUILD_JOBS:-2}"
@@ -119,12 +121,14 @@ build_privacy_native() {
       -B "$zano_build" \
       -DBUILD_GUI=OFF \
       -DDISABLE_TOR=ON \
+      -DMOBILE_WALLET_BUILD=ON \
+      -DALTBASE_NATIVE_HARDENED_RELEASE=ON \
       -DSTATIC=OFF \
       -DCOMMIT_ID_IN_VERSION=OFF \
       -DGIT=FALSE \
       -DBoost_NO_SYSTEM_PATHS=OFF \
       -DBoost_NO_WARN_NEW_VERSIONS=ON
-    for target in common crypto currency_core rpc zlibstatic ethash libminiupnpc-static wallet; do
+    for target in common crypto currency_core rpc zlibstatic libminiupnpc-static wallet; do
       cmake --build "$zano_build" --target "$target" --parallel "${ALTBASE_BUILD_JOBS:-2}"
     done
 SCRIPT
@@ -144,6 +148,7 @@ ensure_container() {
   docker create -it \
     --name "$name" \
     -e ALTBASE_BUILD_JOBS="$BUILD_JOBS" \
+    -e ALTBASE_INCREMENTAL_BUILD="${ALTBASE_INCREMENTAL_BUILD:-0}" \
     -e CARGO_NET_RETRY=100 \
     -e CARGO_HTTP_TIMEOUT=600 \
     -e CARGO_HTTP_LOW_SPEED_LIMIT=1 \
@@ -168,7 +173,9 @@ build_in_container() {
   docker exec "$name" bash -lc "
     set -euo pipefail
     cd /workspace
-    rm -rf node_modules dist release native-core native/core/build/linux-x64-release native/epic_core/target/release native/target-epic-modular-linux native/vendor/zano_native_lib/Zano/build/altbase-linux-x64
+    if [ "${ALTBASE_INCREMENTAL_BUILD:-0}" != "1" ]; then
+      rm -rf node_modules dist release native-core native/core/build/linux-x64-release native/epic_core/target/release native/target-epic-modular-linux native/vendor/zano_native_lib/Zano/build/altbase-linux-x64
+    fi
     bash scripts/build-kaspa-wallet-wasm.sh
     npm ci --prefer-offline --no-audit --no-fund
 $(build_privacy_native)
@@ -176,6 +183,7 @@ $(build_privacy_native)
     cmake --build native/core/build/linux-x64-release --parallel "${ALTBASE_BUILD_JOBS:-2}"
     ctest --test-dir native/core/build/linux-x64-release --output-on-failure
     node scripts/copy-native-core.cjs
+    ALTBASE_STRIP_NATIVE=1 bash scripts/verify-linux-native.sh native-core "\$zano_build"
     npm test
     npm run build
     npx electron-builder --linux AppImage --x64 --publish never
@@ -183,7 +191,7 @@ $(build_privacy_native)
     test -n \"\$appimage\"
     install -m 0755 \"\$appimage\" \"/out/$appimage_name\"
     file native-core/altbase_core_bridge
-    test \"\$(find native-core -maxdepth 1 -type f -name 'altbase_*_wallet.so' | wc -l)\" -eq 19
+    test \"\$(find native-core -maxdepth 1 -type f \( -name 'altbase_*_wallet.so' -o -name 'libaltbase_*_wallet.so' \) | wc -l)\" -eq 19
     test \"\$(find native-core -maxdepth 1 -type f -name 'altbase_*_node.so' | wc -l)\" -eq 23
   "
 }
@@ -198,6 +206,7 @@ write_checksums() {
       Altbase-Wallet-Debian.AppImage \
       Altbase-Wallet-Fedora.AppImage \
       Altbase-Wallet.AppImage \
+      Altbase-Wallet-macOS-universal.zip \
       Altbase-Wallet-macOS-x64.zip
     do
       [[ -f "$file" ]] && files+=("$file")

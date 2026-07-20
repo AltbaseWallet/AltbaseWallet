@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { ArrowDownToLine, Coins, History, Home, Lock, Repeat2, Send, Settings } from 'lucide-react'
+import { ArrowDownToLine, Coins, History, Home, Lock, Pickaxe, Repeat2, Send, Settings } from 'lucide-react'
 import { Button } from '../ui/Button'
 import { useAuthStore } from '../../store/authStore'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -11,6 +11,7 @@ const navItems = [
   { to: '/app/send', labelKey: 'send', icon: Send },
   { to: '/app/receive', labelKey: 'receive', icon: ArrowDownToLine },
   { to: '#', labelKey: 'swap', icon: Repeat2, disabled: true },
+  { to: '/app/mining', labelKey: 'mining', icon: Pickaxe },
   { to: '/app/history', labelKey: 'history', icon: History },
   { to: '/app/settings/coins', labelKey: 'coins', icon: Coins },
   { to: '/app/settings', labelKey: 'settings', icon: Settings },

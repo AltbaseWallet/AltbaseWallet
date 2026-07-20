@@ -18,8 +18,8 @@ fn main() {
     let resource_object = out_dir.join("altbase_epic_transport.res");
     let resource_text = r#"
 1 VERSIONINFO
- FILEVERSION 0,1,5,0
- PRODUCTVERSION 0,1,5,0
+ FILEVERSION 0,1,6,0
+ PRODUCTVERSION 0,1,6,0
  FILEFLAGSMASK 0x3fL
  FILEFLAGS 0x0L
  FILEOS 0x40004L
@@ -32,12 +32,12 @@ BEGIN
     BEGIN
       VALUE "CompanyName", "Altbase"
       VALUE "FileDescription", "Altbase Epic Transport"
-      VALUE "FileVersion", "0.1.5"
+      VALUE "FileVersion", "0.1.6"
       VALUE "InternalName", "AltbaseEpicTransport"
       VALUE "LegalCopyright", "Copyright (C) Altbase"
       VALUE "OriginalFilename", "altbase_epic_transport.dll"
       VALUE "ProductName", "Altbase Wallet"
-      VALUE "ProductVersion", "0.1.5"
+      VALUE "ProductVersion", "0.1.6"
     END
   END
   BLOCK "VarFileInfo"

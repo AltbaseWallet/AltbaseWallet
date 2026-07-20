@@ -14,6 +14,7 @@ const WALLET_ADDRESSES_KEY = 'wallet-addresses'
 let sessionMnemonicCache: string | null = null
 let pendingWalletSetupId = 0
 let walletSessionRevision = 0
+const pendingPublicAddressRequests = new Map<string, Promise<string | undefined>>()
 const STANDARD_ADDRESS_DERIVATION_TIMEOUT_MS = 20_000
 const STANDARD_ADDRESS_RETRY_DELAY_MS = 5_000
 const ALWAYS_REDERIVE_STANDARD_COIN_IDS = new Set([
@@ -269,6 +270,49 @@ const getMnemonic = async (password: string) => {
   return mnemonic
 }
 
+const ensurePublicAddress = async (coinId: string): Promise<string | undefined> => {
+  const normalizedCoinId = coinId.trim().toLowerCase()
+  const existing = storageService.get<WalletAddresses>(WALLET_ADDRESSES_KEY, {})[normalizedCoinId]
+  if (existing) return existing
+
+  const pending = pendingPublicAddressRequests.get(normalizedCoinId)
+  if (pending) return pending
+
+  const request = (async () => {
+    const mnemonic = sessionMnemonicCache
+    const revision = walletSessionRevision
+    if (!mnemonic) return undefined
+
+    const coin = allCoins().find((item) => item.id === normalizedCoinId)
+    if (!coin) return undefined
+
+    let address: string | undefined
+    if (coin.walletEngine === 'zano-light' || coin.walletEngine === 'epic-light') {
+      const result = await privacyWalletService.ensureWallet(coin.id as PrivacyCoin, mnemonic)
+      address = result.address
+    } else {
+      const deriveAddress = walletEngineRegistry.get(coin).deriveAddress
+      if (deriveAddress) {
+        address = await withTimeout(
+          Promise.resolve(deriveAddress(coin, mnemonic)),
+          STANDARD_ADDRESS_DERIVATION_TIMEOUT_MS,
+          `${coin.id} mining address derivation`,
+        )
+      }
+    }
+
+    if (!address || revision !== walletSessionRevision || sessionMnemonicCache !== mnemonic) return undefined
+    const addresses = storageService.get<WalletAddresses>(WALLET_ADDRESSES_KEY, {})
+    storageService.set<WalletAddresses>(WALLET_ADDRESSES_KEY, { ...addresses, [coin.id]: address })
+    return address
+  })().finally(() => {
+    pendingPublicAddressRequests.delete(normalizedCoinId)
+  })
+
+  pendingPublicAddressRequests.set(normalizedCoinId, request)
+  return request
+}
+
 const startPendingWalletSetup = (mnemonic: string, password: string) => {
   const setupId = ++pendingWalletSetupId
   const setup: PendingWalletSetup = {
@@ -472,6 +516,8 @@ export const walletService = {
   getWalletAddresses() {
     return storageService.get<WalletAddresses>(WALLET_ADDRESSES_KEY, {})
   },
+
+  ensurePublicAddress,
 
   getWalletStorageScope,
 }

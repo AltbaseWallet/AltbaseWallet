@@ -126,7 +126,7 @@ foreach ($file in $files) {
 $document = [ordered]@{
     generated_at_utc = [DateTime]::UtcNow.ToString('o')
     native_root = $NativeRoot
-    build = 'Altbase Wallet 0.1.5 Windows x64'
+    build = 'Altbase Wallet 0.1.6 Windows x64'
     all_clean = (($results | Where-Object { $_.malicious -ne 0 -or $_.suspicious -ne 0 }).Count -eq 0)
     files = $results
 }

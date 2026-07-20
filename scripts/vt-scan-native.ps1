@@ -80,7 +80,7 @@ function Save-Report {
     $document = [ordered]@{
         generated_at_utc = [DateTime]::UtcNow.ToString('o')
         native_root = $NativeRoot
-        build = 'Altbase Wallet 0.1.5 Windows x64'
+        build = 'Altbase Wallet 0.1.6 Windows x64'
         complete = ($completeRows.Count -eq $Rows.Count)
         all_clean = ($completeRows.Count -eq $Rows.Count -and @($completeRows | Where-Object {
             $_.stats.malicious -ne 0 -or $_.stats.suspicious -ne 0

@@ -114,3 +114,7 @@
 	path = modules/zano
 	url = https://github.com/AltbaseWallet/module-zano.git
 	branch = main
+[submodule "modules/mining"]
+	path = modules/mining
+	url = https://github.com/AltbaseWallet/module-mining.git
+	branch = main

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ChevronsLeft, Copy, Loader2, RefreshCw } from 'lucide-react'
+import { ChevronsLeft, Copy, Loader2, Pickaxe, RefreshCw } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
@@ -201,6 +201,9 @@ export default function CoinDetails() {
               </Link>
               <Link to={`/app/receive?coin=${coin.id}`}>
                 <Button variant="secondary">{t('receive')}</Button>
+              </Link>
+              <Link to={`/app/mining?coin=${coin.id}`}>
+                <Button variant="secondary" icon={<Pickaxe size={17} />}>{t('mining')}</Button>
               </Link>
             </div>
             {privacyCoin && (

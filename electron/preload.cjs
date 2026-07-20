@@ -23,6 +23,14 @@ contextBridge.exposeInMainWorld('altbaseWallet', {
   notify: (payload) => ipcRenderer.invoke('app:notify', payload),
   debugLog: (payload) => ipcRenderer.invoke('app:debug-log', payload),
   core: (request) => ipcRenderer.invoke('core:request', request),
+  mining: {
+    request: (request) => ipcRenderer.invoke('mining:request', request),
+    onEvent: (callback) => {
+      const listener = (_, payload) => callback(payload)
+      ipcRenderer.on('mining:event', listener)
+      return () => ipcRenderer.removeListener('mining:event', listener)
+    },
+  },
   onCoreProgress: (callback) => {
     const listener = (_, payload) => callback(payload)
     ipcRenderer.on('core:progress', listener)

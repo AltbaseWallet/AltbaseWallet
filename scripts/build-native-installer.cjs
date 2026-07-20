@@ -332,8 +332,15 @@ const buildTables = (tableDir, files) => {
     ['APPMENUDIR', 'ProgramMenuFolder', 'ALTBASE|Altbase Wallet'],
   ]
   const directoryIds = new Map([['', 'INSTALLFOLDER']])
-  const payloadDirectories = [...new Set(files.map((file) => path.dirname(normalizedRelativePath(file)).replaceAll('\\', '/')))]
-    .filter((relative) => relative && relative !== '.')
+  const payloadDirectorySet = new Set()
+  for (const file of files) {
+    let relative = path.dirname(normalizedRelativePath(file)).replaceAll('\\', '/')
+    while (relative && relative !== '.') {
+      payloadDirectorySet.add(relative)
+      relative = path.posix.dirname(relative)
+    }
+  }
+  const payloadDirectories = [...payloadDirectorySet]
     .sort((left, right) => {
       const depth = left.split('/').length - right.split('/').length
       return depth || left.localeCompare(right, 'en')
@@ -688,7 +695,7 @@ try {
       'Subject=Altbase Wallet',
       'Author=Altbase',
       'Keywords=Installer;Wallet;Altbase',
-      'Comments=Altbase Wallet 0.1.5 Windows Installer package',
+      'Comments=Altbase Wallet 0.1.6 Windows Installer package',
       'Template=x64;1033',
       `Revision={${crypto.randomUUID().toUpperCase()}}`,
       'Pages=500',

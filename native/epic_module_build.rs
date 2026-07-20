@@ -41,8 +41,8 @@ fn main() {
     let resource_object = out_dir.join(format!("{stem}.res"));
     let resource_text = format!(r#"
 1 VERSIONINFO
- FILEVERSION 0,1,5,0
- PRODUCTVERSION 0,1,5,0
+ FILEVERSION 0,1,6,0
+ PRODUCTVERSION 0,1,6,0
  FILEFLAGSMASK 0x3fL
  FILEFLAGS 0x0L
  FILEOS 0x40004L
@@ -55,12 +55,12 @@ BEGIN
     BEGIN
       VALUE "CompanyName", "Altbase"
       VALUE "FileDescription", "{title}"
-      VALUE "FileVersion", "0.1.5"
+      VALUE "FileVersion", "0.1.6"
       VALUE "InternalName", "{stem}"
       VALUE "LegalCopyright", "Copyright (C) Altbase"
       VALUE "OriginalFilename", "{stem}.dll"
       VALUE "ProductName", "Altbase Wallet"
-      VALUE "ProductVersion", "0.1.5"
+      VALUE "ProductVersion", "0.1.6"
     END
   END
   BLOCK "VarFileInfo"

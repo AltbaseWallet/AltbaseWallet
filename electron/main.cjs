@@ -1,8 +1,9 @@
-const { app, BrowserWindow, Menu, ipcMain, Notification, screen, shell } = require('electron')
+const { app, BrowserWindow, Menu, ipcMain, Notification, powerMonitor, protocol, safeStorage, screen, shell } = require('electron')
 const fs = require('node:fs')
 const path = require('node:path')
 const { pathToFileURL } = require('node:url')
 const { NativeCoreClient } = require('./native-core-client.cjs')
+const { MiningModuleManager } = require('./mining-module-manager.cjs')
 
 const APP_ID = 'com.altbase.wallet'
 const APP_NAME = 'Altbase Wallet'
@@ -18,6 +19,9 @@ let nativeCore = null
 let mainWindow = null
 let allowQuitAfterEpicSend = false
 let epicSendQuitWait = null
+let miningManager = null
+let miningQuitWait = null
+let allowQuitAfterMining = false
 const privacyNativeCores = new Map()
 const nodeNativeCores = new Map()
 const activeNotifications = new Set()
@@ -26,6 +30,11 @@ const DEBUG_LOG_MAX_BYTES = 512 * 1024
 const DEBUG_LOG_KEEP_LINES = 400
 const DEBUG_LOG_LINE_MAX_CHARS = 4_000
 const DEBUG_LOG_TRIM_EVERY_WRITES = 64
+const MINING_FRONTEND_CONTENT_TYPES = new Map([
+  ['.html', 'text/html; charset=utf-8'],
+  ['.png', 'image/png'],
+  ['.svg', 'image/svg+xml; charset=utf-8'],
+])
 const debugLogWriteQueues = new Map()
 const debugLogWriteCounts = new Map()
 const DEBUG_LOG_COINS = new Set([
@@ -70,6 +79,15 @@ const CORE_METHODS = new Set([
   'planTransaction',
   'signTransaction',
 ])
+
+protocol.registerSchemesAsPrivileged([{
+  scheme: 'altbase-module',
+  privileges: {
+    standard: true,
+    secure: true,
+    stream: true,
+  },
+}])
 
 const isTrustedIpcEvent = (event) => Boolean(
   mainWindow
@@ -342,6 +360,16 @@ const trimExistingDebugLogs = () => {
   }
 }
 
+const getMiningManager = () => {
+  miningManager ??= new MiningModuleManager(app, safeStorage, (payload) => {
+    safeSend(mainWindow?.webContents, 'mining:event', payload)
+  }, {
+    isOnBatteryPower: () => powerMonitor.isOnBatteryPower(),
+    getSystemIdleTime: () => powerMonitor.getSystemIdleTime(),
+  })
+  return miningManager
+}
+
 const appendDebugLogLine = (coin, line) => {
   const file = debugLogPath(coin)
   const previous = debugLogWriteQueues.get(file) ?? Promise.resolve()
@@ -412,6 +440,72 @@ ipcMain.handle('app:open-external', async (event, url) => {
     return { ok: true }
   } catch {
     return { ok: false }
+  }
+})
+
+const MINING_METHODS = new Set([
+  'status', 'install', 'remove', 'verify', 'manifest',
+  'checkModuleUpdates', 'installModuleUpdate', 'cancelModuleDownload',
+  'catalog', 'hardware',
+  'customPools', 'saveCustomPool', 'removeCustomPool',
+  'listJobs', 'saveJob', 'validateJob', 'removeJob', 'startJob', 'stopJob',
+  'installedMiners', 'installMiner', 'checkMinerUpdates', 'installMinerUpdate', 'cancelMinerDownload', 'removeMiner',
+  'logs', 'clearLogs', 'clearCache', 'settings', 'updateSettings', 'setSecret',
+  'openDataFolder', 'openLogsFolder',
+])
+
+ipcMain.handle('mining:request', async (event, request = {}) => {
+  try {
+    if (!isTrustedIpcEvent(event)) throw new Error('Untrusted IPC sender')
+    const method = String(request.method || '')
+    const params = request.params && typeof request.params === 'object' && !Array.isArray(request.params) ? request.params : {}
+    if (!MINING_METHODS.has(method)) throw new Error('Unsupported mining module method')
+    const manager = getMiningManager()
+    let result
+    switch (method) {
+      case 'status': result = await manager.status(); break
+      case 'install': result = await manager.install(); break
+      case 'remove': result = await manager.remove({ preserveData: params.preserveData === true }); break
+      case 'verify': result = await manager.verify(); break
+      case 'manifest': result = await manager.manifest(); break
+      case 'checkModuleUpdates': result = await manager.checkModuleUpdates({ force: params.force === true }); break
+      case 'installModuleUpdate': result = await manager.installModuleUpdate(params.version); break
+      case 'cancelModuleDownload': result = manager.cancelModuleDownload(); break
+      case 'catalog': result = await manager.catalog(); break
+      case 'hardware': result = await manager.hardware(); break
+      case 'customPools': result = await manager.customPools(); break
+      case 'saveCustomPool': result = await manager.saveCustomPool(params.pool); break
+      case 'removeCustomPool': result = await manager.removeCustomPool(params.poolId); break
+      case 'listJobs': result = await manager.listJobs(); break
+      case 'saveJob': result = await manager.saveJob(params.job); break
+      case 'validateJob': result = await manager.validateJob(params.job); break
+      case 'removeJob': result = await manager.removeJob(params.jobId); break
+      case 'startJob': result = await manager.startJob(params.jobId); break
+      case 'stopJob': result = await manager.stopJob(params.jobId); break
+      case 'installedMiners': result = await manager.installedMiners(); break
+      case 'installMiner': result = await manager.installMiner(params.minerId, params.version); break
+      case 'checkMinerUpdates': result = await manager.checkMinerUpdates({ force: params.force === true }); break
+      case 'installMinerUpdate': result = await manager.installMinerUpdate(params.minerId, params.version); break
+      case 'cancelMinerDownload': result = manager.cancelMinerDownload(params.minerId); break
+      case 'removeMiner': result = await manager.removeMiner(params.minerId, params.version); break
+      case 'logs': result = await manager.logs(params.jobId, params.limit); break
+      case 'clearLogs': result = await manager.clearLogs(params.jobId); break
+      case 'clearCache': result = await manager.clearCache(); break
+      case 'settings': result = await manager.settings(); break
+      case 'updateSettings': result = await manager.updateSettings(params.settings); break
+      case 'setSecret': result = await manager.setSecret(params.jobId, params.secretRef, params.value); break
+      case 'openDataFolder': result = { ok: !(await shell.openPath(manager.dataRoot)) }; break
+      case 'openLogsFolder': {
+        const logs = path.join(manager.dataRoot, 'logs')
+        await fs.promises.mkdir(logs, { recursive: true })
+        result = { ok: !(await shell.openPath(logs)) }
+        break
+      }
+      default: throw new Error('Unsupported mining module method')
+    }
+    return { ok: true, result }
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : String(error) }
   }
 })
 
@@ -532,11 +626,47 @@ app.on('second-instance', () => {
   mainWindow.focus()
 })
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   if (!gotSingleInstanceLock) return
   ensureWindowsToastRegistration()
   trimExistingDebugLogs()
+  protocol.handle('altbase-module', async (request) => {
+    try {
+      const url = new URL(request.url)
+      if (request.method !== 'GET' || url.hostname !== 'mining') {
+        return new Response('Not found', { status: 404 })
+      }
+      const resource = decodeURIComponent(url.pathname.slice(1))
+      if (!resource) return new Response('Not found', { status: 404 })
+      const filename = resource === 'index.html'
+        ? await getMiningManager().frontendPath()
+        : await getMiningManager().frontendResourcePath(resource)
+      const contentType = MINING_FRONTEND_CONTENT_TYPES.get(path.extname(filename).toLowerCase())
+      if (!contentType) return new Response('Not found', { status: 404 })
+      const body = await fs.promises.readFile(filename)
+      const headers = {
+        'Content-Type': contentType,
+        'X-Content-Type-Options': 'nosniff',
+        'Cache-Control': 'no-store',
+      }
+      if (contentType.startsWith('text/html')) {
+        headers['Content-Security-Policy'] = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
+      }
+      return new Response(body, {
+        status: 200,
+        headers,
+      })
+    } catch {
+      return new Response('Mining module is unavailable', { status: 503 })
+    }
+  })
+  try {
+    await getMiningManager().ensureInstalledBundleIsCurrent()
+  } catch (error) {
+    console.error(`Mining module startup update failed: ${error instanceof Error ? error.message : String(error)}`)
+  }
   createWindow()
+  void getMiningManager().restoreAutoStart()
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
@@ -550,6 +680,26 @@ app.on('window-all-closed', () => {
 app.on('before-quit', (event) => {
   if (!allowQuitAfterEpicSend && deferQuitForEpicSend()) {
     event.preventDefault()
+    return
+  }
+  if (!allowQuitAfterMining && miningManager?.hasManagedJobs()) {
+    event.preventDefault()
+    mainWindow?.hide()
+    miningQuitWait ??= miningManager.stopAll()
+      .then(() => {
+        allowQuitAfterMining = true
+        miningQuitWait = null
+        app.quit()
+      })
+      .catch((error) => {
+        miningQuitWait = null
+        mainWindow?.show()
+        mainWindow?.webContents.send('mining:event', {
+          type: 'job-state',
+          state: 'failed',
+          error: error instanceof Error ? error.message : String(error),
+        })
+      })
     return
   }
   nativeCore?.stop()

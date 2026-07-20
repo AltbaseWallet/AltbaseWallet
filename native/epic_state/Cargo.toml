@@ -1,6 +1,6 @@
 [package]
 name = "altbase_epic_state"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2021"
 build = "../epic_module_build.rs"
 

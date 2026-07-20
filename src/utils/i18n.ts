@@ -64,6 +64,8 @@ const en = {
   send: 'Send',
   receive: 'Receive',
   swap: 'Swap',
+  mining: 'Mining',
+  more: 'More',
   history: 'History',
   coins: 'Coins',
   settings: 'Settings',
@@ -397,7 +399,7 @@ const de: Partial<Record<TranslationKey, string>> = {
   hideBalance: 'Saldo verbergen', localVault: 'Lokaler Tresor',
   showBalanceAria: 'Saldo anzeigen', hideBalanceAria: 'Saldo verbergen',
 
-  portfolio: 'Portfolio', send: 'Senden', receive: 'Empfangen', swap: 'Tausch',
+  portfolio: 'Portfolio', send: 'Senden', receive: 'Empfangen', swap: 'Tausch', mining: 'Mining', more: 'Mehr',
   history: 'Verlauf', coins: 'Münzen', settings: 'Einstellungen',
   lockWallet: 'Wallet sperren', soon: 'bald',
 
@@ -592,7 +594,7 @@ const fr: Partial<Record<TranslationKey, string>> = {
   hideBalance: 'Masquer le solde', localVault: 'Coffre local',
   showBalanceAria: 'Afficher le solde', hideBalanceAria: 'Masquer le solde',
 
-  portfolio: 'Portefeuille', send: 'Envoyer', receive: 'Recevoir', swap: 'Échange',
+  portfolio: 'Portefeuille', send: 'Envoyer', receive: 'Recevoir', swap: 'Échange', mining: 'Minage', more: 'Plus',
   history: 'Historique', coins: 'Pièces', settings: 'Paramètres',
   lockWallet: 'Verrouiller', soon: 'bientôt',
 
@@ -782,7 +784,7 @@ const zh: Partial<Record<TranslationKey, string>> = {
   hideBalance: '隐藏余额', localVault: '本地保险库',
   showBalanceAria: '显示余额', hideBalanceAria: '隐藏余额',
 
-  portfolio: '资产组合', send: '发送', receive: '接收', swap: '兑换',
+  portfolio: '资产组合', send: '发送', receive: '接收', swap: '兑换', mining: '挖矿', more: 'More',
   history: '历史', coins: '币种', settings: '设置',
   lockWallet: '锁定钱包', soon: '即将推出',
 
@@ -960,7 +962,7 @@ const ja: Partial<Record<TranslationKey, string>> = {
   hideBalance: '残高を非表示', localVault: 'ローカル金庫',
   showBalanceAria: '残高を表示', hideBalanceAria: '残高を非表示',
 
-  portfolio: 'ポートフォリオ', send: '送信', receive: '受取', swap: '交換',
+  portfolio: 'ポートフォリオ', send: '送信', receive: '受取', swap: '交換', mining: 'マイニング', more: 'More',
   history: '履歴', coins: '通貨', settings: '設定',
   lockWallet: 'ウォレットをロック', soon: '近日公開',
 
@@ -1157,7 +1159,7 @@ const ru: Partial<Record<TranslationKey, string>> = {
   hideBalance: 'Скрыть баланс', localVault: 'Локальное хранилище',
   showBalanceAria: 'Показать баланс', hideBalanceAria: 'Скрыть баланс',
 
-  portfolio: 'Портфель', send: 'Отправить', receive: 'Получить', swap: 'Обмен',
+  portfolio: 'Портфель', send: 'Отправить', receive: 'Получить', swap: 'Обмен', mining: 'Майнинг', more: 'Еще',
   history: 'История', coins: 'Монеты', settings: 'Настройки',
   lockWallet: 'Заблокировать', soon: 'скоро',
 
@@ -1362,7 +1364,7 @@ const uk: Partial<Record<TranslationKey, string>> = {
   hideBalance: 'Приховати баланс', localVault: 'Локальне сховище',
   showBalanceAria: 'Показати баланс', hideBalanceAria: 'Приховати баланс',
 
-  portfolio: 'Портфель', send: 'Надіслати', receive: 'Отримати', swap: 'Обмін',
+  portfolio: 'Портфель', send: 'Надіслати', receive: 'Отримати', swap: 'Обмін', mining: 'Майнінг', more: 'Ще',
   history: 'Історія', coins: 'Монети', settings: 'Налаштування',
   lockWallet: 'Заблокувати', soon: 'скоро',
 
