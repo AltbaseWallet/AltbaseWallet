@@ -3,7 +3,7 @@ import { privacyBirthService } from './privacyBirthService'
 import { storageService } from './storageService'
 import { coinDebugLog, coinDebugLogError } from '../utils/quaiDebugLog'
 
-type PrivacyCacheCoin = 'zano' | 'epic'
+type PrivacyCacheCoin = 'zano' | 'epic' | 'monero'
 
 type PrivacyCacheState = {
   version: 1 | 2
@@ -321,6 +321,7 @@ const snapshotHasVerifiedSpendState = (coin: PrivacyCacheCoin, snapshot: Privacy
   if (snapshot.verifiedSpendState === true) return true
   if (coin === 'zano') return snapshot.code === 'zano-compact-scan-verified' || snapshot.code === 'zano-native-wallet'
   if (coin === 'epic') return snapshot.code === 'epic-native-wallet'
+  if (coin === 'monero') return snapshot.code === 'monero-native-wallet'
   return false
 }
 
@@ -522,6 +523,18 @@ export const privacyCacheService = {
       && existingOutgoingTxCount > 0
       && snapshotOutgoingTxCount < existingOutgoingTxCount
     )
+    // Epic's native archive and the renderer's merged transaction history are
+    // independent. A repaired native DB can contain fewer reconstructed
+    // outgoing log rows while being scanned to a newer height; keeping the old
+    // archive in that case rolls the DB back on the next machine/startup. The
+    // outgoing GUI history is still merged below and remains intact.
+    const epicNativeArchiveIsAhead = Boolean(
+      coin === 'epic'
+      && snapshot.nativeWalletFileBlob
+      && (snapshotLastScannedHeight ?? 0) > existingLastScannedHeight
+    )
+    const preserveNativeArchiveForOutgoingHistory = snapshotLosesOutgoingHistory
+      && !epicNativeArchiveIsAhead
     const lastScannedHeight = Math.max(
       Number.isFinite(snapshotLastScannedHeight ?? 0) ? Math.floor(snapshotLastScannedHeight ?? 0) : 0,
       Number.isFinite(existingLastScannedHeight) ? Math.floor(existingLastScannedHeight) : 0,
@@ -567,13 +580,13 @@ export const privacyCacheService = {
       verifiedSpendState: snapshotOnlyUpdatesNativeWallet
         ? existing?.verifiedSpendState === true
         : snapshotHasVerifiedSpendState(coin, snapshot) || existing?.verifiedSpendState === true,
-      nativeWalletFileName: nativeWalletArchiveRegresses || snapshotLosesOutgoingHistory
+      nativeWalletFileName: nativeWalletArchiveRegresses || preserveNativeArchiveForOutgoingHistory
         ? existing?.nativeWalletFileName
         : snapshot.nativeWalletFileName ?? existing?.nativeWalletFileName,
-      nativeWalletFileBlob: nativeWalletArchiveRegresses || snapshotLosesOutgoingHistory
+      nativeWalletFileBlob: nativeWalletArchiveRegresses || preserveNativeArchiveForOutgoingHistory
         ? existing?.nativeWalletFileBlob
         : snapshot.nativeWalletFileBlob ?? existing?.nativeWalletFileBlob,
-      nativeWalletFileSize: nativeWalletArchiveRegresses || snapshotLosesOutgoingHistory
+      nativeWalletFileSize: nativeWalletArchiveRegresses || preserveNativeArchiveForOutgoingHistory
         ? existing?.nativeWalletFileSize
         : snapshot.nativeWalletFileSize ?? existing?.nativeWalletFileSize,
       updatedAt: new Date().toISOString(),

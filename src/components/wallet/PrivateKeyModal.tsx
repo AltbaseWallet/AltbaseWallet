@@ -24,7 +24,7 @@ export function PrivateKeyModal({ coin, onClose, onToast }: PrivateKeyModalProps
   const [error, setError] = useState('')
   const [copyConfirmOpen, setCopyConfirmOpen] = useState(false)
   const [revealing, setRevealing] = useState(false)
-  const isPrivacySeed = coin?.walletEngine === 'zano-light' || coin?.walletEngine === 'epic-light'
+  const isPrivacySeed = coin?.walletEngine === 'zano-light' || coin?.walletEngine === 'epic-light' || coin?.walletEngine === 'monero-light'
   const title = isPrivacySeed ? t('privacySeedTitle') : t('privateKeyTitle')
   const warning = isPrivacySeed ? t('privacySeedWarn') : t('privateKeyWarn')
   const revealLabel = isPrivacySeed ? t('showPrivacySeed') : t('showPrivateKey')

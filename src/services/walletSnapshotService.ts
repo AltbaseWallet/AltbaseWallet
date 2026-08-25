@@ -2,6 +2,7 @@ import type { Coin } from '../types/coin'
 import { coinApiService, type WalletSnapshotRequest, type WalletSnapshotResponse } from './coinApiService'
 import { walletService } from './walletService'
 import { walletEngineRegistry } from '../wallet-engines/registry'
+import { addressVariantsFromLegacyAddress } from '../utils/addressVariants'
 
 export type WalletSnapshotItem = WalletSnapshotRequest['coins'][number]
 
@@ -97,6 +98,15 @@ export const walletSnapshotService = {
         const baseAddress = walletAddresses[coin.id] ?? coin.address
         if (!baseAddress) return { coin: coin.id, addresses: [] }
         try {
+          // BCH2's daemon can expose the same script asymmetrically under its
+          // cashaddr and legacy indexes. Query the native legacy identity; the
+          // gateway expands/deduplicates aliases for history and the wallet can
+          // still display and receive with cashaddr.
+          if (coin.id === 'bitcoincashii' && coin.cryptoParams?.cashaddrPrefix) {
+            const nativeVariants = await addressVariantsFromLegacyAddress(baseAddress, coin.cryptoParams)
+            const legacy = nativeVariants.find((variant) => variant.id === 'legacy')?.address
+            if (legacy) return { coin: coin.id, addresses: [legacy] }
+          }
           const variants = await walletEngineRegistry.get(coin).getAddressVariants(coin, baseAddress)
           const canonical = variants.filter((variant) => !variant.aliasOfLegacy)
           const addresses = (canonical.length > 0 ? canonical : variants)

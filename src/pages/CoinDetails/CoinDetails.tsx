@@ -9,6 +9,7 @@ import { Toast } from '../../components/ui/Toast'
 import { CoinIcon } from '../../components/wallet/CoinIcon'
 import { TransactionRow } from '../../components/wallet/TransactionRow'
 import { walletService } from '../../services/walletService'
+import type { PrivacyCoin } from '../../services/privacyWalletService'
 import { useCoinStore } from '../../store/coinStore'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useTransactionStore } from '../../store/transactionStore'
@@ -145,7 +146,7 @@ export default function CoinDetails() {
     setRescanBusy(true)
     setRescanError('')
     try {
-      await rescanPrivacyCoin(coin.id as 'zano' | 'epic', height)
+      await rescanPrivacyCoin(coin.id as PrivacyCoin, height)
       void loadTransactions({ page: 1, pageSize: txPageSize, force: true, silent: true })
       showToast(t('privacyRescanStarted'))
     } catch (error) {

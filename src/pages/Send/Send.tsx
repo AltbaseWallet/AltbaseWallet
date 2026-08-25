@@ -20,6 +20,7 @@ import { formatAddress } from '../../utils/formatAddress'
 import { addAmounts, compareAmounts, fromBaseUnits, toBaseUnits } from '../../utils/decimalAmount'
 import { pickDefaultCoinId, sortCoinsByPortfolioValue } from '../../utils/coinSelection'
 import { isPrivacyCoin } from '../../utils/privacyCoins'
+import { shouldLockFinalFee } from '../../utils/sendFeePolicy'
 import { showSystemNotification } from '../../utils/systemNotification'
 import { translate, useT } from '../../utils/i18n'
 import { privacyFeeForCoin, walletEngineRegistry } from '../../wallet-engines/registry'
@@ -55,7 +56,11 @@ type ConfirmingData = SendForm & {
 type FeeEstimate = { satoshis: number; coin: string; exact?: boolean }
 
 const PENDING_OUTGOING_UI_LOCK_MS = 10 * 60_000
-const FORM_PREFLIGHT_TIMEOUT_MS = 20_000
+// Coin nodes are sometimes slow to answer cold UTXO/fee requests, especially
+// on poor connections. The native request has its own deadline; keep the form
+// alive long enough to receive that real result instead of manufacturing a
+// client-side timeout while the request is still healthy.
+const FORM_PREFLIGHT_TIMEOUT_MS = 90_000
 const SAMPLE_RECIPIENT_ADDRESSES: Record<string, string> = {
   bitcoin2: 'B2Qx4m9Vh7Kp2Nf6Rc8Tz5Yw3Ls1Aa9DqE',
   bitcoincashii: 'bch2q9m4n7p2x6r8t5v3w1z0k4s7d2f6h8j3l5c',
@@ -542,6 +547,50 @@ export default function Send() {
 
     if (liveCoinPrivacy) {
       const decimals = decimalsForScale(liveCoin.satsPerCoin ?? 100_000_000)
+      if (
+        liveCoin.id === 'epic'
+        && liveCoinEngine?.estimateMaxSend
+        && liveCoin.address
+        && sessionMnemonic
+      ) {
+        setMaxLoading(true)
+        setSendError('')
+        try {
+          const result = await withPreflightTimeout(
+            liveCoinEngine.estimateMaxSend(
+              liveCoin,
+              liveCoin.address,
+              feeMode === 'manual' ? feeText : undefined,
+              recipientAddress.trim(),
+              sessionMnemonic,
+            ),
+            'Epic MAX estimate',
+          )
+          if (compareAmounts(result.amountCoin, '0', decimals) <= 0) {
+            setError('amount', { message: t('balanceLessFee') })
+            return
+          }
+          const fee = {
+            satoshis: result.feeSatoshis ?? feeTextToSats(result.feeCoin, liveCoin.satsPerCoin ?? 100_000_000),
+            coin: result.feeCoin,
+            exact: true,
+          }
+          maxFeeEstimateRef.current = { coinId: liveCoin.id, amount: result.amountCoin, fee }
+          setFeeEstimate(fee)
+          setValue('amount', result.amountCoin, { shouldValidate: true, shouldDirty: true })
+          clearErrors('amount')
+          // Record MAX after updating the form.  The amount field owns an
+          // onChange handler that clears stale MAX state; keeping this write
+          // last prevents a programmatic amount update from erasing the exact
+          // native estimate before Continue is clicked.
+          setMaxIntent({ coinId: liveCoin.id, amount: result.amountCoin, fee: result.feeCoin })
+        } catch (error) {
+          setSendError(t('feeFetchFailed', { msg: (error as Error).message }))
+        } finally {
+          setMaxLoading(false)
+        }
+        return
+      }
       const maxAmount = subtractAmounts(liveCoinSpendableBalance, feeText || '0', decimals)
       if (compareAmounts(maxAmount, '0', decimals) <= 0) {
         setError('amount', { message: t('balanceLessFee') })
@@ -553,8 +602,9 @@ export default function Send() {
         setFeeEstimate(fee)
       }
       setSendError('')
-      setMaxIntent({ coinId: liveCoin.id, amount: maxAmount, fee: feeText })
       setValue('amount', maxAmount, { shouldValidate: true, shouldDirty: true })
+      clearErrors('amount')
+      setMaxIntent({ coinId: liveCoin.id, amount: maxAmount, fee: feeText })
       return
     }
 
@@ -567,6 +617,7 @@ export default function Send() {
           liveCoin.address,
           feeMode === 'manual' ? feeText : undefined,
           recipientAddress.trim(),
+          sessionMnemonic ?? undefined,
         )
         const fee = {
           satoshis: result.feeSatoshis ?? feeTextToSats(result.feeCoin, liveCoin.satsPerCoin ?? 100_000_000),
@@ -578,8 +629,9 @@ export default function Send() {
         }
         maxFeeEstimateRef.current = { coinId: liveCoin.id, amount: result.amountCoin, fee }
         if (feeMode === 'auto') setFeeEstimate(fee)
-        setMaxIntent({ coinId: liveCoin.id, amount: result.amountCoin, fee: result.feeCoin })
         setValue('amount', result.amountCoin, { shouldValidate: true, shouldDirty: true })
+        clearErrors('amount')
+        setMaxIntent({ coinId: liveCoin.id, amount: result.amountCoin, fee: result.feeCoin })
         return
       }
 
@@ -597,8 +649,9 @@ export default function Send() {
           setFeeEstimate(fee)
         }
       }
-      setMaxIntent({ coinId: liveCoin.id, amount: maxAmount, fee: feeText })
       setValue('amount', maxAmount, { shouldValidate: true, shouldDirty: true })
+      clearErrors('amount')
+      setMaxIntent({ coinId: liveCoin.id, amount: maxAmount, fee: feeText })
     } catch (error) {
       setError('amount', { message: t('feeFetchFailed', { msg: (error as Error).message }) })
     } finally {
@@ -672,10 +725,7 @@ export default function Send() {
       estimatedFee: feeCoin,
       feeMode,
       sendMax: isMaxIntent,
-      lockFee: feeMode === 'manual'
-        || isMaxIntent
-        || isPrivacyCoin(coin)
-        || (coinEngine.id === 'bitcoin-utxo' && resolvedFee.exact === true),
+      lockFee: shouldLockFinalFee(feeMode, isPrivacyCoin(coin)),
     })
   }
 

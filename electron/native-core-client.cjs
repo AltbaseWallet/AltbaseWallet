@@ -4,14 +4,55 @@ const path = require('node:path')
 
 const CORE_EXE = process.platform === 'win32' ? 'altbase_core_bridge.exe' : 'altbase_core_bridge'
 const CORE_BRIDGE_ARG = '--altbase-wallet-bridge'
+const activeNativeCoreChildren = new Set()
+const traceNativeCore = (event, child, detail = '') => {
+  if (process.env.ALTBASE_CORE_TRACE !== '1') return
+  const label = child?.altbaseCoreLabel || 'core'
+  process.stderr.write(`[native-core] ${event} label=${label} pid=${child?.pid || 0}${detail ? ` ${detail}` : ''}\n`)
+}
+
+const terminateNativeCoreChild = (child, forceAfterMs = 1_500) => {
+  if (!child) return
+  let exited = child.exitCode !== null
+  const markExited = () => { exited = true }
+  child.once?.('exit', markExited)
+  try {
+    traceNativeCore('terminate', child)
+    child.kill()
+  } catch {
+    child.off?.('exit', markExited)
+    return
+  }
+  // A helper may be blocked inside synchronous native code. Escalate after a
+  // short grace period, but only while this exact ChildProcess is still alive.
+  const timer = setTimeout(() => {
+    child.off?.('exit', markExited)
+    if (exited) return
+    try {
+      traceNativeCore('force-terminate', child)
+      child.kill('SIGKILL')
+    } catch {
+      // The process may have exited between the status check and kill.
+    }
+  }, forceAfterMs)
+  timer.unref?.()
+}
+
+const stopAllNativeCoreChildren = () => {
+  for (const child of activeNativeCoreChildren) terminateNativeCoreChild(child)
+}
 
 class NativeCoreClient {
-  constructor(app) {
+  constructor(app, label = 'core') {
     this.app = app
+    this.label = label
     this.child = null
+    this.children = new Set()
     this.nextId = 1
     this.pending = new Map()
+    this.coinNodeQueue = Promise.resolve()
     this.buffer = ''
+    this.stderrBuffer = ''
   }
 
   corePath() {
@@ -50,24 +91,45 @@ class NativeCoreClient {
     }
 
     const child = spawn(exe, [CORE_BRIDGE_ARG], {
+      cwd: nativeCoreDir,
       env,
       windowsHide: true,
       stdio: ['pipe', 'pipe', 'pipe'],
     })
 
     this.child = child
+    this.children.add(child)
+    activeNativeCoreChildren.add(child)
+    this.stderrBuffer = ''
     child.stdout.on('data', (chunk) => {
       if (this.child !== child) return
       this.onData(chunk.toString('utf8'))
     })
-    child.stderr.on('data', () => undefined)
-    child.on('exit', () => {
+    child.stderr.on('data', (chunk) => {
       if (this.child !== child) return
-      this.rejectAll('native core exited')
+      this.stderrBuffer = `${this.stderrBuffer}${chunk.toString('utf8')}`.slice(-8_192)
+    })
+    child.altbaseCoreLabel = this.label
+    traceNativeCore('start', child)
+    child.on('exit', (code, signal) => {
+      traceNativeCore('exit', child, `code=${code ?? ''} signal=${signal ?? ''}`)
+      this.children.delete(child)
+      activeNativeCoreChildren.delete(child)
+      if (this.child !== child) return
+      const message = this.exitMessage(code, signal)
+      this.buffer = ''
+      this.stderrBuffer = ''
+      this.rejectAll(message)
     })
     child.on('error', (error) => {
+      traceNativeCore('error', child, `message=${String(error?.message || error).replace(/\s+/g, ' ').slice(0, 300)}`)
       if (this.child !== child) return
       this.rejectAll(error.message)
+      this.terminateChild(child)
+    })
+    child.on('close', () => {
+      this.children.delete(child)
+      activeNativeCoreChildren.delete(child)
     })
   }
 
@@ -89,6 +151,7 @@ class NativeCoreClient {
       const slot = this.pending.get(String(message.id ?? ''))
       if (!slot) continue
       if (message.event === 'progress') {
+        slot.refreshTimeout?.()
         slot.onProgress?.(message.payload ?? {})
         continue
       }
@@ -109,14 +172,36 @@ class NativeCoreClient {
     if (method === 'coinNodeRequest') {
       const requested = Number(params.timeoutMs)
       const requestTimeout = Number.isFinite(requested) && requested > 0 ? requested : 10_000
-      return Math.min(Math.max(requestTimeout + 5_000, 6_000), 65_000)
+      // The native HTTP layer owns the actual network deadline. Its response
+      // can arrive noticeably later while DNS/TLS cleanup unwinds on a poor
+      // connection, so the process watchdog must be a generous last resort,
+      // not a second competing request timeout that churns helper processes.
+      return Math.min(Math.max(requestTimeout + 15_000, 30_000), 90_000)
     }
     if (method === 'privacyLightWallet') {
       if (params.action === 'send') return params.coin === 'epic' ? 240_000 : 120_000
-      return 10 * 60_000
+      // Initial Epic and Monero restores can legitimately spend longer than
+      // ten minutes inside a native scan. Restarting the bridge at that exact
+      // boundary discards the in-memory progress and creates an endless retry
+      // loop. Native progress events continue to refresh this watchdog.
+      return 60 * 60_000
     }
     if (method === 'signTransaction') return 60_000
     return 30_000
+  }
+
+  refreshTimeoutOnProgress(method, params = {}) {
+    return method === 'privacyLightWallet' && params.action !== 'send'
+  }
+
+  exitMessage(code, signal) {
+    const status = Number.isInteger(code)
+      ? `code ${code}`
+      : signal
+        ? `signal ${signal}`
+        : 'unknown status'
+    const detail = this.stderrBuffer.trim().replace(/\s+/g, ' ').slice(-2_000)
+    return `native core exited (${status})${detail ? `: ${detail}` : ''}`
   }
 
   hasPendingEpicSend() {
@@ -140,20 +225,30 @@ class NativeCoreClient {
     })
   }
 
+  terminateChild(child, forceAfterMs = 1_500) {
+    terminateNativeCoreChild(child, forceAfterMs)
+  }
+
   restartAfterTimeout(message) {
-    const child = this.child
+    const children = Array.from(this.children)
     this.rejectAll(message)
     this.buffer = ''
-    if (child) {
-      try {
-        child.kill()
-      } catch {
-        // Best effort only.
-      }
-    }
+    for (const child of children) this.terminateChild(child)
   }
 
   request(method, params = {}, onProgress) {
+    if (method !== 'coinNodeRequest') return this.requestNow(method, params, onProgress)
+    // Coin modules execute one blocking HTTP request at a time. Queueing here
+    // starts each timeout only when its native request is actually dispatched;
+    // concurrent balance, fee and context reads can no longer expire while
+    // waiting behind an earlier request and restart the next request with it.
+    const run = () => this.requestNow(method, params, onProgress)
+    const queued = this.coinNodeQueue.then(run, run)
+    this.coinNodeQueue = queued.catch(() => undefined)
+    return queued
+  }
+
+  requestNow(method, params = {}, onProgress) {
     const nativeParams = {
       ...params,
       userDataDir: this.app.getPath('userData'),
@@ -172,18 +267,25 @@ class NativeCoreClient {
     const payload = JSON.stringify({ id, method, params: nativeParams }) + '\n'
     return new Promise((resolve, reject) => {
       const timeoutMs = this.timeoutFor(method, nativeParams)
-      const timer = setTimeout(() => {
+      let timer
+      const expire = () => {
         this.pending.delete(id)
         const details = method === 'privacyLightWallet'
           ? `${nativeParams.coin || 'privacy'} ${nativeParams.action || 'request'}`
           : method
         reject(new Error(`native core timeout during ${details} after ${Math.round(timeoutMs / 1000)}s`))
         this.restartAfterTimeout(`native core restarted after ${details} timeout`)
-      }, timeoutMs)
+      }
+      const armTimeout = () => {
+        clearTimeout(timer)
+        timer = setTimeout(expire, timeoutMs)
+      }
+      armTimeout()
       this.pending.set(id, {
         method,
         params: nativeParams,
         onProgress,
+        refreshTimeout: this.refreshTimeoutOnProgress(method, nativeParams) ? armTimeout : undefined,
         resolve: (value) => {
           clearTimeout(timer)
           resolve(value)
@@ -211,12 +313,12 @@ class NativeCoreClient {
   }
 
   stop() {
-    if (!this.child) return
-    const child = this.child
+    const children = Array.from(this.children)
+    if (!this.child && children.length === 0) return
     this.rejectAll('native core stopped')
-    child.kill()
     this.child = null
+    for (const child of children) this.terminateChild(child)
   }
 }
 
-module.exports = { NativeCoreClient }
+module.exports = { NativeCoreClient, stopAllNativeCoreChildren }

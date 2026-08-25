@@ -149,6 +149,7 @@ ensure_container() {
     --name "$name" \
     -e ALTBASE_BUILD_JOBS="$BUILD_JOBS" \
     -e ALTBASE_INCREMENTAL_BUILD="${ALTBASE_INCREMENTAL_BUILD:-0}" \
+    -e ALTBASE_MONERO_CACHE_DIR=/dependencies/monero \
     -e CARGO_NET_RETRY=100 \
     -e CARGO_HTTP_TIMEOUT=600 \
     -e CARGO_HTTP_LOW_SPEED_LIMIT=1 \
@@ -179,6 +180,7 @@ build_in_container() {
     bash scripts/build-kaspa-wallet-wasm.sh
     npm ci --prefer-offline --no-audit --no-fund
 $(build_privacy_native)
+    node scripts/build-monero-wallet-module.cjs --target=linux-x64
     cmake --preset linux-x64-release -S native/core
     cmake --build native/core/build/linux-x64-release --parallel "${ALTBASE_BUILD_JOBS:-2}"
     ctest --test-dir native/core/build/linux-x64-release --output-on-failure
@@ -191,7 +193,7 @@ $(build_privacy_native)
     test -n \"\$appimage\"
     install -m 0755 \"\$appimage\" \"/out/$appimage_name\"
     file native-core/altbase_core_bridge
-    test \"\$(find native-core -maxdepth 1 -type f \( -name 'altbase_*_wallet.so' -o -name 'libaltbase_*_wallet.so' \) | wc -l)\" -eq 19
+    test \"\$(find native-core -maxdepth 1 -type f \( -name 'altbase_*_wallet.so' -o -name 'libaltbase_*_wallet.so' \) | wc -l)\" -eq 20
     test \"\$(find native-core -maxdepth 1 -type f -name 'altbase_*_node.so' | wc -l)\" -eq 23
   "
 }

@@ -8,7 +8,24 @@ plaintext privacy-wallet cache data local to the user's machine. Public chain
 data is read through the configured Altbase API endpoint, but the API server
 source code is not included in this wallet-only repository copy.
 
-Current application version: **0.1.6**
+Current application version: **0.1.7**
+
+## Release 0.1.7
+
+Version 0.1.7 adds the compact local Monero wallet module and corrects its
+first production synchronization and transaction-building issues:
+
+- Added locally derived Monero identity, encrypted resumable scan state,
+  balances, history, incoming-output detection, and transaction submission.
+- Kept node, RPC CLI, mining, hardware-wallet, and multisig implementations out
+  of the wallet library; optional miners remain separate modules.
+- Updated spendable balances without requiring an application restart and kept
+  an already usable wallet active during background scans.
+- Matched Monero's mature-output and decoy-distribution rules, added the
+  required exact-spend dummy output, and surfaced the daemon's concrete
+  rejection flags.
+- Kept the Windows wallet module self-contained without a separately installed
+  Visual C++ runtime and produced Windows, Linux, and universal macOS targets.
 
 ## Release 0.1.6
 

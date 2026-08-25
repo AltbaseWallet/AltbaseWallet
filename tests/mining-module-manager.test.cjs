@@ -354,9 +354,18 @@ test('mining module installs, verifies, stores jobs and removes in an isolated p
   assert.equal((await manager.verify()).ok, true)
 
   const catalog = await manager.catalog()
-  assert.equal(catalog.coins.length, 23)
+  assert.equal(catalog.coins.length, 24)
   assert.deepEqual(catalog.miners.map((entry) => entry.id), ['qli-client', 'rigel', 'srbminer', 'xmrig'])
   assert.ok(catalog.pools.length >= 36)
+  assert.ok(catalog.coins.some((entry) => (
+    entry.id === 'monero'
+    && entry.algorithms.includes('rx/0')
+    && entry.localMinerIds.includes('xmrig')
+  )))
+  assert.ok(catalog.pools.some((entry) => (
+    entry.id === 'monero-moneroocean-global'
+    && entry.endpoints.some((endpoint) => endpoint.url === 'stratum+ssl://gulf.moneroocean.stream:20128')
+  )))
   assert.ok(catalog.pools.some((entry) => (
     entry.id === 'neoxa-rplant-eu'
     && entry.endpoints.some((endpoint) => endpoint.url === 'stratum+ssl://eu.rplant.xyz:17069')

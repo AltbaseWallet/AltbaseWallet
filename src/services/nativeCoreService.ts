@@ -62,7 +62,7 @@ export type NativePrivacyLightWalletResponse = {
 export type NativePrivacyRecoveryProgress = {
   type: 'privacyRecovery'
   progressToken: string
-  coin: 'zano' | 'epic'
+  coin: 'zano' | 'epic' | 'monero'
   fromHeight: number
   currentHeight: number
   tipHeight: number
@@ -70,6 +70,14 @@ export type NativePrivacyRecoveryProgress = {
   scannedBlocks: number
   blocksRemaining: number
   percent: number
+  checkpoint?: {
+    address: string
+    balance: string
+    spendable: string
+    transactions: unknown[]
+    lastScannedHeight: number
+    scanState: string
+  }
 }
 
 const isPrivacyRecoveryProgress = (value: unknown): value is NativePrivacyRecoveryProgress => {
@@ -77,7 +85,7 @@ const isPrivacyRecoveryProgress = (value: unknown): value is NativePrivacyRecove
   const item = value as Partial<NativePrivacyRecoveryProgress>
   return item.type === 'privacyRecovery'
     && typeof item.progressToken === 'string'
-    && (item.coin === 'zano' || item.coin === 'epic')
+    && (item.coin === 'zano' || item.coin === 'epic' || item.coin === 'monero')
 }
 
 const parsePrivacyTransactions = (value?: string): unknown[] | undefined => {
@@ -189,6 +197,7 @@ export const nativeCoreService = {
     path: string
     body?: string
     timeoutMs?: number
+    priority?: boolean
   }): Promise<{ status: number; body: string }> {
     const bridge = window.altbaseWallet?.core
     if (!bridge) throw new Error('Native core bridge is not available')
@@ -200,6 +209,7 @@ export const nativeCoreService = {
         path: params.path,
         body: params.body ?? '',
         timeoutMs: String(params.timeoutMs ?? 10_000),
+        priority: params.priority === true ? 'true' : 'false',
       },
     })
     if (!response.ok || !response.result) throw new Error(response.error ?? 'Native node request failed')
@@ -319,7 +329,7 @@ export const nativeCoreService = {
     return phrase
   },
 
-  async privacyWalletSecret(coin: 'zano' | 'epic', mnemonic: string): Promise<NativePrivacyWalletSecret> {
+  async privacyWalletSecret(coin: 'zano' | 'epic' | 'monero', mnemonic: string): Promise<NativePrivacyWalletSecret> {
     const bridge = window.altbaseWallet?.core
     if (!bridge) throw new Error('Native core bridge is not available')
     const response = await bridge({
@@ -338,8 +348,8 @@ export const nativeCoreService = {
   },
 
   async privacyLightWallet(params: {
-    action: 'ensure' | 'warm' | 'snapshot' | 'send'
-    coin: 'zano' | 'epic'
+    action: 'ensure' | 'warm' | 'snapshot' | 'send' | 'estimateMax'
+    coin: 'zano' | 'epic' | 'monero'
     mnemonic?: string
     restoreStartHeight?: number | string
     restoreTimestamp?: string

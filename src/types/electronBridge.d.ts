@@ -14,6 +14,7 @@ declare global {
           result?: Record<string, string>
           error?: string
         }>
+        resetCoreSession: () => Promise<{ ok: boolean; error?: string }>
         mining: {
           request: (request: {
             method: string

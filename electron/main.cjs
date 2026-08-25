@@ -2,7 +2,8 @@ const { app, BrowserWindow, Menu, ipcMain, Notification, powerMonitor, protocol,
 const fs = require('node:fs')
 const path = require('node:path')
 const { pathToFileURL } = require('node:url')
-const { NativeCoreClient } = require('./native-core-client.cjs')
+const { NativeCoreClient, stopAllNativeCoreChildren } = require('./native-core-client.cjs')
+const { priorityNodeLane, priorityNodePoolKey } = require('./native-core-routing.cjs')
 const { MiningModuleManager } = require('./mining-module-manager.cjs')
 
 const APP_ID = 'com.altbase.wallet'
@@ -24,8 +25,16 @@ let miningQuitWait = null
 let allowQuitAfterMining = false
 const privacyNativeCores = new Map()
 const nodeNativeCores = new Map()
+const priorityNodeNativeCores = new Map()
 const activeNotifications = new Set()
+// Each bridge handles native module calls synchronously. Keep several lazy
+// dispatchers so a slow/offline coin cannot hold every other coin's balance,
+// fee and broadcast requests behind its own network timeout.
 const NODE_NATIVE_CORE_POOL_SIZE = 4
+// Fee and transaction traffic remain isolated, but the number of helpers must
+// stay bounded. A client per coin/lane left dozens of idle bridge processes
+// behind after visiting every Send screen.
+const PRIORITY_NODE_NATIVE_CORE_POOL_SIZE = 2
 const DEBUG_LOG_MAX_BYTES = 512 * 1024
 const DEBUG_LOG_KEEP_LINES = 400
 const DEBUG_LOG_LINE_MAX_CHARS = 4_000
@@ -53,11 +62,13 @@ const DEBUG_LOG_COINS = new Set([
   'raptoreum',
   'pearl',
   'quai',
+  'xgr',
   'qubic',
   'kaspa',
   'ckb',
   'zano',
   'epic',
+  'monero',
 ])
 const CORE_METHODS = new Set([
   'health',
@@ -96,14 +107,14 @@ const isTrustedIpcEvent = (event) => Boolean(
 )
 
 const getNativeCore = () => {
-  nativeCore ??= new NativeCoreClient(app)
+  nativeCore ??= new NativeCoreClient(app, 'general')
   return nativeCore
 }
 
 const getPrivacyNativeCore = (coin = 'privacy') => {
   const key = String(coin || 'privacy').toLowerCase()
   if (!privacyNativeCores.has(key)) {
-    privacyNativeCores.set(key, new NativeCoreClient(app))
+    privacyNativeCores.set(key, new NativeCoreClient(app, `privacy:${key}`))
   }
   return privacyNativeCores.get(key)
 }
@@ -116,14 +127,33 @@ const getNodeNativeCore = (coin = 'node') => {
   }
   const key = `pool-${hash % NODE_NATIVE_CORE_POOL_SIZE}`
   if (!nodeNativeCores.has(key)) {
-    nodeNativeCores.set(key, new NativeCoreClient(app))
+    nodeNativeCores.set(key, new NativeCoreClient(app, `node:${key}`))
   }
   return nodeNativeCores.get(key)
 }
 
+const getPriorityNodeNativeCore = (coin = 'node', requestPath = '') => {
+  const normalizedCoin = String(coin || 'node').toLowerCase()
+  // Fee discovery and transaction preparation have independent latency
+  // budgets. Keeping them on one blocking native queue lets a slow UTXO read
+  // hold the fee response (or vice versa) until the form-level watchdog fires.
+  // Keep fee and transaction preparation in separate bounded pools;
+  // background polling still uses the established pool above.
+  const lane = priorityNodeLane(requestPath)
+  const key = priorityNodePoolKey(normalizedCoin, requestPath, PRIORITY_NODE_NATIVE_CORE_POOL_SIZE)
+  if (!priorityNodeNativeCores.has(key)) {
+    priorityNodeNativeCores.set(key, new NativeCoreClient(app, `priority-node:${key}`))
+  }
+  return priorityNodeNativeCores.get(key)
+}
+
 const nativeCoreForRequest = (method, params = {}) => {
-  if (method === 'privacyLightWallet') return getPrivacyNativeCore(params.coin)
-  if (method === 'coinNodeRequest') return getNodeNativeCore(params.coin)
+  if (method === 'privacyLightWallet' || method === 'privacyScope') return getPrivacyNativeCore(params.coin)
+  if (method === 'coinNodeRequest') {
+    return params.priority === true || params.priority === 'true'
+      ? getPriorityNodeNativeCore(params.coin, params.path)
+      : getNodeNativeCore(params.coin)
+  }
   return getNativeCore()
 }
 
@@ -131,7 +161,20 @@ const activeNativeClients = () => [
   nativeCore,
   ...privacyNativeCores.values(),
   ...nodeNativeCores.values(),
+  ...priorityNodeNativeCores.values(),
 ].filter(Boolean)
+
+const resetNativeCoreClients = () => {
+  nativeCore?.stop()
+  nativeCore = null
+  for (const client of privacyNativeCores.values()) client.stop()
+  privacyNativeCores.clear()
+  for (const client of nodeNativeCores.values()) client.stop()
+  nodeNativeCores.clear()
+  for (const client of priorityNodeNativeCores.values()) client.stop()
+  priorityNodeNativeCores.clear()
+  stopAllNativeCoreChildren()
+}
 
 const deferQuitForEpicSend = () => {
   const clients = activeNativeClients().filter((client) => client.hasPendingEpicSend())
@@ -408,6 +451,16 @@ ipcMain.handle('core:request', async (event, request = {}) => {
   }
 })
 
+ipcMain.handle('core:reset-session', async (event) => {
+  try {
+    if (!isTrustedIpcEvent(event)) throw new Error('Untrusted IPC sender')
+    resetNativeCoreClients()
+    return { ok: true }
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : String(error) }
+  }
+})
+
 ipcMain.handle('app:notify', async (event, payload = {}) => {
   try {
     if (!isTrustedIpcEvent(event)) return { ok: false }
@@ -532,6 +585,10 @@ const createWindow = () => {
       webSecurity: true,
       allowRunningInsecureContent: false,
       navigateOnDragDrop: false,
+      // Wallet listeners and balance refreshes must keep running while the
+      // window is minimized or covered. Chromium otherwise throttles renderer
+      // timers and privacy-coin listeners can silently stop reconnecting.
+      backgroundThrottling: false,
       // No DevTools in the shipped app — it would let users inspect elements and
       // read bundled asset (logo) file paths.
       devTools: !app.isPackaged,
@@ -702,9 +759,5 @@ app.on('before-quit', (event) => {
       })
     return
   }
-  nativeCore?.stop()
-  for (const client of privacyNativeCores.values()) client.stop()
-  privacyNativeCores.clear()
-  for (const client of nodeNativeCores.values()) client.stop()
-  nodeNativeCores.clear()
+  resetNativeCoreClients()
 })

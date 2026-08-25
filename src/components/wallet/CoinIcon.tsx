@@ -13,6 +13,7 @@ import pepecoinLogo from '../../assets/coins/pepecoin.png'
 import kerriganLogo from '../../assets/coins/kerrigan.png'
 import scashLogo from '../../assets/coins/scash.png'
 import litecoinIILogo from '../../assets/coins/litecoinii.png'
+import moneroLogo from '../../assets/coins/monero.png'
 import neoxaLogo from '../../assets/coins/neoxa.png'
 import terracoinLogo from '../../assets/coins/terracoin.png'
 import junkcoinLogo from '../../assets/coins/junkcoin.png'
@@ -20,6 +21,7 @@ import raptoreumLogo from '../../assets/coins/raptoreum.png'
 import zanoLogo from '../../assets/coins/zano.png'
 import epicLogo from '../../assets/coins/epiccash.png'
 import quaiLogo from '../../assets/coins/quai.png'
+import xgrLogo from '../../assets/coins/xgr.png'
 import pearlLogo from '../../assets/coins/prl.png'
 import qubicLogo from '../../assets/coins/qubic.png'
 import kaspaLogo from '../../assets/coins/kaspa.png'
@@ -39,6 +41,7 @@ const LOGO_MAP: Record<string, string> = {
   KER:   kerriganLogo,
   SCASH: scashLogo,
   LC2:   litecoinIILogo,
+  XMR:   moneroLogo,
   NEOX:  neoxaLogo,
   TRC:   terracoinLogo,
   JKC:   junkcoinLogo,
@@ -46,6 +49,7 @@ const LOGO_MAP: Record<string, string> = {
   ZANO:  zanoLogo,
   EPIC:  epicLogo,
   QUAI:  quaiLogo,
+  XGR:   xgrLogo,
   PRL:   pearlLogo,
   QUBIC: qubicLogo,
   KAS:   kaspaLogo,

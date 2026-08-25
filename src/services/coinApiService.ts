@@ -222,6 +222,9 @@ export type AccountFeeEstimate = {
   gasLimit: string
   gasPrice: string
   gasPriceHex?: string
+  maxFeePerGas?: string
+  maxPriorityFeePerGas?: string
+  transactionType?: string
   chainId?: number | string
   source?: string
 }
@@ -287,6 +290,21 @@ const utxoCache = new Map<string, { expiresAt: number; value: Utxo[] }>()
 const walletSnapshotCache = new Map<string, { expiresAt: number; value: WalletSnapshotResponse }>()
 
 const fallbackAccountFeeEstimate = (coinId: string): AccountFeeEstimate | null => {
+  if (coinId === 'xgr') {
+    return {
+      coin: coinId,
+      fee: '0.042021',
+      feeSatoshis: 4_202_100,
+      gasLimit: '21000',
+      gasPrice: '2001000000000',
+      gasPriceHex: '0x1d1e4e4ea00',
+      maxFeePerGas: '2001000000000',
+      maxPriorityFeePerGas: '1000000000',
+      transactionType: 'eip1559',
+      chainId: 1643,
+      source: 'client-fallback',
+    }
+  }
   if (coinId !== 'quai') return null
   return {
     coin: coinId,
@@ -424,14 +442,39 @@ const fetchJsonWithTimeout = async <T>(url: string, init: RequestInit = {}, time
   return request
 }
 
+const accountFeeEstimateFromResponse = (
+  response: AccountFeeEstimate,
+): AccountFeeEstimate => ({
+  coin: response.coin,
+  fee: response.fee,
+  feeSatoshis: response.feeSatoshis,
+  gasLimit: response.gasLimit,
+  gasPrice: response.gasPrice,
+  gasPriceHex: response.gasPriceHex,
+  maxFeePerGas: response.maxFeePerGas,
+  maxPriorityFeePerGas: response.maxPriorityFeePerGas,
+  transactionType: response.transactionType,
+  chainId: response.chainId,
+  source: response.source,
+})
+
 const coinNodeJsonWithTimeout = async <T>(
   coinId: string,
   path: string,
   method: 'GET' | 'POST',
   body = '',
   timeoutMs = 10_000,
+  priority = false,
 ): Promise<T> => {
-  const key = `node ${timeoutMs} ${coinId} ${method} ${path} ${body}`
+  if (coinId === 'monero') {
+    return fetchJsonWithTimeout<T>(`${API_BASE}/monero${path}`, {
+      method,
+      ...(method === 'POST'
+        ? { headers: { 'Content-Type': 'application/json' }, body }
+        : {}),
+    }, timeoutMs)
+  }
+  const key = `node ${priority ? 'priority' : 'background'} ${timeoutMs} ${coinId} ${method} ${path} ${body}`
   const pending = pendingRequests.get(key)
   if (pending) return pending as Promise<T>
 
@@ -439,7 +482,7 @@ const coinNodeJsonWithTimeout = async <T>(
     let lastError: unknown
     for (let attempt = 0; attempt <= RATE_LIMIT_RETRIES_MS.length; attempt += 1) {
       try {
-        const response = await nativeCoreService.coinNodeRequest({ coinId, method, path, body, timeoutMs })
+        const response = await nativeCoreService.coinNodeRequest({ coinId, method, path, body, timeoutMs, priority })
         let data: T & GatewayErrorPayload
         try {
           data = (response.body ? JSON.parse(response.body) : {}) as T & GatewayErrorPayload
@@ -475,6 +518,15 @@ const postJson = <T>(coinId: string, path: string, body: unknown, timeoutMs = 10
 
 const getJson = <T>(coinId: string, path: string, timeoutMs = 10_000) =>
   coinNodeJsonWithTimeout<T>(coinId, path, 'GET', '', timeoutMs)
+
+const postPriorityJson = <T>(coinId: string, path: string, body: unknown, timeoutMs = 10_000) =>
+  coinNodeJsonWithTimeout<T>(coinId, path, 'POST', JSON.stringify(body), timeoutMs, true)
+
+const getPriorityJson = <T>(coinId: string, path: string, timeoutMs = 10_000) =>
+  coinNodeJsonWithTimeout<T>(coinId, path, 'GET', '', timeoutMs, true)
+
+const INTERACTIVE_BALANCE_TIMEOUT_MS = 45_000
+const INTERACTIVE_TRANSACTION_TIMEOUT_MS = 60_000
 
 const getGlobal = <T>(path: string) =>
   fetchJsonWithTimeout<T>(`${API_BASE}${path}`)
@@ -745,23 +797,30 @@ export const coinApiService = {
   },
 
   /** Balance in satoshis (gateway returns satoshis already). */
-  async getBalance(coinId: string, address: string): Promise<CoinBalance> {
-    const r = await postJson<{ ok: true; address: string; result: CoinBalance }>(coinId, '/address/balance', { address }, 12_000)
+  async getBalance(coinId: string, address: string, options: { priority?: boolean } = {}): Promise<CoinBalance> {
+    const request = options.priority ? postPriorityJson : postJson
+    const r = await request<{ ok: true; address: string; result: CoinBalance }>(
+      coinId,
+      '/address/balance',
+      { address },
+      options.priority ? INTERACTIVE_BALANCE_TIMEOUT_MS : 12_000,
+    )
     return r.result
   },
 
   /** UTXOs for the address (used by send service). */
-  async getUtxos(coinId: string, address: string, options: { force?: boolean; fast?: boolean } = {}): Promise<Utxo[]> {
+  async getUtxos(coinId: string, address: string, options: { force?: boolean; fast?: boolean; priority?: boolean } = {}): Promise<Utxo[]> {
     const key = `${coinId}:${address}`
     const cached = utxoCache.get(key)
     if (!options.force && cached && cached.expiresAt > Date.now()) return cached.value
     let value: Utxo[]
     try {
-      const r = await postJson<{ ok: true; address: string; result: { utxos: Utxo[] } }>(
+      const request = options.priority ? postPriorityJson : postJson
+      const r = await request<{ ok: true; address: string; result: { utxos: Utxo[] } }>(
         coinId,
         '/address/utxos',
         { address, force: options.force === true, fast: options.fast === true },
-        15_000,
+        options.priority ? INTERACTIVE_TRANSACTION_TIMEOUT_MS : 15_000,
       )
       value = r.result?.utxos ?? []
     } catch (error) {
@@ -774,7 +833,7 @@ export const coinApiService = {
   },
 
   /** UTXOs for a wallet address group. The gateway expands legacy/bech32 aliases once. */
-  async getUtxosForAddresses(coinId: string, addresses: string[], options: { force?: boolean; fast?: boolean } = {}): Promise<Utxo[]> {
+  async getUtxosForAddresses(coinId: string, addresses: string[], options: { force?: boolean; fast?: boolean; priority?: boolean } = {}): Promise<Utxo[]> {
     const unique = Array.from(new Set(addresses.map((address) => address.trim()).filter(Boolean)))
     if (unique.length === 0) return []
     if (unique.length === 1) return this.getUtxos(coinId, unique[0], options)
@@ -785,11 +844,12 @@ export const coinApiService = {
 
     let value: Utxo[]
     try {
-      const r = await postJson<{ ok: true; result: { utxos: Utxo[] } }>(
+      const request = options.priority ? postPriorityJson : postJson
+      const r = await request<{ ok: true; result: { utxos: Utxo[] } }>(
         coinId,
         '/address/utxos',
         { addresses: unique, force: options.force === true, fast: options.fast === true },
-        options.force ? 25_000 : 15_000,
+        options.priority ? INTERACTIVE_TRANSACTION_TIMEOUT_MS : options.force ? 25_000 : 15_000,
       )
       value = r.result?.utxos ?? []
     } catch (error) {
@@ -819,7 +879,7 @@ export const coinApiService = {
     coinId: string,
     blocks = 6,
     timeoutMs = 12_000,
-    options: { force?: boolean } = {},
+    options: { force?: boolean; priority?: boolean } = {},
   ): Promise<FeeRateInfo> {
     const key = `${coinId}:${blocks}`
     const cached = feeRateCache.get(key)
@@ -827,9 +887,10 @@ export const coinApiService = {
     const forceParam = options.force ? '&force=1' : ''
     let response: { ok: true } & FeeRateInfo
     try {
-      response = await getJson<{ ok: true } & FeeRateInfo>(coinId, `/fee/estimate?blocks=${blocks}${forceParam}`, timeoutMs)
+      const request = options.priority ? getPriorityJson : getJson
+      response = await request<{ ok: true } & FeeRateInfo>(coinId, `/fee/estimate?blocks=${blocks}${forceParam}`, timeoutMs)
     } catch (error) {
-      if (cached?.value) return cached.value
+      if (!options.force && cached?.value) return cached.value
       throw error
     }
     const value = {
@@ -852,27 +913,37 @@ export const coinApiService = {
     const cached = accountFeeCache.get(coinId)
     if (!options.force && cached && cached.expiresAt > Date.now()) return cached.value
     const forceParam = options.force ? '&force=1' : ''
-    if (!options.force && !cached) {
-      const fallback = fallbackAccountFeeEstimate(coinId)
-      if (fallback) {
+    const fallback = fallbackAccountFeeEstimate(coinId)
+    // XGR's public RPC can take tens of seconds to answer while the node is
+    // busy. A native transfer always consumes 21,000 gas, so MAX and the send
+    // form can safely use the last live estimate (or the conservative bundled
+    // value) immediately. Refresh it in an isolated priority lane instead of
+    // blocking the form or the balance polling queue.
+    if (coinId === 'xgr') {
+      const immediate = cached?.value ?? fallback
+      if (!immediate) throw new Error('XGR fee estimate is unavailable')
+      void getPriorityJson<{ ok: true } & AccountFeeEstimate>(
+        coinId,
+        `/fee/estimate?blocks=1${forceParam}`,
+        Math.max(timeoutMs, 25_000),
+      )
+        .then((response) => {
+          const value = accountFeeEstimateFromResponse(response)
+          accountFeeCache.set(coinId, { expiresAt: Date.now() + FEE_CACHE_MS, value })
+          persistFeeCaches()
+        })
+        .catch(() => undefined)
+      return immediate
+    }
+    if (!options.force && !cached && fallback) {
         void getJson<{ ok: true } & AccountFeeEstimate>(coinId, `/fee/estimate?blocks=1${forceParam}`, timeoutMs)
           .then((response) => {
-            const value = {
-              coin: response.coin,
-              fee: response.fee,
-              feeSatoshis: response.feeSatoshis,
-              gasLimit: response.gasLimit,
-              gasPrice: response.gasPrice,
-              gasPriceHex: response.gasPriceHex,
-              chainId: response.chainId,
-              source: response.source,
-            }
+            const value = accountFeeEstimateFromResponse(response)
             accountFeeCache.set(coinId, { expiresAt: Date.now() + FEE_CACHE_MS, value })
             persistFeeCaches()
           })
           .catch(() => undefined)
         return fallback
-      }
     }
     let response: { ok: true } & AccountFeeEstimate
     try {
@@ -881,16 +952,7 @@ export const coinApiService = {
       if (cached?.value) return cached.value
       throw error
     }
-    const value = {
-      coin: response.coin,
-      fee: response.fee,
-      feeSatoshis: response.feeSatoshis,
-      gasLimit: response.gasLimit,
-      gasPrice: response.gasPrice,
-      gasPriceHex: response.gasPriceHex,
-      chainId: response.chainId,
-      source: response.source,
-    }
+    const value = accountFeeEstimateFromResponse(response)
     accountFeeCache.set(coinId, { expiresAt: Date.now() + FEE_CACHE_MS, value })
     persistFeeCaches()
     return value
@@ -902,11 +964,11 @@ export const coinApiService = {
     to?: string,
     options: { valueWeiHex?: string } = {},
   ): Promise<AccountTxContext> {
-    const response = await postJson<{ ok: true } & AccountTxContext>(
+    const response = await postPriorityJson<{ ok: true } & AccountTxContext>(
       coinId,
       '/account/tx-context',
       { from, to, value: options.valueWeiHex },
-      15_000,
+      INTERACTIVE_TRANSACTION_TIMEOUT_MS,
     )
     return {
       from: response.from,
@@ -918,6 +980,9 @@ export const coinApiService = {
       gasLimit: response.gasLimit,
       gasPrice: response.gasPrice,
       gasPriceHex: response.gasPriceHex,
+      maxFeePerGas: response.maxFeePerGas,
+      maxPriorityFeePerGas: response.maxPriorityFeePerGas,
+      transactionType: response.transactionType,
       chainId: response.chainId,
       source: response.source,
       targetTick: response.targetTick,
@@ -998,7 +1063,7 @@ export const coinApiService = {
     }
   },
 
-  async getPrivacyCache(coin: 'zano' | 'epic', backupId: string): Promise<PrivacyCacheEnvelope | null> {
+  async getPrivacyCache(coin: 'zano' | 'epic' | 'monero', backupId: string): Promise<PrivacyCacheEnvelope | null> {
     const response = await postGlobal<{ ok: true; found: boolean; cache?: PrivacyCacheEnvelope }>(
       '/privacy/cache/get',
       { coin, backupId },
@@ -1007,7 +1072,7 @@ export const coinApiService = {
     return response.found && response.cache ? response.cache : null
   },
 
-  async putPrivacyCache(coin: 'zano' | 'epic', backupId: string, cache: PrivacyCacheEnvelope): Promise<void> {
+  async putPrivacyCache(coin: 'zano' | 'epic' | 'monero', backupId: string, cache: PrivacyCacheEnvelope): Promise<void> {
     await postGlobal<{ ok: true; stored: boolean }>(
       '/privacy/cache/put',
       { coin, backupId, cache },
@@ -1017,7 +1082,12 @@ export const coinApiService = {
 
   /** Broadcast a signed-hex transaction. Returns the txid. */
   async broadcast(coinId: string, hex: string, expectedTxid?: string): Promise<string> {
-    const r = await postJson<{ ok: true; txid?: string; result?: { txid?: string } }>(coinId, '/tx/broadcast', { hex }, 25_000)
+    const r = await postPriorityJson<{ ok: true; txid?: string; result?: { txid?: string } }>(
+      coinId,
+      '/tx/broadcast',
+      { hex },
+      INTERACTIVE_TRANSACTION_TIMEOUT_MS,
+    )
     const txid = r.txid ?? r.result?.txid
     if (!txid && !expectedTxid) throw new Error('Broadcast succeeded but no txid returned')
     clearUtxoCache(coinId)

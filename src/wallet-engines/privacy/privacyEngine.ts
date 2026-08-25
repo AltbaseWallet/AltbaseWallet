@@ -5,8 +5,13 @@ import { toBaseUnits } from '../../utils/decimalAmount'
 import type { WalletEngine, WalletFeeEstimate } from '../types'
 
 export const PRIVACY_AUTO_FEES: Record<PrivacyCoin, string> = {
-  epic: '0.01',
+  // A standard Epicbox send spends one wallet output and creates the
+  // recipient plus change outputs: (1 * 4 + 2 * 1 + 1) * 0.001 EPIC.
+  // The native MAX path recalculates this when the selected input/output
+  // shape differs, but it needs this realistic seed fee to start that loop.
+  epic: '0.007',
   zano: '0.01',
+  monero: '0.0001',
 }
 
 const decimalsForScale = (scale = 100_000_000) => {
@@ -48,7 +53,11 @@ export const privacyEngine: WalletEngine = {
     return [privacyAddressVariant(address)]
   },
 
-  async validateAddress(_coin, address) {
+  async validateAddress(coin, address) {
+    if (coin.id === 'monero') {
+      return /^[48][1-9A-HJ-NP-Za-km-z]{94}$/.test(address)
+        || /^4[1-9A-HJ-NP-Za-km-z]{105}$/.test(address)
+    }
     return /^\S{8,}$/.test(address)
   },
 
@@ -58,6 +67,19 @@ export const privacyEngine: WalletEngine = {
 
   async estimateMinimumFee(coin) {
     return privacyFeeForCoin(coin.id, coin.satsPerCoin ?? 100_000_000)
+  },
+
+  async estimateMaxSend(coin, _address, feeCoin, _toAddress, mnemonic) {
+    if (coin.id !== 'epic' || !mnemonic) {
+      throw new Error('Exact privacy MAX estimation is available only for an unlocked Epic wallet')
+    }
+    const result = await privacyWalletService.estimateMaxSend('epic', mnemonic, feeCoin)
+    if (!result.amount || !result.fee) throw new Error('Epic MAX estimator did not return an amount and fee')
+    return {
+      amountCoin: result.amount,
+      feeCoin: result.fee,
+      feeSatoshis: Number(toBaseUnits(result.fee, decimalsForScale(coin.satsPerCoin ?? 100_000_000))),
+    }
   },
 
   async send({ coin, mnemonic, toAddress, amountCoin, feeCoin, memo, sendMax }) {

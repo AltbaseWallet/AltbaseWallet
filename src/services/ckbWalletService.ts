@@ -138,15 +138,26 @@ export const ckbWalletService = {
     return { satoshis: Number(fee), coin: shannonsText(fee) }
   },
 
-  async estimateMaxSend(coinId: string, address: string) {
-    const utxos = await coinApiService.getUtxos(coinId, address, { force: true })
+  async estimateMaxSend(coinId: string, address: string, toAddress?: string, mnemonic?: string) {
+    if (!toAddress) throw new Error('Enter the CKB recipient before using MAX')
+    if (!mnemonic) throw new Error('Wallet session expired')
+    const derived = await this.deriveAddress(mnemonic)
+    if (derived !== address) throw new Error('CKB address does not match this wallet')
+    if (!(await this.isValidAddress(toAddress))) throw new Error('Invalid CKB address')
+    const utxos = await coinApiService.getUtxos(coinId, address, { force: true, priority: true })
     if (utxos.length === 0) throw new Error('No spendable CKB cells')
-    const total = utxos.reduce((sum, utxo) => sum + BigInt(utxo.cellOutput?.capacity ?? utxo.satoshis), 0n)
-    const reserve = total > MAX_SEND_FEE_RESERVE ? MAX_SEND_FEE_RESERVE : total
+    const built = await buildSignedTransaction({
+      mnemonic,
+      toAddress,
+      utxos,
+      amount: 0n,
+      feeRate: await feeRateShannonsPerKb(coinId, true),
+      sendMax: true,
+    })
     return {
-      amountCoin: shannonsText(total - reserve),
-      feeCoin: shannonsText(reserve),
-      feeSatoshis: Number(reserve),
+      amountCoin: shannonsText(built.sentAmount),
+      feeCoin: shannonsText(built.fee),
+      feeSatoshis: Number(built.fee),
       inputCount: utxos.length,
     }
   },
@@ -162,8 +173,9 @@ export const ckbWalletService = {
     const derived = await this.deriveAddress(params.mnemonic)
     if (derived !== params.fromAddress) throw new Error('CKB address does not match this wallet')
     if (!(await this.isValidAddress(params.toAddress))) throw new Error('Invalid CKB address')
-    const utxos = await coinApiService.getUtxos(params.coinId, derived, { force: true })
+    const utxos = await coinApiService.getUtxos(params.coinId, derived, { force: true, priority: true })
     if (utxos.length === 0) throw new Error('No spendable CKB cells')
+    const expectedMaxAmount = params.sendMax ? parseCkbAmount(params.amountCoin) : null
     const amount = params.sendMax ? 0n : parseCkbAmount(params.amountCoin)
     if (!params.sendMax && amount <= 0n) throw new Error('Amount must be greater than 0')
     const built = await buildSignedTransaction({
@@ -174,6 +186,9 @@ export const ckbWalletService = {
       feeRate: await feeRateShannonsPerKb(params.coinId, true),
       sendMax: params.sendMax === true,
     })
+    if (expectedMaxAmount !== null && built.sentAmount !== expectedMaxAmount) {
+      throw new Error('CKB MAX amount changed before signing; click MAX again and confirm the updated amount')
+    }
     const transaction = JSON.parse(stringify(built.signed)) as unknown
     const envelope = JSON.stringify({
       transaction,

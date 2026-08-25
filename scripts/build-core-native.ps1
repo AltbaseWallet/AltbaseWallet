@@ -41,6 +41,9 @@ try {
   Invoke-Step 'build Kaspa wallet-only WASM' {
     powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-kaspa-wallet-wasm.ps1 -Threads $BuildJobs
   }
+  Invoke-Step 'build Monero native wallet module' {
+    node scripts/build-monero-wallet-module.cjs --target=windows-x64
+  }
   Invoke-Step 'configure native core' { cmake --preset vs2022-x64-release -S native/core }
   Invoke-Step 'build native core' {
     cmake --build native/core/build/vs2022-x64-release --config Release -- "/m:$BuildJobs"

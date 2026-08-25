@@ -27,6 +27,7 @@ const expectedCoinIds = [
   'kerrigan',
   'scash',
   'litecoinii',
+  'monero',
   'neoxa',
   'terracoin',
   'junkcoin',
@@ -34,6 +35,7 @@ const expectedCoinIds = [
   'zano',
   'epic',
   'quai',
+  'xgr',
   'pearl',
   'qubic',
   'kaspa',
@@ -43,6 +45,7 @@ const expectedCoinIds = [
 const specialRoutes: Record<string, string> = {
   zano: 'zano-wallet',
   epic: 'epic-wallet',
+  monero: 'monero-wallet',
   quai: 'quai-js',
   pearl: 'pearl-wallet',
   qubic: 'qubic-js',
@@ -112,7 +115,7 @@ test('the modular wallet registry contains every supported coin exactly once', (
   const ids = registryModuleIds()
   assert.deepEqual(ids, expectedCoinIds)
   assert.equal(new Set(ids).size, expectedCoinIds.length)
-  assert.equal(ids.length, 23)
+  assert.equal(ids.length, 25)
 })
 
 test('every coin module owns its matching definition and native route', () => {
@@ -121,4 +124,15 @@ test('every coin module owns its matching definition and native route', () => {
     assert.equal(definition.id, coinId, coinId)
     assert.equal(definition.nativeRoute, specialRoutes[coinId] ?? `${coinId}-wallet`, coinId)
   }
+})
+
+test('XGR account sends are dispatched through the dedicated wallet engine', () => {
+  const transactionStore = fs.readFileSync(
+    path.resolve(import.meta.dirname, '../src/store/transactionStore.ts'),
+    'utf8',
+  )
+  const dispatcher = transactionStore.match(
+    /const usesDedicatedRemoteWalletEngine[\s\S]*?type LoadTransactionsResult/,
+  )?.[0] ?? ''
+  assert.match(dispatcher, /coin\.walletEngine === 'xgr-account'/)
 })

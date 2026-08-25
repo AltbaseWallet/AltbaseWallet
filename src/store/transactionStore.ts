@@ -32,7 +32,8 @@ import { shouldRefreshUtxoBalanceBeforeHistoryCommit } from '../utils/utxoBalanc
 type SendWithMnemonic = SendPayload & { mnemonic: string }
 
 const usesDedicatedRemoteWalletEngine = (coin: Coin) =>
-  coin.walletEngine === 'qubic-account'
+  coin.walletEngine === 'xgr-account'
+  || coin.walletEngine === 'qubic-account'
   || coin.walletEngine === 'kaspa-utxo'
   || coin.walletEngine === 'ckb-cell'
 
@@ -624,7 +625,7 @@ const persistPrivacyOutgoingTransactionsToCache = async (
   reason = 'privacy-outgoing-cache',
   address?: string,
 ) => {
-  if ((coinId !== 'epic' && coinId !== 'zano') || !mnemonic) return
+  if ((coinId !== 'epic' && coinId !== 'zano' && coinId !== 'monero') || !mnemonic) return
   const outgoing = transactions.filter((tx) => tx.coinId === coinId && tx.type === 'outgoing')
   if (outgoing.length === 0) return
   try {
@@ -706,8 +707,22 @@ const isFreshIncomingNotification = (tx: Transaction, now = Date.now()) => {
     && now - createdAtMs <= INCOMING_NOTIFICATION_WINDOW_MS
 }
 
+const hasLocalBroadcastEvidence = (tx: Transaction) =>
+  (tx.spentOutpoints?.length ?? 0) > 0
+  || Boolean(tx.balanceBefore)
+  || Boolean(tx.expectedBalanceAfter)
+
 const isDroppedLocalPending = (tx: Transaction, coin: Awaited<ReturnType<typeof coinService.getCoins>>[number] | undefined, now = Date.now()) => {
   if (tx.type !== 'outgoing' || tx.status !== 'pending') return false
+  // A UTXO row with recorded inputs was created only after the native signer
+  // produced a concrete transaction. Deterministic broadcast rejections are
+  // rolled back immediately in sendTransaction, so a surviving row here is a
+  // successful or transport-uncertain broadcast. Absence from one history
+  // snapshot is not proof that it failed: slow/stalled chains and Kaspa's
+  // sender history can omit a valid transaction long after the recipient has
+  // already seen it. Keep the honest pending state until authoritative remote
+  // history reconciles it as pending or confirmed.
+  if (hasLocalBroadcastEvidence(tx)) return false
   const createdAtMs = Date.parse(tx.createdAt)
   if (!Number.isFinite(createdAtMs)) return true
   const graceMs = tx.broadcastUncertain || walletEngineRegistry.isAccount(coin) || walletEngineRegistry.isPrivacy(coin)
@@ -763,19 +778,29 @@ const activeSpentOutpointsForCoin = (coinId: string, transactions: Transaction[]
 }
 
 const normalizeStoredTransaction = (tx: Transaction): Transaction => {
-  if (!isEpicSyntheticTxHash(tx.coinId, tx.txHash)) return tx
-  const txHash = privacyTxHash(tx.coinId, tx.txHash, [
-    tx.blockHeight ?? '',
-    tx.amount,
-    tx.type,
-    tx.spent ? 'spent' : 'unspent',
-    tx.fee ?? '',
-    tx.from ?? '',
-    tx.to ?? '',
+  // Releases before 0.1.7 incorrectly converted locally-broadcast UTXO rows
+  // to `failed` after a ten-minute history miss. Deterministic send failures
+  // never reach storage (the prepared row is removed in the catch path), so a
+  // failed outgoing row that still owns concrete spent outpoints is precisely
+  // one of those false auto-failures and can be repaired safely on load.
+  const repaired = tx.type === 'outgoing'
+    && tx.status === 'failed'
+    && hasLocalBroadcastEvidence(tx)
+    ? { ...tx, status: 'pending' as const, confirmations: 0 }
+    : tx
+  if (!isEpicSyntheticTxHash(repaired.coinId, repaired.txHash)) return repaired
+  const txHash = privacyTxHash(repaired.coinId, repaired.txHash, [
+    repaired.blockHeight ?? '',
+    repaired.amount,
+    repaired.type,
+    repaired.spent ? 'spent' : 'unspent',
+    repaired.fee ?? '',
+    repaired.from ?? '',
+    repaired.to ?? '',
   ])
   return {
-    ...tx,
-    id: `${tx.coinId}-${txHash}`,
+    ...repaired,
+    id: `${repaired.coinId}-${txHash}`,
     txHash,
   }
 }
@@ -795,7 +820,7 @@ const stillSameWallet = (expectedScope?: string, expectedMnemonic?: string) =>
   && (!expectedMnemonic || walletService.getSessionMnemonic() === expectedMnemonic)
 
 const getPrivacyHistorySnapshot = async (coin: Coin, mnemonic: string, timeoutMs: number) => {
-  if ((coin.id === 'zano' || coin.id === 'epic') && privacyWalletService.getNativeReadiness(coin.id as PrivacyCoin) !== 'ready') {
+  if ((coin.id === 'zano' || coin.id === 'epic' || coin.id === 'monero') && privacyWalletService.getNativeReadiness(coin.id as PrivacyCoin) !== 'ready') {
     const cached = await privacyWalletService.getCachedSnapshot(coin.id as PrivacyCoin, mnemonic).catch(() => null)
     if (coin.id === 'zano') {
       const live = await withTimeout(
@@ -835,7 +860,7 @@ const sideloadPrivacyHistory = async (
   options: { silent?: boolean; startup?: boolean; expectedScope?: string } = {},
 ) => {
   if (privacyHistorySideloadInFlight) return
-  const privacyCoins = coins.filter((coin) => coin.walletEngine === 'zano-light' || coin.walletEngine === 'epic-light')
+  const privacyCoins = coins.filter((coin) => coin.walletEngine === 'zano-light' || coin.walletEngine === 'epic-light' || coin.walletEngine === 'monero-light')
   if (privacyCoins.length === 0) return
   const expectedScope = options.expectedScope ?? walletService.getWalletStorageScope()
 
@@ -1042,7 +1067,7 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
         if (privacyMnemonic && !options.startup && options.silent !== true && options.skipPrivacy !== true) {
           const privacyResults = await Promise.all(
             historyCoins
-              .filter((coin) => coin.walletEngine === 'zano-light' || coin.walletEngine === 'epic-light')
+              .filter((coin) => coin.walletEngine === 'zano-light' || coin.walletEngine === 'epic-light' || coin.walletEngine === 'monero-light')
               .map(async (coin) => {
                 try {
                   const snapshot = await getPrivacyHistorySnapshot(coin, privacyMnemonic, PRIVACY_HISTORY_TIMEOUT_MS)
@@ -1910,10 +1935,14 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
       ) {
         balanceBeforeSend = savedBalanceBeforeSend
       }
-      if (coinMeta?.walletEngine === 'zano-light' || coinMeta?.walletEngine === 'epic-light') {
+      if (coinMeta?.walletEngine === 'zano-light' || coinMeta?.walletEngine === 'epic-light' || coinMeta?.walletEngine === 'monero-light') {
         const storeCoinBeforePrivacySend = useCoinStore.getState().coins.find((coin) => coin.id === coinId)
         const nativeReadinessBeforeSend = privacyWalletService.getNativeReadiness(coinId as PrivacyCoin)
-        const nativeSendChecksReadiness = coinId === 'zano'
+        // Zano and Epic own their authoritative spend-readiness checks.  The
+        // renderer readiness flag is only a UI hint and can lag a usable local
+        // wallet after unlock/restore, so it must not prevent the native send
+        // call from running.
+        const nativeSendChecksReadiness = coinId === 'zano' || coinId === 'epic'
         coinDebugLog(coinId, 'send.privacy.start', {
           amount,
           fee: payload.fee,

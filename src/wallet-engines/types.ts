@@ -49,7 +49,13 @@ export type WalletEngine = {
   validateAddress: (coin: Coin, address: string) => Promise<boolean>
   estimateFee: (coin: Coin, options?: WalletFeeOptions) => Promise<WalletFeeEstimate | null>
   estimateMinimumFee?: (coin: Coin, options?: WalletFeeOptions) => Promise<WalletFeeEstimate | null>
-  estimateMaxSend?: (coin: Coin, address: string, feeCoin?: string, toAddress?: string) => Promise<WalletMaxSendResult>
+  estimateMaxSend?: (
+    coin: Coin,
+    address: string,
+    feeCoin?: string,
+    toAddress?: string,
+    mnemonic?: string,
+  ) => Promise<WalletMaxSendResult>
   send: (params: WalletSendParams) => Promise<WalletSendResult>
   exportSecret?: (coin: Coin, mnemonic: string) => Promise<string>
 }

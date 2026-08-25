@@ -89,6 +89,7 @@ docker create -it --name "$CONTAINER_NAME" \
   -e CARGO_NET_RETRY=100 -e CARGO_HTTP_TIMEOUT=600 \
   -e CARGO_HTTP_LOW_SPEED_LIMIT=1 -e CARGO_HTTP_MULTIPLEXING=false \
   -e ALTBASE_DEPENDENCY_CACHE_DIR=/dependencies \
+  -e ALTBASE_MONERO_CACHE_DIR=/dependencies/monero \
   -v "$SOURCE_DIR:/workspace" -v "$SDK_DIR:/sdk" \
   -v "$OSXCROSS_DIR:/opt/osxcross" -v "$DOWNLOADS_DIR:/out" \
   -v "$ZANO_DEPS_DIR:/dependencies/zano-macosx:ro" \
@@ -192,6 +193,7 @@ docker exec \
 
     bash scripts/build-kaspa-wallet-wasm.sh
     npm ci --prefer-offline --no-audit --no-fund
+    node scripts/build-monero-wallet-module.cjs --target=macos-universal
 
     # @electron/universal only uses portable filesystem/ASAR logic plus lipo,
     # but rejects non-Darwin hosts before that work starts. osxcross provides
@@ -319,7 +321,7 @@ from pathlib import Path
 app = Path(os.environ["APP_PATH"])
 with (app / "Contents" / "Info.plist").open("rb") as handle:
     info = plistlib.load(handle)
-assert info["CFBundleShortVersionString"] == "0.1.6", info
+assert info["CFBundleShortVersionString"] == "0.1.7", info
 assert info.get("LSMinimumSystemVersion") == "12.0", info
 assert info.get("LSArchitecturePriority", [None])[0] == "arm64", info
 module_root = app / "Contents" / "Resources" / "modules" / "mining"
@@ -327,7 +329,7 @@ descriptor = json.loads((module_root / "module.json").read_text())
 manifest = json.loads((module_root / "package.manifest.json").read_text())
 assert descriptor["updates"]["repository"] == "AltbaseWallet/module-mining"
 assert "macos-arm64" in descriptor["platforms"]
-assert manifest["version"] == "0.1.6"
+assert manifest["version"] == "0.1.7"
 assert manifest["releaseEpoch"] == 2
 assert manifest["signature"]["algorithm"] == "ed25519"
 PY

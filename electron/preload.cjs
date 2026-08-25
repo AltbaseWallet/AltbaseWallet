@@ -23,6 +23,7 @@ contextBridge.exposeInMainWorld('altbaseWallet', {
   notify: (payload) => ipcRenderer.invoke('app:notify', payload),
   debugLog: (payload) => ipcRenderer.invoke('app:debug-log', payload),
   core: (request) => ipcRenderer.invoke('core:request', request),
+  resetCoreSession: () => ipcRenderer.invoke('core:reset-session'),
   mining: {
     request: (request) => ipcRenderer.invoke('mining:request', request),
     onEvent: (callback) => {

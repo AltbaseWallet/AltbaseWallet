@@ -14,6 +14,7 @@ import { nativeCoreService } from './nativeCoreService'
 
 const FALLBACK_FEE_RATE_PER_KB = 0.00001
 const FAST_FEE_TIMEOUT_MS = 2_500
+const INTERACTIVE_FEE_TIMEOUT_MS = 30_000
 const COIN_FALLBACK_FEE_RATE_PER_KB: Record<string, number> = {
   neoxa: 0.01,
   pepecoin: 0.001,
@@ -85,7 +86,10 @@ const fetchFundingUtxos = async (
   options: { force?: boolean; fast?: boolean; excludeOutpoints?: Array<{ txid: string; vout: number }> } = {},
 ): Promise<FundingUtxo[]> => {
   const uniqueFundingAddresses = await fundingAddressesFor(coinId, fromAddress, cryptoParams)
-  const rows = (await coinApiService.getUtxosForAddresses(coinId, uniqueFundingAddresses, options))
+  const rows = (await coinApiService.getUtxosForAddresses(coinId, uniqueFundingAddresses, {
+    ...options,
+    priority: true,
+  }))
     .map((utxo) => ({ ...utxo, sourceAddress: fromAddress })) as FundingUtxo[]
   const byOutpoint = new Map<string, FundingUtxo>()
   for (const row of rows) {
@@ -103,7 +107,7 @@ const isDeterministicBroadcastRejection = (error: unknown) => {
   if (!(error instanceof Error)) return false
   const status = Number((error as Error & { status?: number }).status)
   if (Number.isFinite(status) && status >= 400 && status < 500 && status !== 408) return true
-  return /bad-txns-inputs-missingorspent|missing.?or.?spent|txn-mempool-conflict|min relay fee not met|mandatory-script-verify|non-mandatory-script-verify|bad-txns|insufficient fee|dust/i.test(error.message)
+  return /bad-txns-inputs-missingorspent|missing.?or.?spent|txn-mempool-conflict|min relay fee not met|mempool full|mandatory-script-verify|non-mandatory-script-verify|bad-txns|insufficient fee|dust/i.test(error.message)
 }
 
 export class UtxoBroadcastError extends Error {
@@ -122,11 +126,22 @@ const getFeeRateInfo = async (coinId: string, options: { force?: boolean } = {})
   let rate = COIN_FALLBACK_FEE_RATE_PER_KB[coinId] ?? FALLBACK_FEE_RATE_PER_KB
   let relayFee = COIN_FALLBACK_FEE_RATE_PER_KB[coinId]
   try {
-    const fr = await coinApiService.getFeeRate(coinId, 6, FAST_FEE_TIMEOUT_MS, options)
+    const fr = await coinApiService.getFeeRate(
+      coinId,
+      6,
+      options.force ? INTERACTIVE_FEE_TIMEOUT_MS : FAST_FEE_TIMEOUT_MS,
+      // Send-form fee reads must never wait behind the background snapshot
+      // queue. Electron additionally isolates /fee from transaction requests.
+      { ...options, priority: true },
+    )
     if (fr.feerate > 0) rate = fr.feerate
     if (typeof fr.relayFee === 'number' && fr.relayFee > 0) relayFee = fr.relayFee
-  } catch {
-    // fallback
+  } catch (error) {
+    // A cheap fallback is fine while rendering the form, but never sign an
+    // actual transaction from a stale/default rate. Relay floors can change
+    // (Terracoin currently requires 0.0001/kB), and a deterministic rejection
+    // after signing is worse than waiting for the fresh fee response.
+    if (options.force) throw error
   }
   return { coin: coinId, feerate: Math.max(rate, relayFee ?? 0), relayFee }
 }

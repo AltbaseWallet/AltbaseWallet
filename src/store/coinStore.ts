@@ -16,6 +16,8 @@ import { isPrivacyCoin } from '../utils/privacyCoins'
 import { isAccountCoin } from '../utils/accountCoins'
 import { isUtxoCoin } from '../utils/utxoCoins'
 import { shouldUseFreshIncomingUtxoOverlay } from '../utils/utxoBalanceSyncProfile'
+import { shouldPreferUtxoTotal } from '../utils/utxoBalanceReconciliation'
+import { preserveVerifiedPrivacyStatus, reconcileVerifiedPrivacyRuntime } from '../utils/privacyStatusStability'
 
 type ReservedOutgoing = {
   coinId: string
@@ -69,7 +71,7 @@ type CoinStore = {
   resetVisibility: () => Promise<void>
   resetFavorites: () => Promise<void>
   resetCoinsForCurrentWallet: () => Promise<void>
-  rescanPrivacyCoin: (coinId: 'zano' | 'epic', fromHeight: number) => Promise<void>
+  rescanPrivacyCoin: (coinId: 'zano' | 'epic' | 'monero', fromHeight: number) => Promise<void>
   applyTransactionBalanceDelta: (tx: Transaction, options?: ApplyTransactionBalanceDeltaOptions) => Promise<boolean>
   releaseOutgoingReservation: (txHash: string) => void
   restoreCoinBalance: (coinId: string, balance: string, spendableBalance?: string) => Promise<void>
@@ -99,6 +101,7 @@ const PRIVACY_PROGRESS_STICKY_MS = 10 * 60_000
 const SEND_READY_PREFETCH_TIMEOUT_MS = 800
 const SEND_READY_NETWORK_TIMEOUT_MS = 8_000
 const SEND_READY_BALANCE_TIMEOUT_MS = 12_000
+const BACKGROUND_BALANCE_TIMEOUT_MS = 60_000
 const SEND_READY_FRESH_MS = 2 * 60_000
 const UTXO_BALANCE_FALLBACK_TIMEOUT_MS = 3_500
 const INCOMING_BALANCE_GATE_MS = 24 * 60 * 60_000
@@ -123,6 +126,31 @@ const privacyProgressDebugState = new Map<string, {
 }>()
 const appliedIncomingBalanceDeltas = new Set<string>()
 const freshIncomingBalanceGateTxs = new Map<string, { expiresAt: number; transaction: Transaction }>()
+const stablePrivacyStatus = (coin: Coin, proposedStatus: Coin['status']): Coin['status'] => {
+  if (!isPrivacyCoin(coin)) return proposedStatus
+  const coinId = coin.id as PrivacyCoin
+  return preserveVerifiedPrivacyStatus(
+    coin.status,
+    proposedStatus,
+    privacyDisplayReadyCoins.has(coinId),
+    privacyBirthService.isRecoveryPending(coinId),
+  )
+}
+const reconcilePrivacyRuntimeCommit = (candidate: Coin[], current: Coin[]): Coin[] => {
+  const currentById = new Map(current.map((coin) => [coin.id, coin]))
+  return candidate.map((coin) => {
+    if (!isPrivacyCoin(coin)) return coin
+    const visible = currentById.get(coin.id)
+    if (!visible) return coin
+    const coinId = coin.id as PrivacyCoin
+    return reconcileVerifiedPrivacyRuntime(
+      coin,
+      visible,
+      privacyDisplayReadyCoins.has(coinId),
+      privacyBirthService.isRecoveryPending(coinId),
+    )
+  })
+}
 const scopedKey = (key: string) => `${key}:${walletService.getWalletStorageScope()}`
 const stillSameWallet = (expectedScope?: string, expectedMnemonic?: string) =>
   (!expectedScope || walletService.getWalletStorageScope() === expectedScope)
@@ -139,7 +167,7 @@ const summarizeCoinState = (coin: Pick<Coin, 'balance' | 'spendableBalance' | 's
     : null
 const isQuaiAccountCoin = (coin: Pick<Coin, 'id' | 'walletEngine'> | undefined | null) =>
   coin?.id === 'quai' && coin.walletEngine === 'quai-account'
-const UTXO_INCOMING_DEBUG_COIN_IDS = new Set(['scash', 'pepecoin', 'neoxa', 'junkcoin'])
+const UTXO_INCOMING_DEBUG_COIN_IDS = new Set(['scash', 'pepecoin', 'neoxa', 'junkcoin', 'bitcoincashii'])
 const shouldDebugUtxoIncomingCoin = (coinId: string) => UTXO_INCOMING_DEBUG_COIN_IDS.has(coinId)
 const PRIVACY_DEBUG_COIN_IDS = new Set(['zano', 'epic'])
 const shouldDebugPrivacyCoin = (coinId: string) => PRIVACY_DEBUG_COIN_IDS.has(coinId)
@@ -321,11 +349,21 @@ const withTimeout = async <T,>(promise: Promise<T>, ms: number): Promise<T> => {
 
 const waitForRendererTick = () =>
   new Promise<void>((resolve) => {
+    let settled = false
+    const finish = () => {
+      if (settled) return
+      settled = true
+      resolve()
+    }
     if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
-      window.requestAnimationFrame(() => resolve())
+      // Chromium can suspend requestAnimationFrame indefinitely while the
+      // Electron window is minimized, occluded or used through a remote
+      // desktop session. Balance refresh must keep committing in background.
+      window.requestAnimationFrame(finish)
+      globalThis.setTimeout(finish, 50)
       return
     }
-    globalThis.setTimeout(resolve, 0)
+    globalThis.setTimeout(finish, 0)
   })
 
 const recoveryProgressFromNative = (progress: NativePrivacyRecoveryProgress): NonNullable<Coin['recoveryProgress']> => ({
@@ -468,7 +506,19 @@ const withRecoveryProgress = (
         recoveryProgress: undefined,
       }
     }
-    const status: Coin['status'] = privacyPendingStatus(coin, nextProgress)
+    const status: Coin['status'] = stablePrivacyStatus(coin, privacyPendingStatus(coin, nextProgress))
+    if (status === 'active') {
+      rememberPrivacyRecoveryProgress(coinId as PrivacyCoin, undefined)
+      privacyProgressDebugLog(coinId, 'native-state', nextProgress, {
+        status,
+        preservedVerifiedActive: true,
+      })
+      return {
+        ...coin,
+        status,
+        recoveryProgress: undefined,
+      }
+    }
     rememberPrivacyRecoveryProgress(coinId as PrivacyCoin, statusKeepsRecoveryProgress(status) ? nextProgress : undefined)
     privacyProgressDebugLog(coinId, 'native-state', wentBackwards ? previous ?? nextProgress : nextProgress, {
       status,
@@ -830,7 +880,7 @@ const capPrivacyBalanceByPendingOutgoing = (
   spendableBalance: string | undefined,
   transactions: Transaction[] = readStoredTransactions(),
 ) => {
-  if (coin.id !== 'epic' && coin.id !== 'zano') {
+  if (coin.id !== 'epic' && coin.id !== 'zano' && coin.id !== 'monero') {
     return { balance, spendableBalance }
   }
   const decimals = decimalsForSatsPerCoin(coin.satsPerCoin ?? 100_000_000)
@@ -1205,6 +1255,7 @@ const privacySnapshotCompletesRecovery = (
     return false
   }
   if (coin.id === 'epic' && snapshot.code === 'epic-native-wallet') return true
+  if (coin.id === 'monero' && snapshot.code === 'monero-native-wallet') return true
   return privacySnapshotHasRecoveredData(snapshot)
 }
 
@@ -1440,11 +1491,12 @@ const applyPrivacyNativeSnapshotToCoins = async (
     const canBecomeActive = baseNetworkStatus !== 'maintenance'
       && baseNetworkStatus !== 'offline'
       && privacySnapshotAllowsImmediateActive(item, snapshot, canUpdateVisibleData, recoveryComplete)
-    const status: Coin['status'] = baseNetworkStatus === 'maintenance' || baseNetworkStatus === 'offline'
+    const proposedStatus: Coin['status'] = baseNetworkStatus === 'maintenance' || baseNetworkStatus === 'offline'
       ? baseNetworkStatus
       : recoveryComplete
         ? (canBecomeActive ? 'active' : privacyPendingStatusForSnapshot(item, snapshot))
         : privacyPendingStatusForSnapshot(item, snapshot)
+    const status = stablePrivacyStatus(item, proposedStatus)
     const hideDecision = privacyHideBalanceDecision(item, status, { balance, spendableBalance })
     const visibleBalance = hideDecision.hide ? '0' : balance
     const visibleSpendable = hideDecision.hide ? '0' : spendableBalance
@@ -1473,9 +1525,14 @@ const applyPrivacyNativeSnapshotToCoins = async (
       fiatValue: typeof item.priceUsd === 'number' ? item.priceUsd * balanceNum : item.fiatValue,
     }
   })
-  const saved = await coinService.saveRuntimeCoins(next)
+  const saved = await coinService.saveRuntimeCoins(reconcilePrivacyRuntimeCommit(
+    next,
+    useCoinStore.getState().coins,
+  ))
   if (!stillSameWallet(expectedScope, mnemonic)) return false
-  useCoinStore.setState({ coins: saved })
+  useCoinStore.setState({
+    coins: reconcilePrivacyRuntimeCommit(saved, useCoinStore.getState().coins),
+  })
   privacyLastRefreshAt[coinId] = Date.now()
   privacyDebugLog(coinId, 'privacy.snapshot.apply.done', {
     reason,
@@ -1675,11 +1732,15 @@ const resolveUtxoSnapshotBalance = async (
   )
   const snapshotUnits = visibleBalanceUnitsFromSnapshot(coin, coinSnapshot, addresses)
   const snapshotUnitsFromUtxos = snapshotUtxoUnits(coinSnapshot, addresses)
-  if (snapshotUnitsFromUtxos > 0n && (snapshotUnits === null || snapshotUnitsFromUtxos !== snapshotUnits)) {
+  // Balance and UTXO indexes are not committed atomically by every gateway.
+  // A partial UTXO list must never lower an already proven balance (that made
+  // fresh deposits flicker away until the UTXO index caught up). A larger UTXO
+  // total, however, is positive proof of an incoming credit and is safe to use.
+  if (hasServerPending && snapshotUnits !== null && snapshotUnits > 0n) return null
+  if (shouldPreferUtxoTotal(snapshotUnits, snapshotUnitsFromUtxos)) {
     const balance = coinBalanceFromUtxos(snapshotBalances.flatMap((item) => item.utxos ?? []))
     if (balance) return { balance, coinSnapshot: withUtxoFallbackBalance(coinSnapshot, addresses, balance) }
   }
-  if (hasServerPending && snapshotUnits !== null && snapshotUnits > 0n) return null
   try {
     const utxos = await withTimeout(
       coinApiService.getUtxosForAddresses(coin.id, addresses, { fast: true }),
@@ -1688,7 +1749,7 @@ const resolveUtxoSnapshotBalance = async (
     const balance = coinBalanceFromUtxos(utxos)
     if (!balance) return null
     const utxoBalanceUnits = BigInt(balance.balance)
-    if (snapshotUnits !== null && snapshotUnits > 0n && snapshotUnits === utxoBalanceUnits) return null
+    if (!shouldPreferUtxoTotal(snapshotUnits, utxoBalanceUnits)) return null
     return { balance, coinSnapshot: withUtxoFallbackBalance(coinSnapshot, addresses, balance) }
   } catch {
     return null
@@ -1852,7 +1913,33 @@ const preloadIncomingHistory = async (
       if (freshIncomingUnits + existingIncomingUnits >= increase.deltaUnits) covered.add(increase.coinId)
       if (increase.allowWithoutHistory) covered.add(increase.coinId)
     }
-    const pendingIncreases = increases.filter((increase) => !covered.has(increase.coinId))
+    let after = before
+    const coverFromSyntheticSnapshot = async (candidates: IncomingBalanceIncrease[]) => {
+      const synthetic = candidates
+        .filter((increase) => !covered.has(increase.coinId))
+        .flatMap((increase) => increase.syntheticTransactions ?? [])
+      if (synthetic.length === 0) return
+      // These rows come from the same gateway snapshot that proved the balance
+      // increase (an indexed UTXO or an explicit mempool entry). Commit them
+      // before the slower paged-history request so an incoming payment is not
+      // hidden merely because several explorers need more than 3.5 seconds.
+      await useTransactionStore.getState().mergeSyntheticTransactions(synthetic, {
+        silent: false,
+        expectedScope,
+        expectedMnemonic,
+      })
+      if (!stillSameWallet(expectedScope, expectedMnemonic)) return
+      after = useTransactionStore.getState().transactions
+      for (const increase of candidates) {
+        if (covered.has(increase.coinId)) continue
+        const beforeKeys = beforeKeysByCoin.get(increase.coinId)
+        const newIncomingUnits = incomingUnitsFromTransactions(after, increase, { beforeKeys })
+        if (newIncomingUnits >= increase.deltaUnits) covered.add(increase.coinId)
+      }
+    }
+
+    await coverFromSyntheticSnapshot(increases)
+    let pendingIncreases = increases.filter((increase) => !covered.has(increase.coinId))
     if (pendingIncreases.length === 0) return covered
     if (options.skipHistoryFetch) return covered
     const historyResult = await useTransactionStore.getState().loadTransactions({
@@ -1865,7 +1952,7 @@ const preloadIncomingHistory = async (
       onlyCoinIds: pendingIncreases.map((increase) => increase.coinId),
     })
     if (!stillSameWallet(expectedScope, expectedMnemonic)) return new Set<string>()
-    let after = useTransactionStore.getState().transactions
+    after = useTransactionStore.getState().transactions
     for (const increase of pendingIncreases) {
       const beforeKeys = beforeKeysByCoin.get(increase.coinId)
       const newIncomingUnits = incomingUnitsFromTransactions(after, increase, { beforeKeys })
@@ -1877,26 +1964,8 @@ const preloadIncomingHistory = async (
         covered.add(increase.coinId)
       }
     }
-    const synthetic = pendingIncreases
-      .filter((increase) => !covered.has(increase.coinId))
-      .flatMap((increase) => increase.syntheticTransactions ?? [])
-    if (synthetic.length > 0) {
-      await useTransactionStore.getState().mergeSyntheticTransactions(synthetic, {
-        silent: false,
-        expectedScope,
-        expectedMnemonic,
-      })
-      if (!stillSameWallet(expectedScope, expectedMnemonic)) return covered
-      after = useTransactionStore.getState().transactions
-      for (const increase of increases) {
-        if (covered.has(increase.coinId)) continue
-        const beforeKeys = beforeKeysByCoin.get(increase.coinId)
-        const newIncomingUnits = incomingUnitsFromTransactions(after, increase, { beforeKeys })
-        if (newIncomingUnits >= increase.deltaUnits) {
-          covered.add(increase.coinId)
-        }
-      }
-    }
+    pendingIncreases = increases.filter((increase) => !covered.has(increase.coinId))
+    await coverFromSyntheticSnapshot(pendingIncreases)
     for (const increase of pendingIncreases) {
       if (increase.allowWithoutHistory) covered.add(increase.coinId)
     }
@@ -1955,11 +2024,11 @@ const statusWithPrivacyRuntime = (coin: Coin, status: Coin['status']) => {
   const recoveredStatus = statusWithPrivacyRecovery(coin, status)
   if (
     recoveredStatus === 'active'
-    && (coin.walletEngine === 'zano-light' || coin.walletEngine === 'epic-light')
+    && (coin.walletEngine === 'zano-light' || coin.walletEngine === 'epic-light' || coin.walletEngine === 'monero-light')
     && walletService.getSessionMnemonic()
     && privacyWalletService.getNativeReadiness(coin.id as PrivacyCoin) !== 'ready'
   ) {
-    return privacyPendingStatus(coin)
+    return stablePrivacyStatus(coin, privacyPendingStatus(coin))
   }
   return recoveredStatus
 }
@@ -2039,9 +2108,9 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
       }
     })
 
-    const savedCoins = await coinService.saveRuntimeCoins(next)
+    const savedCoins = await coinService.saveRuntimeCoins(reconcilePrivacyRuntimeCommit(next, get().coins))
     set({
-      coins: savedCoins,
+      coins: reconcilePrivacyRuntimeCommit(savedCoins, get().coins),
       loading: false,
       refreshing: false,
       lastActiveAt,
@@ -2212,10 +2281,10 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
     }))
 
     if (loadSeq !== coinLoadSeq || !stillSameWallet(expectedScope, expectedMnemonic)) return
-    const savedCoins = await coinService.saveRuntimeCoins(next)
+    const savedCoins = await coinService.saveRuntimeCoins(reconcilePrivacyRuntimeCommit(next, get().coins))
     if (loadSeq !== coinLoadSeq || !stillSameWallet(expectedScope, expectedMnemonic)) return
     set({
-      coins: savedCoins,
+      coins: reconcilePrivacyRuntimeCommit(savedCoins, get().coins),
       loading: false,
       refreshing: false,
       lastActiveAt,
@@ -2301,7 +2370,10 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
     try {
       const { items, snapshot } = await walletSnapshotService.fetchBalancesChunked(startupCoins, {
         forceBalances: options.forceBalances === true,
-        timeoutMs: options.forceBalances === true ? 20_000 : SEND_READY_BALANCE_TIMEOUT_MS,
+        // Several public indexers (notably Neoxa during cold reads) can need
+        // more than 20 seconds. Chunks run concurrently, so allowing the real
+        // response to finish does not serialize all coin balances.
+        timeoutMs: BACKGROUND_BALANCE_TIMEOUT_MS,
       })
       quaiDebugLog('coins.snapshot.response', {
         loadSeq,
@@ -2469,7 +2541,9 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
               requiresNativeVerification: privacyNativeVerificationRequired.has(c.id as PrivacyCoin),
             })
             if (!canUpdateVisibleData && !local.code?.endsWith('snapshot-needs-unlock')) {
-              if (rawStatus !== 'maintenance' && rawStatus !== 'offline') rawStatus = privacyPendingStatusForSnapshot(c, local)
+              if (rawStatus !== 'maintenance' && rawStatus !== 'offline') {
+                rawStatus = stablePrivacyStatus(c, privacyPendingStatusForSnapshot(c, local))
+              }
             }
             const recoveryWasPending = privacyBirthService.isRecoveryPending(c.id as PrivacyCoin)
             const recoveryComplete = !localRegressesCachedHistory
@@ -2480,7 +2554,10 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
               if (rawStatus !== 'maintenance' && rawStatus !== 'offline') {
                 rawStatus = privacySnapshotAllowsImmediateActive(c, local, canUpdateVisibleData, recoveryComplete)
                   ? 'active'
-                  : (canUpdateVisibleData ? privacyPendingStatusForSnapshot(c, local) : statusWithPrivacyRuntime(c, baseStatus))
+                  : stablePrivacyStatus(
+                      c,
+                      canUpdateVisibleData ? privacyPendingStatusForSnapshot(c, local) : statusWithPrivacyRuntime(c, baseStatus),
+                    )
               }
             }
             if (local.address && local.address !== c.address) {
@@ -2527,7 +2604,7 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
             recoveryPending: privacyBirthService.isRecoveryPending(c.id as PrivacyCoin),
           })
           // Do not keep a stale positive privacy balance visible while restore is still unverified.
-          if ((c.id === 'zano' || c.id === 'epic')
+          if ((c.id === 'zano' || c.id === 'epic' || c.id === 'monero')
             && privacyBirthService.isRecoveryPending(c.id as PrivacyCoin)
             && Number.parseFloat(c.balance || '0') > 0) {
             if (rawStatus !== 'maintenance' && rawStatus !== 'offline') rawStatus = privacyPendingStatus(c)
@@ -2715,20 +2792,27 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
       bucket.push(units)
       recentOutgoingUnitsByCoin.set(tx.coinId, bucket)
     }
+    // A mempool credit can legitimately remain unconfirmed for much longer
+    // than the short notification gate. Keep it as evidence of an indexer
+    // lagging for one poll until the pending row is reconciled, while settled
+    // rows only get the short anti-flicker window.
+    const incomingCanGuardTransientDrop = (tx: Transaction) => {
+      if (tx.type !== 'incoming' || tx.spent) return false
+      const createdAtMs = Date.parse(tx.createdAt)
+      if (!Number.isFinite(createdAtMs)) return false
+      const ageMs = now - createdAtMs
+      return tx.status === 'pending'
+        ? ageMs < ORPHAN_RESERVATION_TTL_MS
+        : ageMs < FRESH_INCOMING_BALANCE_GATE_MS
+    }
     const recentIncomingByCoin = new Set(
       storedTransactions
-        .filter((tx) => tx.type === 'incoming' && !tx.spent)
-        .filter((tx) => {
-          const createdAtMs = Date.parse(tx.createdAt)
-          return Number.isFinite(createdAtMs) && now - createdAtMs < FRESH_INCOMING_BALANCE_GATE_MS
-        })
+        .filter(incomingCanGuardTransientDrop)
         .map((tx) => tx.coinId),
     )
     const recentIncomingUnitsByCoin = new Map<string, bigint[]>()
     for (const tx of storedTransactions) {
-      if (tx.type !== 'incoming' || tx.spent) continue
-      const createdAtMs = Date.parse(tx.createdAt)
-      if (!Number.isFinite(createdAtMs) || now - createdAtMs >= FRESH_INCOMING_BALANCE_GATE_MS) continue
+      if (!incomingCanGuardTransientDrop(tx)) continue
       const coin = cachedById.get(tx.coinId)
       const decimals = decimalsForSatsPerCoin(coin?.satsPerCoin ?? 100_000_000)
       const units = toBaseUnits(tx.amount || '0', decimals)
@@ -3516,13 +3600,13 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
         savedCandidateCoin: summarizeCoinState(coinsToSave.find((coin) => coin.id === coinId)),
       })
     }
-    const savedCoins = await coinService.saveRuntimeCoins(coinsToSave)
+    const savedCoins = await coinService.saveRuntimeCoins(reconcilePrivacyRuntimeCommit(coinsToSave, get().coins))
     if (loadSeq !== coinLoadSeq || !stillSameWallet(expectedScope, expectedMnemonic)) {
       quaiDebugLog('coins.abort.afterSave', { loadSeq, activeSeq: coinLoadSeq })
       return
     }
     set({
-      coins: savedCoins,
+      coins: reconcilePrivacyRuntimeCommit(savedCoins, get().coins),
       loading: false,
       refreshing: false,
       lastActiveAt,
@@ -3754,9 +3838,13 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
             : next.map((coin) => uncoveredDeferredIncomingCoins.has(coin.id)
               ? current.find((item) => item.id === coin.id) ?? coin
               : coin)
-          const saved = await coinService.saveRuntimeCoins(coinsToSave)
+          const saved = await coinService.saveRuntimeCoins(reconcilePrivacyRuntimeCommit(coinsToSave, get().coins))
           if (loadSeq !== coinLoadSeq || !stillSameWallet(expectedScope, expectedMnemonic)) return
-          set({ coins: saved, lastActiveAt: nextLastActiveAt, consecutiveFailures: nextFailures })
+          set({
+            coins: reconcilePrivacyRuntimeCommit(saved, get().coins),
+            lastActiveAt: nextLastActiveAt,
+            consecutiveFailures: nextFailures,
+          })
           if (deferredBalanceChanged.size > 0) {
             const changedCoinIds = [...deferredBalanceChanged]
             void import('./transactionStore').then(({ useTransactionStore }) => {
@@ -3830,7 +3918,8 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
           .filter((coin) =>
             privacyWalletService.getNativeReadiness(coin.id as PrivacyCoin) !== 'ready'
             && privacyCoinNeedsNativeReadiness(coin)
-            && privacyCoinShouldShowNativePending(coin),
+            && privacyCoinShouldShowNativePending(coin)
+            && !privacyDisplayIsReady(coin),
           )
           .map((coin) => coin.id),
       )
@@ -3838,7 +3927,7 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
       if (!stillSameWallet(expectedScope, mnemonic)) return
       const pending = current.map((coin) =>
         pendingPrivacyIds.has(coin.id) && coin.status === 'active'
-          ? { ...coin, status: privacyPendingStatus(coin) }
+          ? { ...coin, status: stablePrivacyStatus(coin, privacyPendingStatus(coin)) }
           : coin,
       )
       set({ coins: pending })
@@ -3903,11 +3992,12 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
                   ? item.recoveryProgress
                   : progress
                 const showCachedProgress = Boolean(effectiveProgress && effectiveProgress.blocksRemaining > 0 && !nativeReady && !cacheDisplayReady)
-                const status = (nativeReady || cacheDisplayReady) && cacheSeedsRecovery && !showCachedProgress
+                const proposedStatus: Coin['status'] = (nativeReady || cacheDisplayReady) && cacheSeedsRecovery && !showCachedProgress
                   ? 'active'
                   : cacheSeedsRecovery && item.status !== 'maintenance' && item.status !== 'offline'
                     ? privacyPendingStatus(item, effectiveProgress)
                     : (showCachedProgress ? 'syncing' : privacyPendingStatus(item, effectiveProgress))
+                const status = stablePrivacyStatus(item, proposedStatus)
                 const cachedBalance = bestPrivacySnapshotBalance(cached, item.satsPerCoin) ?? item.balance
                 const cachedSpendable = bestPrivacySnapshotSpendable(cached, item.satsPerCoin) ?? item.spendableBalance ?? cachedBalance
                 const capped = capPrivacyBalanceByPendingOutgoing(item, cachedBalance, cachedSpendable)
@@ -3948,9 +4038,9 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
                   fiatValue: typeof item.priceUsd === 'number' ? item.priceUsd * (parseFloat(finalVisibleBalance) || 0) : item.fiatValue,
                 }
               })
-              const saved = await coinService.saveRuntimeCoins(seeded)
+              const saved = await coinService.saveRuntimeCoins(reconcilePrivacyRuntimeCommit(seeded, get().coins))
               if (!stillSameWallet(expectedScope, mnemonic)) return
-              set({ coins: saved })
+              set({ coins: reconcilePrivacyRuntimeCommit(saved, get().coins) })
             } else {
               const progress = await cachedPrivacyProgress(coin, null)
               if (progress && stillSameWallet(expectedScope, mnemonic)) {
@@ -4069,13 +4159,14 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
             const canBecomeActive = baseNetworkStatus !== 'maintenance'
               && baseNetworkStatus !== 'offline'
               && privacySnapshotAllowsImmediateActive(item, local, canUpdateVisibleData, recoveryComplete)
-            const status: Coin['status'] = !canUpdateVisibleData && baseNetworkStatus !== 'maintenance' && baseNetworkStatus !== 'offline'
+            const proposedStatus: Coin['status'] = !canUpdateVisibleData && baseNetworkStatus !== 'maintenance' && baseNetworkStatus !== 'offline'
               ? privacyPendingStatusForSnapshot(item, local)
               : recoveryComplete
                 ? (baseNetworkStatus !== 'maintenance' && baseNetworkStatus !== 'offline'
                   ? (canBecomeActive ? 'active' : privacyPendingStatusForSnapshot(item, local))
                   : networkStatus)
                 : privacyPendingStatusForSnapshot(item, local)
+            const status = stablePrivacyStatus(item, proposedStatus)
             const hideDecision = privacyHideBalanceDecision(item, status, { balance, spendableBalance })
             const hideBalance = hideDecision.hide
             const visibleBalance = hideBalance ? '0' : balance
@@ -4113,9 +4204,9 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
             }
           })
           if (!stillSameWallet(expectedScope, mnemonic)) return
-          const saved = await coinService.saveRuntimeCoins(next)
+          const saved = await coinService.saveRuntimeCoins(reconcilePrivacyRuntimeCommit(next, get().coins))
           if (!stillSameWallet(expectedScope, mnemonic)) return
-          set({ coins: saved })
+          set({ coins: reconcilePrivacyRuntimeCommit(saved, get().coins) })
         } catch (error) {
           privacyDebugLog(coin.id, 'privacy.refresh.error', {
             current: summarizeCoinState(coin),
@@ -4237,9 +4328,9 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
         fiatValue: typeof item.priceUsd === 'number' ? item.priceUsd * (parseFloat(visibleBalance) || 0) : item.fiatValue,
       }
     })
-    const saved = await coinService.saveRuntimeCoins(next)
+    const saved = await coinService.saveRuntimeCoins(reconcilePrivacyRuntimeCommit(next, get().coins))
     if (!stillSameWallet(expectedScope, expectedMnemonic)) return
-    set({ coins: saved })
+    set({ coins: reconcilePrivacyRuntimeCommit(saved, get().coins) })
   },
 
   recordFreshIncomingTransactions: (transactions) => {
@@ -4316,8 +4407,10 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
     coinLoadSeq += 1
     privacyLastRefreshAt.zano = 0
     privacyLastRefreshAt.epic = 0
+    privacyLastRefreshAt.monero = 0
     privacyCacheWarmStartedAt.zano = 0
     privacyCacheWarmStartedAt.epic = 0
+    privacyCacheWarmStartedAt.monero = 0
     privacyNativeVerificationRequired.clear()
     privacyClearDisplayReady()
     clearPrivacyRecoveryProgress()
@@ -4480,8 +4573,8 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
     }
     if (tx.type === 'outgoing' && tx.status === 'pending') writeReservedOutgoing(reservedOutgoing)
     if (!changed && tx.type === 'incoming') return false
-    const savedCoins = await coinService.saveRuntimeCoins(next)
-    set({ coins: savedCoins, reservedOutgoing })
+    const savedCoins = await coinService.saveRuntimeCoins(reconcilePrivacyRuntimeCommit(next, get().coins))
+    set({ coins: reconcilePrivacyRuntimeCommit(savedCoins, get().coins), reservedOutgoing })
     return changed
   },
 
@@ -4511,8 +4604,8 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
       }
     })
     if (!changed) return
-    const savedCoins = await coinService.saveRuntimeCoins(next)
-    set({ coins: savedCoins })
+    const savedCoins = await coinService.saveRuntimeCoins(reconcilePrivacyRuntimeCommit(next, get().coins))
+    set({ coins: reconcilePrivacyRuntimeCommit(savedCoins, get().coins) })
   },
 }))
 
@@ -4535,9 +4628,10 @@ privacyWalletService.onNativeReadinessChange((coinId, readiness) => {
       const nextStatus: Coin['status'] = readiness === 'ready'
         ? 'active'
         : privacyPendingStatus(coin)
-      const status: Coin['status'] = privacyRecoveryIsPending(coin)
+      const proposedStatus: Coin['status'] = privacyRecoveryIsPending(coin)
         ? privacyPendingStatus(coin)
         : nextStatus
+      const status = stablePrivacyStatus(coin, proposedStatus)
       const recoveryProgress = coin.recoveryProgress ?? getRememberedPrivacyRecoveryProgress(coinId)
       const hideDecision = privacyHideBalanceDecision(coin, status)
       const balance = hideDecision.hide ? '0' : coin.balance
@@ -4561,8 +4655,13 @@ privacyWalletService.onNativeReadinessChange((coinId, readiness) => {
       }
     })
     if (JSON.stringify(next) === JSON.stringify(current)) return
-    const saved = await coinService.saveRuntimeCoins(next)
-    useCoinStore.setState({ coins: saved })
+    const saved = await coinService.saveRuntimeCoins(reconcilePrivacyRuntimeCommit(
+      next,
+      useCoinStore.getState().coins,
+    ))
+    useCoinStore.setState({
+      coins: reconcilePrivacyRuntimeCommit(saved, useCoinStore.getState().coins),
+    })
     if (readiness === 'ready') void useCoinStore.getState().refreshPrivacyBalances()
   })()
 })

@@ -1,6 +1,7 @@
 import type { Coin } from '../types/coin'
 import { coinModuleRegistry } from '../coin-modules'
 import { quaiEngine } from './account/quaiEngine'
+import { xgrEngine } from './account/xgrEngine'
 import { qubicEngine } from './account/qubicEngine'
 import { ckbEngine } from './cell/ckbEngine'
 import { privacyEngine } from './privacy/privacyEngine'
@@ -11,11 +12,12 @@ import { kaspaEngine } from './utxo/kaspaEngine'
 
 const engineForCoin = (coin?: Pick<Coin, 'walletEngine'> | null): WalletEngine => {
   if (coin?.walletEngine === 'quai-account') return quaiEngine
+  if (coin?.walletEngine === 'xgr-account') return xgrEngine
   if (coin?.walletEngine === 'qubic-account') return qubicEngine
   if (coin?.walletEngine === 'kaspa-utxo') return kaspaEngine
   if (coin?.walletEngine === 'ckb-cell') return ckbEngine
   if (coin?.walletEngine === 'pearl-utxo') return pearlEngine
-  if (coin?.walletEngine === 'zano-light' || coin?.walletEngine === 'epic-light') return privacyEngine
+  if (coin?.walletEngine === 'zano-light' || coin?.walletEngine === 'epic-light' || coin?.walletEngine === 'monero-light') return privacyEngine
   return utxoEngine
 }
 

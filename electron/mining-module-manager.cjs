@@ -479,6 +479,7 @@ const POOL_DIRECTORY_SECTION_MAP = new Map([
   ['kerrigan-equihash', { coinId: 'kerrigan', algorithm: 'equihash-200-9' }],
   ['kerrigan-equihash192', { coinId: 'kerrigan', algorithm: 'equihash-192-7' }],
   ['litecoin2', { coinId: 'litecoinii', algorithm: 'scrypt' }],
+  ['monero', { coinId: 'monero', algorithm: 'rx/0' }],
   ['mydogecoin', { coinId: 'mydogecoin', algorithm: 'scrypt' }],
   ['neoxa', { coinId: 'neoxa', algorithm: 'kawpow' }],
   ['pearl', { coinId: 'pearl', algorithm: 'pearlhash' }],

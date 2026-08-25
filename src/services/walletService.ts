@@ -74,7 +74,7 @@ const bumpWalletSessionRevision = () => {
 export type WalletAddresses = Record<string, string | undefined>
 
 const privacyCoins = () =>
-  allCoins().filter((coin) => coin.walletEngine === 'zano-light' || coin.walletEngine === 'epic-light')
+  allCoins().filter((coin) => coin.walletEngine === 'zano-light' || coin.walletEngine === 'epic-light' || coin.walletEngine === 'monero-light')
 
 const withTimeout = <T>(operation: Promise<T>, timeoutMs: number, label: string): Promise<T> =>
   new Promise((resolve, reject) => {
@@ -287,7 +287,7 @@ const ensurePublicAddress = async (coinId: string): Promise<string | undefined> 
     if (!coin) return undefined
 
     let address: string | undefined
-    if (coin.walletEngine === 'zano-light' || coin.walletEngine === 'epic-light') {
+    if (coin.walletEngine === 'zano-light' || coin.walletEngine === 'epic-light' || coin.walletEngine === 'monero-light') {
       const result = await privacyWalletService.ensureWallet(coin.id as PrivacyCoin, mnemonic)
       address = result.address
     } else {
@@ -476,7 +476,7 @@ export const walletService = {
     const exportSecret = walletEngineRegistry.get(coin).exportSecret
     if (!exportSecret) throw new Error(`coin-not-supported:${coinId}`)
     const secret = await exportSecret(coin, mnemonic)
-    if (coin.walletEngine === 'zano-light' || coin.walletEngine === 'epic-light') {
+    if (coin.walletEngine === 'zano-light' || coin.walletEngine === 'epic-light' || coin.walletEngine === 'monero-light') {
       const height = await privacyBirthService.restoreStartHeight(coin.id as PrivacyCoin).catch(() => null)
       return height ? `${secret}\n\nRestore height: ${height}` : secret
     }

@@ -2,7 +2,7 @@ import { coinApiService } from './coinApiService'
 import { storageService } from './storageService'
 import { getWalletStorageScope } from './walletScopeService'
 
-export type PrivacyBirthCoin = 'epic' | 'zano'
+export type PrivacyBirthCoin = 'epic' | 'zano' | 'monero'
 
 type WalletOrigin = {
   mode: 'created' | 'restored'
@@ -25,11 +25,13 @@ const RECOVERY_KEY = 'wallet-privacy-recovery'
 const SUPPORT_FLOOR_HEIGHTS: Record<PrivacyBirthCoin, number> = {
   epic: 3_540_000,
   zano: 3_695_000,
+  monero: 3_730_000,
 }
 
 const BIRTH_SAFETY_BLOCKS: Record<PrivacyBirthCoin, number> = {
   epic: 30,
   zano: 30,
+  monero: 30,
 }
 
 const scopedKey = (key: string, scope = getWalletStorageScope()) => `${key}:${scope}`
@@ -83,6 +85,7 @@ export const privacyBirthService = {
     })
     void captureNetworkBirthHeight('epic', 'created-network', scope)
     void captureNetworkBirthHeight('zano', 'created-network', scope)
+    void captureNetworkBirthHeight('monero', 'created-network', scope)
   },
 
   markRestoredWallet() {
@@ -92,6 +95,7 @@ export const privacyBirthService = {
     storageService.set<PrivacyRecoveryState>(scopedKey(RECOVERY_KEY, scope), {
       epic: true,
       zano: true,
+      monero: true,
     })
     storageService.set<WalletOrigin>(scopedKey(ORIGIN_KEY, scope), {
       mode: 'restored',

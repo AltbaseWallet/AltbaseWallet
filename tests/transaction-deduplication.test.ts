@@ -88,6 +88,30 @@ test('confirmed remote state keeps local outgoing metadata after restart', () =>
   assert.equal(merged.balanceBefore, '8')
 })
 
+test('Kerrigan mempool evidence repairs a legacy local failed row to pending', () => {
+  const localFailed = tx('kerrigan', 'failed', {
+    txHash: 'D2EFBB6FA4959DD9C851FCAD5500B475AED6D53638309BD9D026199920398862',
+    amount: '0.01',
+    fee: '0.0000276',
+    to: 'K8K4PCATjkj8CxZwQ7LidnFjC5VkMmxUms',
+    spentOutpoints: undefined,
+    balanceBefore: undefined,
+  })
+  const remotePending = tx('kerrigan', 'pending', {
+    txHash: 'd2efbb6fa4959dd9c851fcad5500b475aed6d53638309bd9d026199920398862',
+    amount: '0.01',
+    fee: '0.0000276',
+    from: 'KPPsYUmZpdMP64NB2VryW1yQGANuvYBADw',
+    to: 'K8K4PCATjkj8CxZwQ7LidnFjC5VkMmxUms',
+  })
+
+  const [merged] = dedupeTransactionsByIdentity([localFailed, remotePending])
+  assert.equal(merged.status, 'pending')
+  assert.equal(merged.type, 'outgoing')
+  assert.equal(merged.amount, '0.01')
+  assert.equal(merged.fee, '0.0000276')
+})
+
 test('Epic synthetic confirmed entry replaces its matching local pending entry', () => {
   const pending = tx('epic', 'pending', {
     txHash: 'local-epic-send',

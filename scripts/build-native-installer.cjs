@@ -15,6 +15,11 @@ const releaseDir = path.join(root, 'release')
 const outputPath = path.join(releaseDir, 'Altbase-Wallet-Windows.msi')
 const oldExecutableInstaller = path.join(releaseDir, 'Altbase-Wallet-Windows.exe')
 const iconPath = path.join(root, 'build', 'icon.ico')
+const summaryFixSource = path.join(root, 'scripts', 'set-msi-summary.c')
+const electronBuilder = path.join(root, 'node_modules', '.bin', process.platform === 'win32' ? 'electron-builder.cmd' : 'electron-builder')
+const crossMsiToolsRoot = process.env.ALTBASE_CROSS_MSI_TOOLS || ''
+const crossMsiMode = process.platform !== 'win32' && Boolean(crossMsiToolsRoot)
+const crossMsiBackend = process.env.ALTBASE_MSI_BACKEND || 'wix'
 const windowsRoot = process.env.SystemRoot || 'C:\\Windows'
 const cscript = path.join(windowsRoot, 'System32', 'cscript.exe')
 const msiexec = path.join(windowsRoot, 'System32', 'msiexec.exe')
@@ -41,9 +46,9 @@ const findSdkTool = (architecture, name) => {
   throw new Error(`Windows SDK tool was not found: ${architecture}\\${name}`)
 }
 
-const wiImport = findSdkTool('x64', 'wiimport.vbs')
-const wiMakeCab = findSdkTool('x64', 'wimakcab.vbs')
-const wiSummaryInfo = findSdkTool('x64', 'wisuminf.vbs')
+const wiImport = crossMsiMode ? '' : findSdkTool('x64', 'wiimport.vbs')
+const wiMakeCab = crossMsiMode ? '' : findSdkTool('x64', 'wimakcab.vbs')
+const wiSummaryInfo = crossMsiMode ? '' : findSdkTool('x64', 'wisuminf.vbs')
 
 const run = (command, args, label, options = {}) => {
   console.log(`[windows-installer] ${label}`)
@@ -52,6 +57,7 @@ const run = (command, args, label, options = {}) => {
     encoding: 'utf8',
     windowsHide: true,
     maxBuffer: 32 * 1024 * 1024,
+    env: options.env || process.env,
   })
   if (result.error) throw result.error
   if (result.status !== 0) {
@@ -62,6 +68,7 @@ const run = (command, args, label, options = {}) => {
     const output = `${result.stdout || ''}${result.stderr || ''}`.trim()
     if (output) console.log(output)
   }
+  return result
 }
 
 const listPayloadFiles = (directory) => {
@@ -86,6 +93,32 @@ const stableGuid = (value) => {
   bytes[8] = (bytes[8] & 0x3f) | 0x80
   const hex = bytes.toString('hex').toUpperCase()
   return `{${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}}`
+}
+
+const packageIdentityDigest = (files) => {
+  const digest = crypto.createHash('sha256')
+  const buffer = Buffer.allocUnsafe(1024 * 1024)
+  const inputs = [__filename, summaryFixSource, ...files]
+  for (const file of inputs) {
+    const label = file === __filename
+      ? 'installer-generator'
+      : file === summaryFixSource
+        ? 'summary-finalizer'
+        : normalizedRelativePath(file)
+    digest.update(label).update('\0')
+    const descriptor = fs.openSync(file, 'r')
+    try {
+      let bytesRead
+      do {
+        bytesRead = fs.readSync(descriptor, buffer, 0, buffer.length, null)
+        if (bytesRead > 0) digest.update(buffer.subarray(0, bytesRead))
+      } while (bytesRead > 0)
+    } finally {
+      fs.closeSync(descriptor)
+    }
+    digest.update('\0')
+  }
+  return digest.digest('hex')
 }
 
 const cleanIdtField = (value) => String(value ?? '').replace(/[\t\r\n]/g, ' ')
@@ -313,6 +346,299 @@ const insertInstallerStreams = (msiPath, workDir) => {
   ], 'embed Altbase installer artwork')
 }
 
+const crossMsiTool = (name) => path.join(crossMsiToolsRoot, 'usr', 'bin', name)
+const crossMsiEnvironment = () => ({
+  ...process.env,
+  LD_LIBRARY_PATH: [
+    path.join(crossMsiToolsRoot, 'usr', 'lib', 'x86_64-linux-gnu'),
+    process.env.LD_LIBRARY_PATH || '',
+  ].filter(Boolean).join(path.delimiter),
+})
+
+const buildCompressedCrossPlatformMsi = (msiPath, tableDir, files, workDir) => {
+  const backdropPath = createInstallerBackdrop(workDir)
+  const logoPath = createInstallerLogo(workDir)
+  const iconStreamDir = path.join(tableDir, 'Icon')
+  const binaryStreamDir = path.join(tableDir, 'Binary')
+  fs.mkdirSync(iconStreamDir)
+  fs.mkdirSync(binaryStreamDir)
+  fs.copyFileSync(iconPath, path.join(iconStreamDir, 'AltbaseIcon.ico'))
+  fs.copyFileSync(logoPath, path.join(binaryStreamDir, 'AltbaseUiLogo.bmp'))
+  fs.copyFileSync(backdropPath, path.join(binaryStreamDir, 'AltbaseBackdrop.bmp'))
+  writeIdt(tableDir, 'Icon', ['Name', 'Data'], ['s72', 'v0'], ['Name'], [
+    ['AltbaseIcon', '/AltbaseIcon.ico'],
+  ])
+  writeIdt(tableDir, 'Binary', ['Name', 'Data'], ['s72', 'v0'], ['Name'], [
+    ['AltbaseUiLogo', '/AltbaseUiLogo.bmp'],
+    ['AltbaseBackdrop', '/AltbaseBackdrop.bmp'],
+  ])
+
+  const environment = crossMsiEnvironment()
+  const tableFiles = fs.readdirSync(tableDir)
+    .filter((name) => name.endsWith('.idt'))
+    .sort((left, right) => left.localeCompare(right, 'en'))
+  const importArgs = [msiPath]
+  for (const name of tableFiles) importArgs.push('-i', name)
+  run(crossMsiTool('msibuild'), importArgs, 'create compressed MSI database with libmsi', {
+    cwd: tableDir,
+    env: environment,
+  })
+
+  const cabinetDir = path.join(workDir, 'cabinet-files')
+  fs.mkdirSync(cabinetDir)
+  const cabinetNames = []
+  for (const absolute of files) {
+    const relative = normalizedRelativePath(absolute)
+    const fileId = `FIL_${stableHex(relative, 28)}`
+    const destination = path.join(cabinetDir, fileId)
+    try {
+      fs.linkSync(absolute, destination)
+    } catch {
+      fs.copyFileSync(absolute, destination)
+    }
+    cabinetNames.push(fileId)
+  }
+  const cabinetPath = path.join(workDir, 'ALTBASE.cab')
+  run(crossMsiTool('gcab'), ['-c', '-z', '-n', cabinetPath, ...cabinetNames], 'compress MSI payload', {
+    cwd: cabinetDir,
+    env: environment,
+  })
+  run(crossMsiTool('msibuild'), [
+    msiPath,
+    '-q',
+    "UPDATE `Media` SET `Cabinet` = '#ALTBASE' WHERE `DiskId` = 1",
+    '-a',
+    'ALTBASE',
+    cabinetPath,
+    '-s',
+    'Altbase Wallet',
+    'Altbase',
+    'x64;1033',
+    `{${crypto.randomUUID().toUpperCase()}}`,
+  ], 'embed MSI cabinet', { env: environment })
+
+  const helperPath = path.join(workDir, 'set-msi-summary')
+  const compilerFlags = run(crossMsiTool('pkg-config'), [
+    '--cflags',
+    '--libs',
+    'libmsi-1.0',
+  ], 'resolve libmsi compiler flags', { env: environment }).stdout.trim().split(/\s+/)
+  run(process.env.CC || 'cc', [
+    '-std=c11',
+    '-O2',
+    '-Wall',
+    '-Wextra',
+    '-Werror',
+    summaryFixSource,
+    '-o',
+    helperPath,
+    ...compilerFlags,
+  ], 'compile MSI summary finalizer', { env: environment })
+  run(helperPath, [msiPath], 'finalize MSI 5.0 compressed-package metadata', { env: environment })
+}
+
+const buildWixCrossPlatformMsi = (msiPath, workDir) => {
+  const configPath = path.join(workDir, 'electron-builder-msi.json')
+  const upgradeCode = stableGuid('upgrade-code')
+  fs.writeFileSync(configPath, `${JSON.stringify({
+    appId: pkg.build?.appId || 'com.altbase.wallet',
+    productName: pkg.productName || 'Altbase Wallet',
+    // WiX cabinet compression crashes under Wine for the large Electron
+    // executable. Build the standards-compliant database first, then replace
+    // its stored cabinet streams with gcab-compressed streams below.
+    compression: 'store',
+    directories: { output: workDir },
+    win: {
+      icon: iconPath,
+      signAndEditExecutable: false,
+    },
+    msi: {
+      oneClick: false,
+      perMachine: false,
+      runAfterFinish: false,
+      createDesktopShortcut: true,
+      createStartMenuShortcut: true,
+      shortcutName: 'Altbase Wallet',
+      upgradeCode: upgradeCode.slice(1, -1),
+      artifactName: path.basename(msiPath),
+      additionalLightArgs: ['-ct', '1'],
+    },
+  }, null, 2)}\n`, 'utf8')
+
+  run(electronBuilder, [
+    '--win',
+    'msi',
+    '--x64',
+    '--prepackaged',
+    sourceDir,
+    '--publish',
+    'never',
+    '--config',
+    configPath,
+  ], 'build standards-compliant MSI with WiX', { printOutput: true })
+
+  if (!fs.existsSync(msiPath)) throw new Error(`WiX did not create the expected MSI: ${msiPath}`)
+  recompressWixCabinets(msiPath, workDir)
+  // Electron can legitimately ship a lower embedded version of a runtime DLL
+  // than an earlier release. Windows Installer otherwise rejects the current
+  // component during costing, removes the old product, and leaves the shared
+  // path without either file. Applying the normal-install overwrite policy
+  // before costing makes major upgrades install the package's exact payload.
+  enforceReliableFileReplacement(msiPath)
+  const result = run(crossMsiTool('msiinfo'), ['export', msiPath, 'Property'], 'read MSI product identity')
+  const properties = new Map(
+    result.stdout.split(/\r?\n/)
+      .slice(3)
+      .map((line) => line.split('\t'))
+      .filter((fields) => fields.length >= 2),
+  )
+  const productCode = properties.get('ProductCode') || ''
+  const actualUpgradeCode = properties.get('UpgradeCode') || ''
+  if (!/^\{[0-9A-F-]{36}\}$/.test(productCode)) throw new Error('WiX MSI has no valid ProductCode')
+  if (actualUpgradeCode !== upgradeCode) {
+    throw new Error(`WiX MSI UpgradeCode is ${actualUpgradeCode || 'missing'}, expected ${upgradeCode}`)
+  }
+  return { productCode, upgradeCode: actualUpgradeCode }
+}
+
+const parseIdtRows = (raw) => raw
+  .replaceAll('\r', '')
+  .trimEnd()
+  .split('\n')
+  .slice(3)
+  .filter(Boolean)
+  .map((line) => line.split('\t'))
+
+const enforceReliableFileReplacement = (msiPath) => {
+  const environment = crossMsiEnvironment()
+  const propertyRows = parseIdtRows(run(
+    crossMsiTool('msiinfo'),
+    ['export', msiPath, 'Property'],
+    'read MSI file replacement policy',
+    { env: environment },
+  ).stdout)
+  const hasReinstallMode = propertyRows.some((row) => row[0] === 'REINSTALLMODE')
+  const query = hasReinstallMode
+    ? "UPDATE `Property` SET `Value` = 'amus' WHERE `Property` = 'REINSTALLMODE'"
+    : "INSERT INTO `Property` (`Property`, `Value`) VALUES ('REINSTALLMODE', 'amus')"
+  run(crossMsiTool('msibuild'), [
+    msiPath,
+    '-q',
+    query,
+  ], 'enforce reliable MSI upgrade file replacement', { env: environment })
+
+  const verifiedRows = parseIdtRows(run(
+    crossMsiTool('msiinfo'),
+    ['export', msiPath, 'Property'],
+    'verify MSI file replacement policy',
+    { env: environment },
+  ).stdout)
+  if (!verifiedRows.some((row) => row[0] === 'REINSTALLMODE' && row[1] === 'amus')) {
+    throw new Error('MSI file replacement policy was not persisted')
+  }
+}
+
+const msiLongName = (value) => String(value || '').split('|').pop()
+
+const recompressWixCabinets = (msiPath, workDir) => {
+  const environment = crossMsiEnvironment()
+  const exportTable = (table) => parseIdtRows(run(
+    crossMsiTool('msiinfo'),
+    ['export', msiPath, table],
+    `read WiX ${table} table`,
+    { env: environment },
+  ).stdout)
+
+  const directoryRows = exportTable('Directory')
+  const componentRows = exportTable('Component')
+  const fileRows = exportTable('File')
+  const mediaRows = exportTable('Media')
+  const directories = new Map(directoryRows.map((row) => [row[0], {
+    parent: row[1],
+    name: msiLongName(row[2]),
+  }]))
+  const componentDirectories = new Map(componentRows.map((row) => [row[0], row[2]]))
+  const sourceFiles = new Map(listPayloadFiles(sourceDir).map((file) => [
+    normalizedRelativePath(file).toLowerCase(),
+    file,
+  ]))
+
+  const resolveDirectory = (directoryId) => {
+    if (!directoryId || directoryId === 'APPLICATIONFOLDER') return ''
+    const parts = []
+    const seen = new Set()
+    let current = directoryId
+    while (current && current !== 'APPLICATIONFOLDER') {
+      if (seen.has(current)) throw new Error(`WiX MSI directory cycle at ${current}`)
+      seen.add(current)
+      const item = directories.get(current)
+      if (!item) throw new Error(`WiX MSI directory is missing: ${current}`)
+      if (current === 'TARGETDIR' || current === 'ProgramFiles64Folder' || current === 'ProgramFilesFolder') break
+      if (item.name && item.name !== '.' && item.name !== 'SourceDir') parts.unshift(item.name)
+      current = item.parent
+    }
+    return parts.join('/')
+  }
+
+  const payload = fileRows.map((row) => {
+    const id = row[0]
+    const directory = resolveDirectory(componentDirectories.get(row[1]))
+    const relative = path.posix.join(directory, msiLongName(row[2]))
+    const source = sourceFiles.get(relative.toLowerCase())
+    if (!source) throw new Error(`WiX MSI source mapping is missing: ${relative}`)
+    if (fs.statSync(source).size !== Number(row[3])) throw new Error(`WiX MSI source size changed: ${relative}`)
+    return { id, source, sequence: Number(row[7]) }
+  }).sort((left, right) => left.sequence - right.sequence)
+
+  if (payload.length !== sourceFiles.size || new Set(payload.map((item) => item.source)).size !== sourceFiles.size) {
+    throw new Error(`WiX MSI payload mapping covered ${payload.length} rows for ${sourceFiles.size} source files`)
+  }
+
+  const media = mediaRows.map((row) => ({
+    diskId: Number(row[0]),
+    lastSequence: Number(row[1]),
+    cabinet: String(row[3] || '').replace(/^#/, ''),
+  })).sort((left, right) => left.diskId - right.diskId)
+  const uncompressedSize = fs.statSync(msiPath).size
+  let previousSequence = 0
+  let assignedFiles = 0
+  for (const medium of media) {
+    if (!medium.cabinet) throw new Error(`WiX MSI media ${medium.diskId} has no embedded cabinet`)
+    const entries = payload.filter((item) => (
+      item.sequence > previousSequence && item.sequence <= medium.lastSequence
+    ))
+    previousSequence = medium.lastSequence
+    assignedFiles += entries.length
+    if (entries.length === 0) throw new Error(`WiX MSI cabinet ${medium.cabinet} has no files`)
+
+    const cabinetDir = path.join(workDir, `compressed-${medium.cabinet}`)
+    const cabinetPath = path.join(workDir, `${medium.cabinet}.compressed`)
+    fs.mkdirSync(cabinetDir)
+    for (const entry of entries) {
+      const destination = path.join(cabinetDir, entry.id)
+      try {
+        fs.linkSync(entry.source, destination)
+      } catch {
+        fs.copyFileSync(entry.source, destination)
+      }
+    }
+    run(crossMsiTool('gcab'), [
+      '-c', '-z', '-n', cabinetPath, ...entries.map((entry) => entry.id),
+    ], `compress WiX cabinet ${medium.cabinet}`, { cwd: cabinetDir, env: environment })
+    run(crossMsiTool('msibuild'), [
+      msiPath, '-a', medium.cabinet, cabinetPath,
+    ], `replace WiX cabinet ${medium.cabinet}`, { env: environment })
+  }
+  if (assignedFiles !== payload.length) {
+    throw new Error(`WiX MSI media covered ${assignedFiles} of ${payload.length} files`)
+  }
+  const compressedSize = fs.statSync(msiPath).size
+  if (compressedSize >= uncompressedSize || compressedSize > 300 * 1024 * 1024) {
+    throw new Error(`WiX MSI recompression was ineffective: ${uncompressedSize} -> ${compressedSize} bytes`)
+  }
+  console.log(`[windows-installer] recompressed WiX MSI: ${uncompressedSize} -> ${compressedSize} bytes`)
+}
+
 const shortDirectoryName = (relative) => `D${stableHex(relative, 7)}|${path.basename(relative)}`
 const shortFileName = (relative) => {
   const extension = path.extname(relative).slice(1).replace(/[^A-Za-z0-9]/g, '').slice(0, 3).toUpperCase() || 'BIN'
@@ -320,7 +646,7 @@ const shortFileName = (relative) => {
 }
 
 const buildTables = (tableDir, files) => {
-  const productCode = stableGuid(`product:${pkg.version}`)
+  const productCode = stableGuid(`product:${pkg.version}:${packageIdentityDigest(files)}`)
   const upgradeCode = stableGuid('upgrade-code')
   const directoryRows = [
     ['TARGETDIR', '', 'SourceDir'],
@@ -417,6 +743,8 @@ const buildTables = (tableDir, files) => {
       ['MSIINSTALLPERUSER', '1'],
       ['INSTALLLEVEL', '1'],
       ['DESKTOPSHORTCUT', '1'],
+      ['LAUNCHAPP', '1'],
+      ['REINSTALLMODE', 'amus'],
       ['ARPNOMODIFY', '1'],
       ['ARPNOREPAIR', '1'],
       ['ARPPRODUCTICON', 'AltbaseIcon'],
@@ -456,6 +784,10 @@ const buildTables = (tableDir, files) => {
       ['StartMenuShortcut', 'APPMENUDIR', 'ALTBASE|Altbase Wallet', startMenuComponent, `[#${mainExecutableFileId}]`, '', 'Altbase Wallet', '', 'AltbaseIcon', 0, 1, 'INSTALLFOLDER'],
       ['DesktopShortcut', 'DesktopFolder', 'ALTBASE|Altbase Wallet', desktopComponent, `[#${mainExecutableFileId}]`, '', 'Altbase Wallet', '', 'AltbaseIcon', 0, 1, 'INSTALLFOLDER'],
     ])
+  writeIdt(tableDir, 'CustomAction',
+    ['Action', 'Type', 'Source', 'Target'], ['s72', 'i2', 'S64', 'L0'], ['Action'], [
+      ['LaunchAltbaseWallet', 210, mainExecutableFileId, ''],
+    ])
   writeIdt(tableDir, 'RemoveFile',
     ['FileKey', 'Component_', 'FileName', 'DirProperty', 'InstallMode'],
     ['s72', 's72', 'L255', 's72', 'i2'], ['FileKey'], [
@@ -474,7 +806,7 @@ const buildTables = (tableDir, files) => {
   writeIdt(tableDir, 'Upgrade',
     ['UpgradeCode', 'VersionMin', 'VersionMax', 'Language', 'Attributes', 'Remove', 'ActionProperty'],
     ['s38', 'S20', 'S20', 'S255', 'i4', 'S255', 's72'], ['UpgradeCode', 'VersionMin', 'VersionMax', 'Language', 'Attributes'], [
-      [upgradeCode, '', pkg.version, '', 1, '', 'OLDERVERSIONBEINGUPGRADED'],
+      [upgradeCode, '', pkg.version, '', 513, '', 'OLDERVERSIONBEINGUPGRADED'],
       [upgradeCode, pkg.version, '', '', 2, '', 'NEWERVERSIONDETECTED'],
     ])
   writeIdt(tableDir, 'LaunchCondition',
@@ -492,6 +824,7 @@ const buildTables = (tableDir, files) => {
     ['CostFinalize', '', 1000],
     ['MigrateFeatureStates', '', 1200],
     ['InstallValidate', '', 1400],
+    ['RemoveExistingProducts', 'OLDERVERSIONBEINGUPGRADED', 1450],
     ['InstallInitialize', '', 1500],
     ['ProcessComponents', '', 1600],
     ['UnpublishFeatures', '', 1800],
@@ -506,7 +839,6 @@ const buildTables = (tableDir, files) => {
     ['PublishFeatures', '', 6300],
     ['PublishProduct', '', 6400],
     ['InstallFinalize', '', 6600],
-    ['RemoveExistingProducts', 'OLDERVERSIONBEINGUPGRADED', 6601],
   ]
   writeIdt(tableDir, 'InstallExecuteSequence',
     ['Action', 'Condition', 'Sequence'], ['s72', 'S255', 'I2'], ['Action'], executeSequence)
@@ -567,8 +899,8 @@ const buildTables = (tableDir, files) => {
       ['ExitDialog', 'Logo', 'Bitmap', 202, 20, 96, 96, 1, '', 'AltbaseUiLogo', 'Brand', ''],
       ['ExitDialog', 'Brand', 'Text', 214, 116, 120, 16, 196611, '', '{\\AltbaseHeader}ALTBASE WALLET', 'Title', ''],
       ['ExitDialog', 'Title', 'Text', 42, 164, 416, 30, 196611, '', '{\\AltbaseTitle}Altbase Wallet is ready', 'Description', ''],
-      ['ExitDialog', 'Description', 'Text', 42, 204, 416, 22, 196611, '', '{\\AltbaseSubtitle}Installation completed successfully.', 'Hint', ''],
-      ['ExitDialog', 'Hint', 'Text', 42, 230, 416, 20, 196611, '', '{\\AltbaseMuted}Open Altbase Wallet from the Start menu or desktop shortcut.', 'Finish', ''],
+      ['ExitDialog', 'Description', 'Text', 42, 204, 416, 22, 196611, '', '{\\AltbaseSubtitle}Installation completed successfully.', 'LaunchApp', ''],
+      ['ExitDialog', 'LaunchApp', 'CheckBox', 42, 238, 300, 20, 3, 'LAUNCHAPP', 'Launch Altbase Wallet', 'Finish', ''],
       ['ExitDialog', 'Finish', 'PushButton', 388, 310, 70, 26, 3, '', 'Finish', 'Backdrop', ''],
 
       ['ErrorDlg', 'Backdrop', 'Bitmap', 0, 0, 500, 350, 1, '', 'AltbaseBackdrop', 'Logo', ''],
@@ -595,7 +927,8 @@ const buildTables = (tableDir, files) => {
     ['s72', 's50', 's50', 's255', 'S255', 'I2'], ['Dialog_', 'Control_', 'Event', 'Argument', 'Condition'], [
       ['WelcomeDlg', 'Install', 'EndDialog', 'Return', '1', 1],
       ['WelcomeDlg', 'Cancel', 'EndDialog', 'Exit', '1', 1],
-      ['ExitDialog', 'Finish', 'EndDialog', 'Return', '1', 1],
+      ['ExitDialog', 'Finish', 'DoAction', 'LaunchAltbaseWallet', 'LAUNCHAPP = 1 AND NOT Installed', 1],
+      ['ExitDialog', 'Finish', 'EndDialog', 'Return', '1', 2],
       ['FatalError', 'Finish', 'EndDialog', 'Return', '1', 1],
       ['UserExit', 'Finish', 'EndDialog', 'Return', '1', 1],
     ])
@@ -656,7 +989,69 @@ const verifyAdministrativeImage = (msiPath, sourceFiles, workDir) => {
   console.log(`[windows-installer] verified ${sourceFiles.length} payload files in administrative image`)
 }
 
+const verifyCrossPlatformImage = (msiPath, sourceFiles, workDir) => {
+  const targetDir = path.join(workDir, 'extracted-msi')
+  fs.mkdirSync(targetDir)
+  run(crossMsiTool('msiextract'), ['-C', targetDir, msiPath], 'verify MSI payload extraction')
+
+  const extracted = listPayloadFiles(targetDir)
+  const extractedByRelativePath = new Map(extracted.map((file) => {
+    const relative = path.relative(targetDir, file).replaceAll('\\', '/')
+    const normalized = relative.startsWith('Altbase Wallet/')
+      ? relative.slice('Altbase Wallet/'.length)
+      : relative
+    return [normalized.toLowerCase(), file]
+  }))
+  for (const sourceFile of sourceFiles) {
+    const relative = normalizedRelativePath(sourceFile).toLowerCase()
+    const extractedFile = extractedByRelativePath.get(relative) || [...extractedByRelativePath.entries()]
+      .find(([extractedRelative]) => extractedRelative.endsWith(`/${relative}`))?.[1]
+    if (!extractedFile) {
+      const sample = [...extractedByRelativePath.keys()].slice(0, 8).join(', ')
+      throw new Error(`MSI payload is missing ${relative} (first extracted paths: ${sample})`)
+    }
+    if (fs.statSync(extractedFile).size !== fs.statSync(sourceFile).size) {
+      throw new Error(`MSI payload size mismatch for ${relative}`)
+    }
+  }
+  if (extractedByRelativePath.size !== sourceFiles.length) {
+    throw new Error(`MSI contains ${extractedByRelativePath.size} files, expected ${sourceFiles.length}`)
+  }
+  console.log(`[windows-installer] verified ${sourceFiles.length} files in the MSI payload`)
+}
+
 const validateEnvironment = () => {
+  if (crossMsiMode) {
+    if (!['libmsi', 'wix'].includes(crossMsiBackend)) {
+      throw new Error(`Unsupported ALTBASE_MSI_BACKEND: ${crossMsiBackend}`)
+    }
+    const files = crossMsiBackend === 'libmsi'
+      ? [
+          crossMsiTool('msibuild'),
+          crossMsiTool('gcab'),
+          crossMsiTool('msiinfo'),
+          crossMsiTool('msiextract'),
+          crossMsiTool('pkg-config'),
+          summaryFixSource,
+          iconPath,
+        ]
+      : [
+          electronBuilder,
+          crossMsiTool('msibuild'),
+          crossMsiTool('gcab'),
+          crossMsiTool('msiinfo'),
+          crossMsiTool('msiextract'),
+          iconPath,
+        ]
+    for (const file of files) {
+      if (!fs.existsSync(file)) throw new Error(`Required cross-platform MSI build input is missing: ${file}`)
+    }
+    if (crossMsiBackend === 'libmsi') {
+      run(crossMsiTool('pkg-config'), ['--exists', 'libmsi-1.0'], 'validate libmsi development files')
+    }
+    console.log(`Cross-platform ${crossMsiBackend} MSI build environment validated.`)
+    return
+  }
   for (const file of [cscript, msiexec, wiImport, wiMakeCab, wiSummaryInfo, iconPath]) {
     if (!fs.existsSync(file)) throw new Error(`Required Windows Installer build input is missing: ${file}`)
   }
@@ -684,29 +1079,39 @@ try {
   fs.mkdirSync(tableDir, { recursive: true })
 
   try {
-    const identity = buildTables(tableDir, files)
-    run(cscript, ['//nologo', wiImport, '/c', temporaryMsi, tableDir, '*.idt'], 'create Windows Installer database')
-    insertInstallerStreams(temporaryMsi, workDir)
-    run(cscript, [
-      '//nologo',
-      wiSummaryInfo,
-      temporaryMsi,
-      'Title=Installation Database',
-      'Subject=Altbase Wallet',
-      'Author=Altbase',
-      'Keywords=Installer;Wallet;Altbase',
-      'Comments=Altbase Wallet 0.1.6 Windows Installer package',
-      'Template=x64;1033',
-      `Revision={${crypto.randomUUID().toUpperCase()}}`,
-      'Pages=500',
-      'Words=8',
-      'Application=Windows Installer',
-      'Security=2',
-    ], 'write Windows Installer summary information')
-    run(cscript, ['//nologo', wiMakeCab, temporaryMsi, 'ALTBASE', sourceDir, '/C', '/L', '/U', '/E', '/S'], 'embed compressed wallet payload', { cwd: workDir })
-    run(cscript, ['//nologo', wiSummaryInfo, temporaryMsi, 'Words=10', 'Security=2'], 'finalize compressed package metadata')
-
-    verifyAdministrativeImage(temporaryMsi, files, workDir)
+    let identity
+    if (crossMsiMode) {
+      if (crossMsiBackend === 'libmsi') {
+        identity = buildTables(tableDir, files)
+        buildCompressedCrossPlatformMsi(temporaryMsi, tableDir, files, workDir)
+      } else {
+        identity = buildWixCrossPlatformMsi(temporaryMsi, workDir)
+      }
+      verifyCrossPlatformImage(temporaryMsi, files, workDir)
+    } else {
+      identity = buildTables(tableDir, files)
+      run(cscript, ['//nologo', wiImport, '/c', temporaryMsi, tableDir, '*.idt'], 'create Windows Installer database')
+      insertInstallerStreams(temporaryMsi, workDir)
+      run(cscript, [
+        '//nologo',
+        wiSummaryInfo,
+        temporaryMsi,
+        'Title=Installation Database',
+        'Subject=Altbase Wallet',
+        'Author=Altbase',
+        'Keywords=Installer;Wallet;Altbase',
+        'Comments=Altbase Wallet 0.1.7 Windows Installer package',
+        'Template=x64;1033',
+        `Revision={${crypto.randomUUID().toUpperCase()}}`,
+        'Pages=500',
+        'Words=8',
+        'Application=Windows Installer',
+        'Security=2',
+      ], 'write Windows Installer summary information')
+      run(cscript, ['//nologo', wiMakeCab, temporaryMsi, 'ALTBASE', sourceDir, '/C', '/L', '/U', '/E', '/S'], 'embed compressed wallet payload', { cwd: workDir })
+      run(cscript, ['//nologo', wiSummaryInfo, temporaryMsi, 'Words=10', 'Security=2'], 'finalize compressed package metadata')
+      verifyAdministrativeImage(temporaryMsi, files, workDir)
+    }
     fs.mkdirSync(releaseDir, { recursive: true })
     fs.copyFileSync(temporaryMsi, outputPath)
     if (fs.existsSync(oldExecutableInstaller)) fs.rmSync(oldExecutableInstaller, { force: true })

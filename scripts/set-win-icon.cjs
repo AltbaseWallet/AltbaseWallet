@@ -1,6 +1,7 @@
 const { spawnSync } = require('node:child_process')
 const path = require('node:path')
 const fs = require('node:fs')
+const os = require('node:os')
 
 const root = path.join(__dirname, '..')
 const pkg = require(path.join(root, 'package.json'))
@@ -13,6 +14,8 @@ const companyName = 'Altbase'
 const copyright = 'Copyright (C) 2026 Altbase. All rights reserved.'
 const version = String(pkg.version || '0.1.0')
 const maxAttempts = 10
+const winePrefix = process.env.ALTBASE_WINE_PREFIX
+  || path.join(os.homedir(), '.cache', 'altbase', 'wine')
 
 const sleep = (ms) => {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms)
@@ -39,6 +42,14 @@ const rceditArgs = [
   '--set-version-string', 'ProductName', appName,
 ]
 
+if (process.platform !== 'win32') fs.chmodSync(rceditPath, 0o755)
+
+const rceditCommand = process.platform === 'win32' ? rceditPath : 'wine'
+const commandArgs = process.platform === 'win32' ? rceditArgs : [rceditPath, ...rceditArgs]
+const commandEnv = process.platform === 'win32'
+  ? process.env
+  : { ...process.env, WINEPREFIX: winePrefix }
+
 const isWritableExe = () => {
   try {
     fs.chmodSync(exePath, 0o666)
@@ -61,9 +72,10 @@ for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     break
   }
 
-  lastResult = spawnSync(rceditPath, rceditArgs, {
+  lastResult = spawnSync(rceditCommand, commandArgs, {
     encoding: 'utf8',
     windowsHide: true,
+    env: commandEnv,
   })
 
   if (lastResult.status === 0) process.exit(0)
@@ -77,6 +89,7 @@ for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
   sleep(Math.min(750 * attempt, 5_000))
 }
 
+if (lastResult?.error) console.error(lastResult.error.message)
 if (lastResult?.stdout) process.stdout.write(lastResult.stdout)
 if (lastResult?.stderr) process.stderr.write(lastResult.stderr)
 console.error(`Failed to update Windows icon/version resources. Close Altbase Wallet from ${releaseDir}\\win-unpacked and run the build again.`)

@@ -18,6 +18,7 @@ test('BCH2 receive cashaddr converts into a native legacy script address', async
   assert.match(legacy, /^[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]+$/)
 
   const variants = await addressVariantsFromLegacyAddress(legacy, bch2Params)
+  assert.deepEqual(variants.map((variant) => variant.id), ['legacy', 'cashaddr'])
   assert.equal(variants.find((variant) => variant.id === 'cashaddr')?.address, cashaddr)
 })
 

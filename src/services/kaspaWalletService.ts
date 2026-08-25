@@ -106,7 +106,7 @@ const estimateSendPlan = async (params: {
 }) => {
   const sdk = await kaspaSdk() as KaspaWalletSdk
   if (!sdk.validateKaspaAddress(params.toAddress.trim())) throw new Error('Invalid Kaspa address')
-  const utxos = await coinApiService.getUtxos(params.coinId, params.fromAddress, { force: params.force === true })
+  const utxos = await coinApiService.getUtxos(params.coinId, params.fromAddress, { force: params.force === true, priority: true })
   if (utxos.length === 0) throw new Error('No spendable Kaspa UTXOs')
   const amount = parseKasAmount(params.amountCoin)
   if (amount <= 0n) throw new Error('Amount must be greater than 0')
@@ -127,7 +127,7 @@ const estimateMaxPlan = async (coinId: string, address: string, toAddress = addr
   const sdk = await kaspaSdk() as KaspaWalletSdk
   const recipient = toAddress.trim() || address
   if (!sdk.validateKaspaAddress(recipient)) throw new Error('Invalid Kaspa address')
-  const utxos = await coinApiService.getUtxos(coinId, address, { force: true })
+  const utxos = await coinApiService.getUtxos(coinId, address, { force: true, priority: true })
   if (utxos.length === 0) throw new Error('No spendable Kaspa UTXOs')
   const entries = sdkUtxos(utxos)
   const total = entries.reduce((sum, entry) => sum + entry.amount, 0n)
@@ -199,7 +199,7 @@ export const kaspaWalletService = {
     const sdk = loadedSdk as KaspaWalletSdk
     if (address !== params.fromAddress) throw new Error('Kaspa address does not match this wallet')
     if (!(await this.isValidAddress(params.toAddress))) throw new Error('Invalid Kaspa address')
-    const utxos = await coinApiService.getUtxos(params.coinId, address, { force: true })
+    const utxos = await coinApiService.getUtxos(params.coinId, address, { force: true, priority: true })
     if (utxos.length === 0) throw new Error('No spendable Kaspa UTXOs')
     const entries = sdkUtxos(utxos)
     const feeRate = await feeRateSompiPerGram(params.coinId, true)

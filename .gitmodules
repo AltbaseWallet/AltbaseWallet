@@ -118,3 +118,11 @@
 	path = modules/mining
 	url = https://github.com/AltbaseWallet/module-mining.git
 	branch = main
+[submodule "modules/monero"]
+	path = modules/monero
+	url = https://github.com/AltbaseWallet/module-monero.git
+	branch = main
+[submodule "modules/xgr"]
+	path = modules/xgr
+	url = https://github.com/AltbaseWallet/module-xgr.git
+	branch = main

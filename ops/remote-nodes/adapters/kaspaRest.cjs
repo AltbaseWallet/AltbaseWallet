@@ -75,9 +75,18 @@ const createKaspaRestAdapter = ({ coin = 'kaspa', apiBaseUrl = 'https://api.kasp
   )
   const inputAddress = (input) => normalizeAddress(
     input?.previousOutpoint?.verboseData?.scriptPublicKeyAddress
+      ?? input?.previous_outpoint_resolved?.script_public_key_address
+      ?? input?.previous_outpoint_address
       ?? input?.utxo?.address
       ?? input?.address,
   )
+  const inputAmount = (input) =>
+    input?.previousOutpoint?.amount
+      ?? input?.previous_outpoint_resolved?.amount
+      ?? input?.previous_outpoint_amount
+      ?? input?.utxo?.amount
+      ?? input?.amount
+      ?? 0
 
   const historyRow = (tx, ownAddress, virtualDaaScore = 0) => {
     const txid = String(tx.transactionId ?? tx.transaction_id ?? tx.id ?? tx.hash ?? '').trim()
@@ -86,7 +95,7 @@ const createKaspaRestAdapter = ({ coin = 'kaspa', apiBaseUrl = 'https://api.kasp
     const outputs = tx.outputs ?? []
     const ownInputs = inputs.filter((input) => inputAddress(input) === ownAddress)
     const ownOutputs = outputs.filter((output) => outputAddress(output) === ownAddress)
-    const inputValue = ownInputs.reduce((sum, input) => sum + asBigInt(input.utxo?.amount ?? input.amount ?? 0), 0n)
+    const inputValue = ownInputs.reduce((sum, input) => sum + asBigInt(inputAmount(input)), 0n)
     const outputValue = ownOutputs.reduce((sum, output) => sum + asBigInt(output.amount ?? output.value ?? 0), 0n)
     const delta = outputValue - inputValue
     const timestamp = Math.floor(Number(tx.blockTime ?? tx.block_time ?? tx.acceptingBlockTime ?? Date.now()) / (Number(tx.blockTime ?? tx.block_time ?? 0) > 9_999_999_999 ? 1000 : 1))
@@ -106,7 +115,7 @@ const createKaspaRestAdapter = ({ coin = 'kaspa', apiBaseUrl = 'https://api.kasp
       raw: {
         txid,
         hash: txid,
-        vin: inputs.map((input) => ({ address: inputAddress(input), value: sompiToKas(input.utxo?.amount ?? input.amount ?? 0) })),
+        vin: inputs.map((input) => ({ address: inputAddress(input), value: sompiToKas(inputAmount(input)) })),
         vout: outputs.map((output, index) => ({ value: sompiToKas(output.amount ?? output.value ?? 0), n: index, scriptPubKey: { address: outputAddress(output), addresses: outputAddress(output) ? [outputAddress(output)] : [] } })),
         blocktime: timestamp,
         confirmations,
@@ -185,7 +194,11 @@ const createKaspaRestAdapter = ({ coin = 'kaspa', apiBaseUrl = 'https://api.kasp
     async getMempool(address) {
       const normalized = normalizeAddress(address)
       await reconcilePending(normalized)
-      const pending = activePending(normalized).map((item) => ({ txid: item.txid, type: item.from === normalized ? 'outgoing' : 'incoming', amount: item.amount, fee: item.fee, from: item.from, to: item.to, firstSeen: Math.floor(item.createdAt / 1000), confirmations: 0 }))
+      // Address balances/deltas stay in atomic sompi, but the public mempool
+      // contract is consumed as display coin amounts by transactionStore.
+      // Returning raw sompi here made an incoming 0.1 KAS transaction appear
+      // as 10,000,000 KAS in the optimistic balance overlay.
+      const pending = activePending(normalized).map((item) => ({ txid: item.txid, type: item.from === normalized ? 'outgoing' : 'incoming', amount: sompiToKas(item.amount), fee: sompiToKas(item.fee), from: item.from, to: item.to, firstSeen: Math.floor(item.createdAt / 1000), confirmations: 0 }))
       return { address: normalized, hasPendingOutgoing: pending.some((item) => item.type === 'outgoing'), pending }
     },
 

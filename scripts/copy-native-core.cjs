@@ -3,14 +3,23 @@ const path = require('node:path')
 const { spawnSync } = require('node:child_process')
 
 const root = path.resolve(__dirname, '..')
-const rawTargetPlatform = process.env.ALTBASE_TARGET_PLATFORM || process.platform
-const targetPlatform = rawTargetPlatform === 'macos' ? 'darwin' : rawTargetPlatform
-const targetArchitecture = process.env.ALTBASE_TARGET_ARCH || process.arch
+const argumentValue = (name) => process.argv
+  .find((argument) => argument.startsWith(`--${name}=`))
+  ?.slice(name.length + 3)
+const rawTargetPlatform = argumentValue('target') || process.env.ALTBASE_TARGET_PLATFORM || process.platform
+const targetPlatform = {
+  macos: 'darwin',
+  windows: 'win32',
+  win: 'win32',
+}[rawTargetPlatform] || rawTargetPlatform
+const targetArchitecture = argumentValue('arch') || process.env.ALTBASE_TARGET_ARCH || process.arch
 if (targetPlatform === 'darwin' && !['x64', 'arm64'].includes(targetArchitecture)) {
   throw new Error(`Unsupported macOS native architecture: ${targetArchitecture}`)
 }
 const macosBuildFolder = `macos-${targetArchitecture}-release`
 const exeName = targetPlatform === 'win32' ? 'altbase_core_bridge.exe' : 'altbase_core_bridge'
+const explicitBuildRoot = process.env.ALTBASE_NATIVE_BUILD_DIR
+  || (targetPlatform === 'linux' ? process.env.ALTBASE_LINUX_NATIVE_BUILD_DIR : '')
 const platformCandidates = {
   win32: [
     path.join(root, 'native', 'core', 'build', 'vs2022-x64-release', 'bin', 'Release', exeName),
@@ -21,11 +30,13 @@ const platformCandidates = {
     path.join(root, 'native', 'core', 'build', macosBuildFolder, 'bin', 'Release', exeName),
   ],
   linux: [
+    explicitBuildRoot ? path.join(path.resolve(explicitBuildRoot), 'bin', exeName) : '',
+    explicitBuildRoot ? path.join(path.resolve(explicitBuildRoot), 'bin', 'Release', exeName) : '',
     path.join(root, 'native', 'core', 'build', 'linux-x64-release', 'bin', exeName),
     path.join(root, 'native', 'core', 'build', 'linux-x64-release', 'bin', 'Release', exeName),
   ],
 }
-const candidates = platformCandidates[targetPlatform] || []
+const candidates = (platformCandidates[targetPlatform] || []).filter(Boolean)
 
 const source = candidates.find((candidate) => fs.existsSync(candidate))
 if (!source) {
@@ -58,15 +69,18 @@ const utxoCoinIds = [
   'raptoreum',
   'pearl',
 ]
-const nodeCoinIds = [...utxoCoinIds, 'zano', 'epic', 'quai', 'qubic', 'kaspa', 'ckb']
+const nodeCoinIds = [...utxoCoinIds, 'zano', 'epic', 'quai', 'xgr', 'qubic', 'kaspa', 'ckb']
 const nativeBuildFolder = {
   win32: 'vs2022-x64-release',
   darwin: macosBuildFolder,
   linux: 'linux-x64-release',
 }[targetPlatform]
+const nativeBuildRoot = explicitBuildRoot
+  ? path.resolve(explicitBuildRoot)
+  : path.join(root, 'native', 'core', 'build', nativeBuildFolder)
 const builtModuleCandidates = (name) => [
-  path.join(root, 'native', 'core', 'build', nativeBuildFolder, 'bin', 'Release', name),
-  path.join(root, 'native', 'core', 'build', nativeBuildFolder, 'bin', name),
+  path.join(nativeBuildRoot, 'bin', 'Release', name),
+  path.join(nativeBuildRoot, 'bin', name),
 ]
 const copyBuiltModule = (name, label) => {
   const modulePath = builtModuleCandidates(name).find((candidate) => fs.existsSync(candidate))
@@ -90,7 +104,7 @@ const copyCoinNodeModules = () => {
 const sharedLibraryPrefix = targetPlatform === 'win32' ? '' : 'lib'
 const sharedLibraryName = (baseName) => `${sharedLibraryPrefix}${baseName}${utxoModuleExtension}`
 const copySecpModule = () => {
-  const secpBuildRoot = path.join(root, 'native', 'core', 'build', nativeBuildFolder, '_deps', 'secp256k1-build')
+  const secpBuildRoot = path.join(nativeBuildRoot, '_deps', 'secp256k1-build')
   const platformFiles = {
     win32: ['libsecp256k1-6.dll'],
     darwin: ['libsecp256k1.6.dylib', 'libsecp256k1.dylib'],
@@ -101,6 +115,8 @@ const copySecpModule = () => {
     path.join(secpBuildRoot, 'bin'),
     path.join(secpBuildRoot, 'lib', 'Release'),
     path.join(secpBuildRoot, 'lib'),
+    path.join(nativeBuildRoot, 'bin', 'Release'),
+    path.join(nativeBuildRoot, 'bin'),
   ]
   let copied = 0
   for (const file of platformFiles) {
@@ -123,6 +139,7 @@ const copyCommonNativeModules = () => {
   copyBuiltModule(sharedLibraryName('altbase_net_core'), 'network transport')
   copyBuiltModule(sharedLibraryName('altbase_zano_wallet'), 'Zano wallet module')
   copyBuiltModule(sharedLibraryName('altbase_epic_wallet'), 'Epic wallet module')
+  copyBuiltModule(`altbase_monero_wallet${utxoModuleExtension}`, 'Monero wallet module')
   copyBuiltModule(sharedLibraryName('altbase_zano_core'), 'Zano protocol core')
   copySecpModule()
   const staleWalletCore = path.join(targetDir, sharedLibraryName('altbase_wallet_core'))
@@ -188,6 +205,8 @@ if (targetPlatform === 'win32') {
     if (fs.existsSync(moduleSource)) {
       fs.copyFileSync(moduleSource, path.join(targetDir, moduleFile))
       console.log(`copied Epic ${moduleName} module: ${moduleSource} -> ${path.join(targetDir, moduleFile)}`)
+    } else {
+      copyBuiltModule(moduleFile, `Epic ${moduleName} module`)
     }
   }
   const staleEpicCore = path.join(targetDir, 'altbase_epic_core.dll')

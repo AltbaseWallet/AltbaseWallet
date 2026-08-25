@@ -53,29 +53,64 @@ function AutoRefresh() {
     if (!isUnlocked) return undefined
 
     let inFlight = false
-    const shouldDeferRefresh = () => (
+    let historyInFlight = false
+    let standardPending = false
+    let xgrBalanceInFlight = false
+    let xgrHistoryInFlight = false
+    const shouldDeferStandardRefresh = () => (
       routeRef.current === '/app/send'
       || useTransactionStore.getState().sending
     )
+    const shouldDeferPrivacyRefresh = () => useTransactionStore.getState().sending
     const refresh = () => {
-      if (inFlight || shouldDeferRefresh()) return
+      if (inFlight || shouldDeferStandardRefresh()) return
+      // loadCoins discards an older result when a newer load starts. Keep the
+      // dedicated XGR poll from continuously invalidating the slower all-coin
+      // snapshot, otherwise every legacy coin can remain stuck on an old
+      // balance while XGR itself appears healthy.
+      if (xgrBalanceInFlight || useCoinStore.getState().refreshing) {
+        standardPending = true
+        return
+      }
+      standardPending = false
       inFlight = true
       quaiDebugLog('autoRefresh.start', {
         storeQuai: useCoinStore.getState().coins
           .filter((coin) => coin.id === 'quai')
           .map((coin) => ({ balance: coin.balance, spendableBalance: coin.spendableBalance, status: coin.status })),
       })
-      void useTransactionStore.getState().loadTransactions({ page: 1, force: true, silent: false, skipPrivacy: true })
-        .catch((error) => quaiDebugLogError('autoRefresh.tx.error', error))
-        .finally(() => {
-          quaiDebugLog('autoRefresh.tx.done', {
-            storeQuai: useCoinStore.getState().coins
-              .filter((coin) => coin.id === 'quai')
-              .map((coin) => ({ balance: coin.balance, spendableBalance: coin.spendableBalance, status: coin.status })),
+      if (!historyInFlight) {
+        historyInFlight = true
+        void useTransactionStore.getState()
+          .loadTransactions({
+            page: 1,
+            force: true,
+            silent: false,
+            skipPrivacy: true,
+            // The matching full balance request is already running below. A
+            // history-triggered targeted load would bump the shared load
+            // generation and discard that complete snapshot.
+            skipBalanceRefresh: true,
           })
-          return useCoinStore.getState().loadCoins()
-        })
+          .catch((error) => quaiDebugLogError('autoRefresh.tx.error', error))
+          .finally(() => {
+            historyInFlight = false
+            quaiDebugLog('autoRefresh.tx.done', {
+              storeQuai: useCoinStore.getState().coins
+                .filter((coin) => coin.id === 'quai')
+                .map((coin) => ({ balance: coin.balance, spendableBalance: coin.spendableBalance, status: coin.status })),
+            })
+          })
+      }
+      // Balance snapshots and history are independent gateway requests. Run
+      // them together so a slow history backend cannot hold a confirmed
+      // incoming balance hostage for another complete refresh cycle.
+      const coinRefresh = useCoinStore.getState().loadCoins()
         .catch((error) => quaiDebugLogError('autoRefresh.coins.error', error))
+      // History can take minutes on one lagging explorer. It must not hold the
+      // 15-second balance poll lock: the snapshot already carries verified
+      // mempool/UTXO rows used to expose an incoming balance safely.
+      void coinRefresh
         .finally(() => {
           quaiDebugLog('autoRefresh.done', {
             storeQuai: useCoinStore.getState().coins
@@ -83,6 +118,10 @@ function AutoRefresh() {
               .map((coin) => ({ balance: coin.balance, spendableBalance: coin.spendableBalance, status: coin.status })),
           })
           inFlight = false
+          if (standardPending) {
+            standardPending = false
+            window.setTimeout(refresh, 0)
+          }
         })
     }
 
@@ -93,14 +132,49 @@ function AutoRefresh() {
     // dedicated tick so an incoming transfer surfaces sooner — without adding
     // extra request load to the UTXO coins on the main 15s loop.
     const privacyInterval = window.setInterval(() => {
-      if (shouldDeferRefresh()) return
+      if (shouldDeferPrivacyRefresh()) return
       void useCoinStore.getState().refreshPrivacyBalances()
     }, 8_000)
-    if (!shouldDeferRefresh()) void useCoinStore.getState().refreshPrivacyBalances()
+    if (!shouldDeferPrivacyRefresh()) void useCoinStore.getState().refreshPrivacyBalances()
+
+    const refreshXgr = () => {
+      if (useTransactionStore.getState().sending) return
+      // XGR's RPC is substantially slower than the other public nodes. Its
+      // balance must not wait for the all-coin refresh or for history: doing so
+      // used to turn a confirmed incoming transfer into a two-minute UI delay.
+      if (!xgrBalanceInFlight && !inFlight && !standardPending && !useCoinStore.getState().refreshing) {
+        xgrBalanceInFlight = true
+        void useCoinStore.getState().loadCoins({
+          forceBalances: true,
+          onlyCoinIds: ['xgr'],
+          skipHistoryRefresh: true,
+          skipIncomingHistoryFetch: true,
+        }).catch((error) => quaiDebugLogError('autoRefresh.xgr.balance.error', error))
+          .finally(() => {
+            xgrBalanceInFlight = false
+            if (standardPending) window.setTimeout(refresh, 0)
+          })
+      }
+      if (!xgrHistoryInFlight) {
+        xgrHistoryInFlight = true
+        void useTransactionStore.getState().loadTransactions({
+          page: 1,
+          force: true,
+          silent: false,
+          skipPrivacy: true,
+          skipBalanceRefresh: true,
+          onlyCoinIds: ['xgr'],
+        }).catch((error) => quaiDebugLogError('autoRefresh.xgr.history.error', error))
+          .finally(() => { xgrHistoryInFlight = false })
+      }
+    }
+    const xgrInterval = window.setInterval(refreshXgr, 5_000)
+    refreshXgr()
 
     return () => {
       window.clearInterval(interval)
       window.clearInterval(privacyInterval)
+      window.clearInterval(xgrInterval)
     }
   }, [isUnlocked])
 
