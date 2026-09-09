@@ -1,6 +1,6 @@
 'use strict'
 
-// Rebuilds the source-owned XGR transport module and native dispatcher while
+// Rebuilds the source-owned XGR/Nonsense transport modules and native dispatcher while
 // preserving the already verified heavy Zano/Epic protocol libraries.
 
 const fs = require('node:fs')
@@ -16,7 +16,18 @@ const buildRoot = process.env.ALTBASE_LINUX_NATIVE_BUILD_DIR
   : path.join(root, 'native', 'core', 'build', 'linux-x64-release')
 const buildBin = path.join(buildRoot, 'bin')
 const work = path.join(os.homedir(), '.cache', 'altbase-build', 'linux-native-incremental')
-const compiler = process.env.CXX || 'c++'
+const cachePath = path.join(buildRoot, 'CMakeCache.txt')
+const cachedCompiler = fs.existsSync(cachePath)
+  ? fs.readFileSync(cachePath, 'utf8').match(/^CMAKE_CXX_COMPILER:(?:FILEPATH|UNINITIALIZED)=(.+)$/m)?.[1]?.trim()
+  : ''
+const cachedStandardLibraries = fs.existsSync(cachePath)
+  ? fs.readFileSync(cachePath, 'utf8').match(/^CMAKE_CXX_STANDARD_LIBRARIES:(?:STRING|FILEPATH|UNINITIALIZED)=(.*)$/m)?.[1]?.trim()
+  : ''
+const compiler = process.env.CXX || cachedCompiler || 'c++'
+const standardLibraries = (cachedStandardLibraries || '')
+  .split(/[;\s]+/)
+  .map((library) => library.trim())
+  .filter(Boolean)
 
 const walletCoins = [
   'bitcoin', 'bitcoin2', 'bitcoincashii', 'firo', 'btgs', 'capstash',
@@ -24,7 +35,7 @@ const walletCoins = [
   'neoxa', 'terracoin', 'junkcoin', 'raptoreum', 'pearl',
 ]
 const nodeCoins = [
-  ...walletCoins, 'zano', 'epic', 'quai', 'xgr', 'qubic', 'kaspa', 'ckb',
+  ...walletCoins, 'zano', 'epic', 'quai', 'xgr', 'qubic', 'kaspa', 'nonsense', 'ckb',
 ]
 
 const run = (command, args, options = {}) => {
@@ -106,6 +117,41 @@ if (JSON.stringify(xgrExportNames) !== JSON.stringify(['altbase_xgr_node_free', 
 fs.copyFileSync(xgrOutput, path.join(buildBin, 'altbase_xgr_node.so'))
 fs.chmodSync(path.join(buildBin, 'altbase_xgr_node.so'), 0o755)
 
+const nonsenseObjects = [
+  ['nonsense-coin-node', path.join(source, 'coin_node_module.cpp')],
+  ['nonsense-native-http', path.join(source, 'native_http.cpp')],
+  ['nonsense-protocol', path.join(source, 'protocol.cpp')],
+].map(([name, input]) => {
+  const output = path.join(work, `${name}.o`)
+  compile(input, output, [
+    'ALTBASE_NODE_MODULE_COIN="nonsense"',
+    'ALTBASE_NODE_MODULE_REQUEST=altbase_nonsense_node_request',
+    'ALTBASE_NODE_MODULE_FREE=altbase_nonsense_node_free',
+  ])
+  return output
+})
+const nonsenseOutput = path.join(work, 'altbase_nonsense_node.so')
+run(compiler, [
+  '-shared',
+  ...nonsenseObjects,
+  path.join(buildBin, 'libaltbase_net_core.so'),
+  '-Wl,--gc-sections',
+  '-Wl,-z,relro,-z,now',
+  '-Wl,-soname,altbase_nonsense_node.so',
+  '-Wl,-rpath,$ORIGIN',
+  '-o', nonsenseOutput,
+])
+const nonsenseExportNames = run('nm', ['-D', '--defined-only', nonsenseOutput], { capture: true })
+  .split(/\r?\n/)
+  .map((line) => line.trim().split(/\s+/).pop())
+  .filter((name) => name?.startsWith('altbase_nonsense_node_'))
+  .sort()
+if (JSON.stringify(nonsenseExportNames) !== JSON.stringify(['altbase_nonsense_node_free', 'altbase_nonsense_node_request'])) {
+  throw new Error(`Nonsense Linux module exports are wrong: ${nonsenseExportNames.join(', ')}`)
+}
+fs.copyFileSync(nonsenseOutput, path.join(buildBin, 'altbase_nonsense_node.so'))
+fs.chmodSync(path.join(buildBin, 'altbase_nonsense_node.so'), 0o755)
+
 const bridgeObjects = [
   ['bridge-main', path.join(source, 'main.cpp')],
   ['bridge-protocol', path.join(source, 'protocol.cpp')],
@@ -143,6 +189,7 @@ run(compiler, [
   '-Wl,-rpath,$ORIGIN',
   '-ldl',
   '-pthread',
+  ...standardLibraries,
   '-o', bridgeOutput,
 ])
 fs.copyFileSync(bridgeOutput, path.join(buildBin, 'altbase_core_bridge'))
@@ -150,10 +197,11 @@ fs.chmodSync(path.join(buildBin, 'altbase_core_bridge'), 0o755)
 
 const linked = run('readelf', ['-d', bridgeOutput], { capture: true })
 if (!linked.includes('altbase_xgr_node.so')) throw new Error('Linux native bridge is not linked to the XGR node module')
+if (!linked.includes('altbase_nonsense_node.so')) throw new Error('Linux native bridge is not linked to the Nonsense node module')
 const smoke = run(path.join(buildBin, 'altbase_core_bridge'), ['--altbase-wallet-bridge'], {
   input: '{"id":"modules","method":"listWalletModules","params":{}}\n',
 })
-if (!smoke.includes('"account":"quai,xgr,qubic"') || !smoke.includes('zano,epic,quai,xgr,qubic')) {
-  throw new Error(`Linux native bridge did not register XGR: ${smoke.trim()}`)
+if (!smoke.includes('"account":"quai,xgr,qubic"') || !smoke.includes('zano,epic,quai,xgr,qubic,kaspa,nonsense')) {
+  throw new Error(`Linux native bridge did not register XGR and Nonsense: ${smoke.trim()}`)
 }
 process.stdout.write('Linux native incremental rebuild passed.\n')

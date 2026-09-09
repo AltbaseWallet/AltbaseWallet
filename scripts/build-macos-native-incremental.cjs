@@ -1,6 +1,6 @@
 'use strict'
 
-// Rebuilds the source-owned XGR transport dylib and dispatcher for both macOS
+// Rebuilds the source-owned XGR/Nonsense transport dylibs and dispatcher for both macOS
 // architectures with the cached cross toolchains. Existing protocol modules
 // are linked as dylibs and are not modified.
 
@@ -37,7 +37,7 @@ const walletCoins = [
   'neoxa', 'terracoin', 'junkcoin', 'raptoreum', 'pearl',
 ]
 const nodeCoins = [
-  ...walletCoins, 'zano', 'epic', 'quai', 'xgr', 'qubic', 'kaspa', 'ckb',
+  ...walletCoins, 'zano', 'epic', 'quai', 'xgr', 'qubic', 'kaspa', 'nonsense', 'ckb',
 ]
 
 const run = (command, args, options = {}) => {
@@ -132,6 +132,34 @@ const buildArchitecture = (config) => {
   ])
   fs.copyFileSync(xgrOutput, path.join(buildBin, 'altbase_xgr_node.dylib'))
 
+  const nonsenseObjects = [
+    ['nonsense-coin-node', path.join(source, 'coin_node_module.cpp')],
+    ['nonsense-native-http', path.join(source, 'native_http.cpp')],
+    ['nonsense-protocol', path.join(source, 'protocol.cpp')],
+  ].map(([name, input]) => {
+    const output = path.join(work, `${name}.o`)
+    compile(input, output, [
+      'ALTBASE_NODE_MODULE_COIN="nonsense"',
+      'ALTBASE_NODE_MODULE_REQUEST=altbase_nonsense_node_request',
+      'ALTBASE_NODE_MODULE_FREE=altbase_nonsense_node_free',
+    ])
+    return output
+  })
+  const nonsenseOutput = path.join(work, 'altbase_nonsense_node.dylib')
+  run(compiler, [
+    ...common,
+    '-dynamiclib',
+    ...nonsenseObjects,
+    path.join(buildBin, 'libaltbase_net_core.dylib'),
+    '-Wl,-dead_strip',
+    '-Wl,-install_name,@rpath/altbase_nonsense_node.dylib',
+    '-Wl,-rpath,@loader_path',
+    '-Wl,-exported_symbol,_altbase_nonsense_node_free',
+    '-Wl,-exported_symbol,_altbase_nonsense_node_request',
+    '-o', nonsenseOutput,
+  ])
+  fs.copyFileSync(nonsenseOutput, path.join(buildBin, 'altbase_nonsense_node.dylib'))
+
   const bridgeObjects = [
     ['bridge-main', path.join(source, 'main.cpp')],
     ['bridge-protocol', path.join(source, 'protocol.cpp')],
@@ -171,10 +199,14 @@ const buildArchitecture = (config) => {
   if (!imports.includes('altbase_xgr_node.dylib')) {
     throw new Error(`${config.arch} macOS bridge is not linked to the XGR node module`)
   }
+  if (!imports.includes('altbase_nonsense_node.dylib')) {
+    throw new Error(`${config.arch} macOS bridge is not linked to the Nonsense node module`)
+  }
   fs.copyFileSync(bridgeOutput, path.join(buildBin, 'altbase_core_bridge'))
   fs.chmodSync(path.join(buildBin, 'altbase_core_bridge'), 0o755)
   fs.chmodSync(path.join(buildBin, 'altbase_xgr_node.dylib'), 0o755)
-  process.stdout.write(`macOS ${config.arch} XGR node and native bridge passed.\n`)
+  fs.chmodSync(path.join(buildBin, 'altbase_nonsense_node.dylib'), 0o755)
+  process.stdout.write(`macOS ${config.arch} XGR/Nonsense nodes and native bridge passed.\n`)
 }
 
 for (const config of configurations) buildArchitecture(config)

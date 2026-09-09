@@ -314,6 +314,15 @@ const createBlockbookAdapter = ({
     kind: 'blockbook',
     readProfile: 'blockbook',
 
+    async getRawTransaction(txid, height) {
+      // Prefer the local daemon when the explorer is unavailable or slow.
+      if (localAdapter) {
+        try { return await localAdapter.getRawTransaction(txid, height) } catch { /* Try the archival explorer below. */ }
+      }
+      const data = await request('/tx-specific/' + txid)
+      return data.hex || data.result?.hex
+    },
+
     async getNetwork() {
       const data = await request('/')
       const blockbook = data.blockbook || {}

@@ -1,3 +1,4 @@
+import { TaskSession } from '../../utils/taskSession'
 import { nativeCoreService } from '../nativeCoreService'
 import { privacyBirthService } from '../privacyBirthService'
 import { privacyCacheService } from '../privacyCacheService'
@@ -52,8 +53,9 @@ const updateNativeReadiness = (response: PrivacyWalletResponse) => {
     response: summarizePrivacyResponse(response),
     nativeBalanceReady,
   })
-  if (nativeReadiness === 'ready') return
-  if (response.ok && code === 'monero-native-wallet' && nativeBalanceReady) {
+  if (response.ok && code === 'monero-native-wallet' && !nativeBalanceReady) {
+    setNativeReadiness('syncing')
+  } else if (response.ok && code === 'monero-native-wallet' && nativeBalanceReady) {
     setNativeReadiness('ready')
   } else if (code === 'monero-native-wallet-syncing' || (!response.ok && /sync|busy|node status/i.test(response.error ?? code))) {
     setNativeReadiness('syncing')
@@ -69,6 +71,7 @@ const queueCheckpointSave = (
   restoreStartHeight: number | undefined,
   progress: NativePrivacyRecoveryProgress,
 ) => {
+  const session = taskSession.capture()
   const checkpoint = progress.checkpoint
   if (!checkpoint?.address || !checkpoint.scanState || checkpoint.lastScannedHeight <= 0) return
   const checkpointCode = progress.blocksRemaining <= 0
@@ -76,12 +79,12 @@ const queueCheckpointSave = (
     : 'monero-native-wallet-syncing'
   checkpointSaveQueue = checkpointSaveQueue
     .catch(() => undefined)
-    .then(() => privacyCacheService.saveFromSnapshot(COIN, mnemonic, {
+    .then(() => session.isCurrent() ? privacyCacheService.saveFromSnapshot(COIN, mnemonic, {
       ok: true,
       code: checkpointCode,
       restoreStartHeight,
       ...checkpoint,
-    }, { force: true }))
+    }, { force: true }) : undefined)
     .catch((error) => {
       coinDebugLogError(COIN, 'privacy.checkpoint.save.error', error, {
         lastScannedHeight: checkpoint.lastScannedHeight,
@@ -90,12 +93,14 @@ const queueCheckpointSave = (
 }
 
 const runExclusive = async <T,>(task: () => Promise<T>, reason: string): Promise<T> => {
+  const session = taskSession.capture()
   const previous = nativeCallQueue ?? Promise.resolve()
   const queueId = ++nativeQueueSeq
   const queuedAt = Date.now()
   const hadQueue = Boolean(nativeCallQueue)
   coinDebugLog(COIN, 'privacy.native.queue', { queueId, reason, hadQueue, readiness: nativeReadiness })
   const current = previous.catch(() => undefined).then(async () => {
+    session.assertCurrent()
     const startedAt = Date.now()
     coinDebugLog(COIN, 'privacy.native.queue.start', {
       queueId,
@@ -129,6 +134,7 @@ const runExclusive = async <T,>(task: () => Promise<T>, reason: string): Promise
 }
 
 const runPriorityExclusive = async <T,>(reason: string, task: () => Promise<T>): Promise<T> => {
+  const session = taskSession.capture()
   const hadSnapshot = Boolean(snapshotInFlight)
   const hadQueue = Boolean(nativeCallQueue)
   if (hadSnapshot || hadQueue) coinDebugLog(COIN, 'privacy.native.priority', { reason, hadSnapshot, hadQueue })
@@ -136,6 +142,7 @@ const runPriorityExclusive = async <T,>(reason: string, task: () => Promise<T>):
   const queueId = ++nativeQueueSeq
   const startedAt = Date.now()
   coinDebugLog(COIN, 'privacy.native.priority.start', { queueId, reason, readiness: nativeReadiness })
+  session.assertCurrent()
   const current = task()
     .then((result) => {
       coinDebugLog(COIN, 'privacy.native.priority.done', {
@@ -159,17 +166,21 @@ const runPriorityExclusive = async <T,>(reason: string, task: () => Promise<T>):
   return current
 }
 
+const taskSession = new TaskSession()
+
 const callNativeLightWallet = async (
   action: 'ensure' | 'warm' | 'snapshot' | 'send',
   body: Record<string, string | undefined> = {},
   onProgress?: (progress: NativePrivacyRecoveryProgress) => void,
 ): Promise<PrivacyWalletResponse> => {
+  const session = taskSession.capture()
   const callId = ++nativeCallSeq
   const callStartedAt = Date.now()
   const mnemonic = body.mnemonic
   const cached = mnemonic
     ? await privacyCacheService.load(COIN, mnemonic).catch(() => null)
     : null
+  session.assertCurrent()
   const cachedRestoreStart = Number(cached?.restoreStartHeight ?? 0)
   const cachedRestoreStartHeight = Number.isFinite(cachedRestoreStart) && cachedRestoreStart > 0
     ? Math.floor(cachedRestoreStart)
@@ -196,6 +207,7 @@ const callNativeLightWallet = async (
     restoreStartSource,
     scanStateLength: scanState?.length ?? 0,
   })
+  session.assertCurrent()
   const progressKey = `${COIN}:${callId}:${action}`
   try {
     const response = await nativeCoreService.privacyLightWallet({
@@ -207,6 +219,7 @@ const callNativeLightWallet = async (
       cachedWalletState: cached?.nativeWalletFileBlob,
       ...body,
     }, (progress) => {
+      if (!session.isCurrent()) return
       if (shouldLogNativeProgress(nativeProgressLogState, progressKey, progress)) {
         coinDebugLog(COIN, 'privacy.native.progress', {
           callId,
@@ -218,7 +231,9 @@ const callNativeLightWallet = async (
       if (mnemonic) queueCheckpointSave(mnemonic, restoreStartHeight, progress)
       onProgress?.(progress)
     })
+    if (action !== 'send') session.assertCurrent()
     if (mnemonic) await checkpointSaveQueue
+    if (action !== 'send') session.assertCurrent()
     coinDebugLog(COIN, 'privacy.native.done', {
       callId,
       action,
@@ -227,6 +242,7 @@ const callNativeLightWallet = async (
     })
     return restoreStartHeight ? { ...response, restoreStartHeight } : response
   } catch (error) {
+    if (action !== 'send' && session.isCurrent()) setNativeReadiness('error')
     coinDebugLogError(COIN, 'privacy.native.throw', error, {
       callId,
       action,
@@ -263,7 +279,7 @@ const getOrStartSnapshot = (
     return response
   }
   const promise = runExclusive(task, reason).finally(() => {
-    if (snapshotInFlight?.mnemonic === mnemonic) snapshotInFlight = undefined
+    if (snapshotInFlight?.promise === promise) snapshotInFlight = undefined
     listeners.clear()
   })
   snapshotInFlight = { promise, listeners, mnemonic }
@@ -321,10 +337,12 @@ export const moneroPrivacyWalletService: PrivacyCoinWalletService = {
   },
 
   async send(mnemonic, to, amount, fee, memo, sendMax) {
+    const session = taskSession.capture()
     const sendTask = async () => {
       const preflight = assertOk(await callNativeLightWallet('snapshot', { mnemonic }))
       updateNativeReadiness(preflight)
       await privacyCacheService.saveFromSnapshot(COIN, mnemonic, preflight, { force: true })
+      session.assertCurrent()
       return callNativeLightWallet('send', {
         mnemonic,
         to,
@@ -357,6 +375,7 @@ export const moneroPrivacyWalletService: PrivacyCoinWalletService = {
   },
 
   resetNativeReadiness() {
+    taskSession.invalidate()
     readinessEpoch += 1
     snapshotInFlight = undefined
     nativeCallQueue = undefined

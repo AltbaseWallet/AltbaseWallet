@@ -1100,7 +1100,7 @@ try {
         'Subject=Altbase Wallet',
         'Author=Altbase',
         'Keywords=Installer;Wallet;Altbase',
-        'Comments=Altbase Wallet 0.1.7 Windows Installer package',
+        `Comments=Altbase Wallet ${pkg.version} Windows Installer package`,
         'Template=x64;1033',
         `Revision={${crypto.randomUUID().toUpperCase()}}`,
         'Pages=500',

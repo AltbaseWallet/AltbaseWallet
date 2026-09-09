@@ -1,6 +1,6 @@
 'use strict'
 
-// Rebuilds the source-owned XGR transport DLL, the Epic wallet dispatcher and
+// Rebuilds the source-owned XGR/Nonsense transport DLLs, the Epic wallet dispatcher and
 // the official modular bridge on Linux with clang-cl. Existing unrelated coin
 // DLLs keep the exact upstream ABI; Monero remains on its own compact ABI.
 
@@ -34,7 +34,7 @@ const walletCoins = [
   'neoxa', 'terracoin', 'junkcoin', 'raptoreum', 'pearl',
 ]
 const nodeCoins = [
-  ...walletCoins, 'zano', 'epic', 'quai', 'xgr', 'qubic', 'kaspa', 'ckb',
+  ...walletCoins, 'zano', 'epic', 'quai', 'xgr', 'qubic', 'kaspa', 'nonsense', 'ckb',
 ]
 
 const run = (command, args, options = {}) => {
@@ -63,7 +63,6 @@ for (const filename of [
   path.join(windowsSdk, 'include', 'um', 'Windows.h'),
   path.join(windowsSdk, 'lib', 'um', 'x86_64', 'kernel32.Lib'),
   path.join(windowsSdk, 'lib', 'ucrt', 'x86_64', 'libucrt.lib'),
-  path.join(releaseBin, 'altbase_net_core.dll'),
 ]) requireFile(filename)
 
 fs.mkdirSync(work, { recursive: true })
@@ -181,6 +180,42 @@ const renderVersionResource = (filename, internalName, description) => {
   return res
 }
 
+// Rebuild the Windows transport itself. Reusing the old binary here made
+// source fixes to certificate and timeout handling invisible in the packaged
+// XGR/Nonsense modules, even though those modules were relinked successfully.
+const netObject = path.join(work, 'native-http-module.obj')
+compile(path.join(source, 'native_http_module.cpp'), netObject, [
+  'ALTBASE_NET_CORE_EXPORTS',
+  'ALTBASE_RELEASE_BINARY=1',
+  'NOMINMAX',
+])
+const netResource = renderVersionResource(
+  'altbase_net_core.dll',
+  'AltbaseNetworkCore',
+  'Altbase Wallet Network Transport',
+)
+const netCoreDll = path.join(work, 'altbase_net_core.dll')
+run(tools.linker, [
+  '/dll',
+  `/out:${netCoreDll}`,
+  netObject,
+  netResource,
+  ...libraryPaths,
+  ...hardenedLinkArgs,
+  '/subsystem:windows,6.01',
+  'winhttp.lib',
+  'kernel32.lib',
+])
+const netExports = exportsFor(netCoreDll).sort()
+const expectedNetExports = ['altbase_net_free', 'altbase_net_request']
+if (JSON.stringify(netExports) !== JSON.stringify(expectedNetExports)) {
+  throw new Error(`network transport DLL exports are wrong: ${netExports.join(', ')}`)
+}
+for (const destination of [path.join(releaseBin, 'altbase_net_core.dll'), path.join(buildBin, 'altbase_net_core.dll')]) {
+  fs.copyFileSync(netCoreDll, destination)
+  process.stdout.write(`staged Windows network transport: ${destination}\n`)
+}
+
 const xgrObjects = [
   ['xgr-coin-node', path.join(source, 'coin_node_module.cpp')],
   ['xgr-native-http', path.join(source, 'native_http.cpp')],
@@ -196,7 +231,7 @@ const xgrObjects = [
   return output
 })
 
-const netImport = importLibraryFor(path.join(releaseBin, 'altbase_net_core.dll'))
+const netImport = importLibraryFor(netCoreDll)
 const xgrResource = renderVersionResource('altbase_xgr_node.dll', 'XGRNode', 'Altbase XGR Node Module')
 const xgrDll = path.join(work, 'altbase_xgr_node.dll')
 run(tools.linker, [
@@ -219,6 +254,47 @@ if (JSON.stringify(xgrExports) !== JSON.stringify(expectedXgrExports)) {
 for (const destination of [path.join(releaseBin, 'altbase_xgr_node.dll'), path.join(buildBin, 'altbase_xgr_node.dll')]) {
   fs.copyFileSync(xgrDll, destination)
   process.stdout.write(`staged XGR node module: ${destination}\n`)
+}
+
+const nonsenseObjects = [
+  ['nonsense-coin-node', path.join(source, 'coin_node_module.cpp')],
+  ['nonsense-native-http', path.join(source, 'native_http.cpp')],
+  ['nonsense-protocol', path.join(source, 'protocol.cpp')],
+].map(([name, input]) => {
+  const output = path.join(work, `${name}.obj`)
+  compile(input, output, [
+    'ALTBASE_NODE_MODULE_COIN="nonsense"',
+    'ALTBASE_NODE_MODULE_REQUEST=altbase_nonsense_node_request',
+    'ALTBASE_NODE_MODULE_FREE=altbase_nonsense_node_free',
+    'ALTBASE_RELEASE_BINARY=1',
+  ])
+  return output
+})
+const nonsenseResource = renderVersionResource(
+  'altbase_nonsense_node.dll',
+  'NonsenseNode',
+  'Altbase Nonsense Node Module',
+)
+const nonsenseDll = path.join(work, 'altbase_nonsense_node.dll')
+run(tools.linker, [
+  '/dll',
+  `/out:${nonsenseDll}`,
+  ...nonsenseObjects,
+  nonsenseResource,
+  netImport,
+  ...libraryPaths,
+  ...hardenedLinkArgs,
+  '/subsystem:windows,6.01',
+  'kernel32.lib',
+])
+const nonsenseExports = exportsFor(nonsenseDll).sort()
+const expectedNonsenseExports = ['altbase_nonsense_node_free', 'altbase_nonsense_node_request']
+if (JSON.stringify(nonsenseExports) !== JSON.stringify(expectedNonsenseExports)) {
+  throw new Error(`Nonsense DLL exports are wrong: ${nonsenseExports.join(', ')}`)
+}
+for (const destination of [path.join(releaseBin, 'altbase_nonsense_node.dll'), path.join(buildBin, 'altbase_nonsense_node.dll')]) {
+  fs.copyFileSync(nonsenseDll, destination)
+  process.stdout.write(`staged Nonsense node module: ${destination}\n`)
 }
 
 // The Epic Rust state/sender DLLs are rebuilt independently, but MAX routing

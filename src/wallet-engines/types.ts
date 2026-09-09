@@ -21,6 +21,8 @@ export type WalletMaxSendResult = {
   feeCoin: string
   feeSatoshis?: number
   inputCount?: number
+  remainingInputCount?: number
+  remainingAmountCoin?: string
 }
 
 export type WalletSendParams = {
@@ -30,6 +32,7 @@ export type WalletSendParams = {
   toAddress: string
   amountCoin: string
   feeCoin?: string
+  maxFeeCoin?: string
   sendMax?: boolean
   memo?: string
 }

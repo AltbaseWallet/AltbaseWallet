@@ -1,3 +1,4 @@
+import { TaskSession } from '../../utils/taskSession'
 import { nativeCoreService } from '../nativeCoreService'
 import { privacyBirthService } from '../privacyBirthService'
 import { privacyCacheService } from '../privacyCacheService'
@@ -65,12 +66,14 @@ const updateNativeReadiness = (response: PrivacyWalletResponse) => {
 }
 
 const runExclusive = async <T,>(task: () => Promise<T>, reason: string): Promise<T> => {
+  const session = taskSession.capture()
   const previous = nativeCallQueue ?? Promise.resolve()
   const queueId = ++nativeQueueSeq
   const queuedAt = Date.now()
   const hadQueue = Boolean(nativeCallQueue)
   coinDebugLog(COIN, 'privacy.native.queue', { queueId, reason, hadQueue, readiness: nativeReadiness })
   const current = previous.catch(() => undefined).then(async () => {
+    session.assertCurrent()
     const startedAt = Date.now()
     coinDebugLog(COIN, 'privacy.native.queue.start', {
       queueId,
@@ -104,6 +107,7 @@ const runExclusive = async <T,>(task: () => Promise<T>, reason: string): Promise
 }
 
 const runPriorityExclusive = async <T,>(reason: string, task: () => Promise<T>): Promise<T> => {
+  const session = taskSession.capture()
   const previous = nativeCallQueue ?? Promise.resolve()
   const hadSnapshot = Boolean(snapshotInFlight)
   const hadQueue = Boolean(nativeCallQueue)
@@ -118,6 +122,7 @@ const runPriorityExclusive = async <T,>(reason: string, task: () => Promise<T>):
   const queueId = ++nativeQueueSeq
   const queuedAt = Date.now()
   const current = previous.catch(() => undefined).then(async () => {
+    session.assertCurrent()
     const startedAt = Date.now()
     coinDebugLog(COIN, 'privacy.native.priority.start', {
       queueId,
@@ -150,17 +155,21 @@ const runPriorityExclusive = async <T,>(reason: string, task: () => Promise<T>):
   return current
 }
 
+const taskSession = new TaskSession()
+
 const callNativeLightWallet = async (
   action: 'ensure' | 'warm' | 'snapshot' | 'send' | 'estimateMax',
   body: Record<string, string | undefined> = {},
   onProgress?: (progress: NativePrivacyRecoveryProgress) => void,
 ): Promise<PrivacyWalletResponse> => {
+  const session = taskSession.capture()
   const callId = ++nativeCallSeq
   const callStartedAt = Date.now()
   const mnemonic = body.mnemonic
   const cached = mnemonic
     ? await privacyCacheService.load(COIN, mnemonic).catch(() => null)
     : null
+  session.assertCurrent()
   const cachedRestoreStart = Number(cached?.restoreStartHeight ?? 0)
   const cachedRestoreStartHeight = Number.isFinite(cachedRestoreStart) && cachedRestoreStart > 0
     ? Math.floor(cachedRestoreStart)
@@ -185,6 +194,7 @@ const callNativeLightWallet = async (
     restoreStartHeight,
     restoreStartSource,
   })
+  session.assertCurrent()
   const progressKey = `${COIN}:${callId}:${action}`
   try {
     const response = await nativeCoreService.privacyLightWallet({
@@ -195,6 +205,7 @@ const callNativeLightWallet = async (
       cachedWalletState: cached?.nativeWalletFileBlob,
       ...body,
     }, (progress) => {
+      if (!session.isCurrent()) return
       if (shouldLogNativeProgress(nativeProgressLogState, progressKey, progress)) {
         coinDebugLog(COIN, 'privacy.native.progress', {
           callId,
@@ -205,6 +216,7 @@ const callNativeLightWallet = async (
       }
       onProgress?.(progress)
     })
+    if (action !== 'send') session.assertCurrent()
     coinDebugLog(COIN, 'privacy.native.done', {
       callId,
       action,
@@ -213,6 +225,7 @@ const callNativeLightWallet = async (
     })
     return restoreStartHeight ? { ...response, restoreStartHeight } : response
   } catch (error) {
+    if (action !== 'send' && session.isCurrent()) setNativeReadiness('error')
     coinDebugLogError(COIN, 'privacy.native.throw', error, {
       callId,
       action,
@@ -240,11 +253,10 @@ export const epicPrivacyWalletService: PrivacyCoinWalletService = {
     const startedAt = Date.now()
     const epoch = readinessEpoch
     coinDebugLog(COIN, 'privacy.warm.start', { epoch, readiness: nativeReadiness })
-    if (nativeReadiness !== 'ready') setNativeReadiness('syncing')
-    const response = await runExclusive(() => callNativeLightWallet('snapshot', { mnemonic }), 'warm:snapshot')
+    // Warm-up and visible refresh must share the same scan. Otherwise every
+    // background refresh queues another full scan behind an already busy one.
+    const response = await epicPrivacyWalletService.getSnapshot(mnemonic)
     if (epoch !== readinessEpoch) return response
-    updateNativeReadiness(response)
-    void privacyCacheService.saveFromSnapshot(COIN, mnemonic, response)
     coinDebugLog(COIN, 'privacy.warm.done', {
       epoch,
       durationMs: Date.now() - startedAt,
@@ -276,7 +288,7 @@ export const epicPrivacyWalletService: PrivacyCoinWalletService = {
       return response
     }
     const promise = runExclusive(task, 'snapshot').finally(() => {
-      if (snapshotInFlight?.mnemonic === mnemonic) snapshotInFlight = undefined
+      if (snapshotInFlight?.promise === promise) snapshotInFlight = undefined
       listeners.clear()
     })
     snapshotInFlight = { promise, listeners, mnemonic }
@@ -340,6 +352,7 @@ export const epicPrivacyWalletService: PrivacyCoinWalletService = {
   },
 
   resetNativeReadiness() {
+    taskSession.invalidate()
     readinessEpoch += 1
     snapshotInFlight = undefined
     nativeCallQueue = undefined

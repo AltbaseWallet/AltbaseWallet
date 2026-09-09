@@ -1,0 +1,45 @@
+--- lib/indexerWorker.cjs
++++ lib/indexerWorker.cjs
+@@ -17,1 +17,8 @@
+ const PENDING_DROP_GRACE_MS = Math.max(2 * 60_000, BLOCK_POLL_MS * 6)
++const RPC_OVERLOAD_BACKOFF_MS = 500
++
++const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
++
++const isRpcOverloadError = (error) =>
++  /non-json rpc response \(500\)|work queue depth|upstream timeout|socket hang up|econnreset/i
++    .test(String(error?.message || ''))
+@@ -290,6 +297,13 @@
+     } catch (err) {
+       logger.warn('indexer.blockScanFailed', { coin: idx.coin, height: h, error: err.message })
+       if (isPrunedBlockError(err)) break
++      // A saturated Bitcoin-fork RPC returns a plain HTTP 500 instead of a
++      // JSON-RPC error. Continuing the block loop immediately creates a
++      // retry storm that starves live wallet network/balance requests.
++      if (isRpcOverloadError(err)) {
++        await delay(RPC_OVERLOAD_BACKOFF_MS)
++        break
++      }
+     }
+   }
+ }
+@@ -329,2 +343,2 @@
+-    const ctx = { rpc, idx, backfills: new Map() }
++    const ctx = { rpc, idx, backfills: new Map(), backfillQueue: Promise.resolve() }
+     this.coins.set(coin, ctx)
+@@ -355,1 +369,3 @@
+-    catchUp()
++    // A restart catch-up and first-use address backfills share one queue per
++    // coin. Multiple restored wallets must not scan 2,000 blocks in parallel.
++    ctx.backfillQueue = catchUp().catch(() => null)
+@@ -391,6 +407,9 @@
+     if (!wasNew && ctx.idx.history(address).length > 0) return
+     if (!ctx.backfills.has(address)) {
+-      const run = backfillForAddress(ctx.idx, ctx.rpc, address)
++      const run = ctx.backfillQueue
++        .catch(() => null)
++        .then(() => backfillForAddress(ctx.idx, ctx.rpc, address))
+         .finally(() => ctx.backfills.delete(address))
+       ctx.backfills.set(address, run)
++      ctx.backfillQueue = run.catch(() => null)
+     }

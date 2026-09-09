@@ -4,7 +4,7 @@ export type CoinCryptoParams = {
   wifPrefix: number
   derivationPath: string
   txVersion?: number
-  sighashStyle?: 'legacy' | 'bip143-forkid' | 'taproot'
+  sighashStyle?: 'legacy' | 'bip143-forkid' | 'taproot' | 'bc2-replay'
   cashaddrPrefix?: string
   bech32Hrp?: string
   addressType?: 'p2pkh' | 'p2wpkh' | 'p2tr'

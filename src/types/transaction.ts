@@ -20,6 +20,7 @@ export type Transaction = {
   balanceBefore?: string
   expectedBalanceAfter?: string
   broadcastUncertain?: boolean
+  verification?: 'verified' | 'unverified'
 }
 
 export type SendPayload = {
@@ -28,5 +29,6 @@ export type SendPayload = {
   amount: string
   fee?: string
   comment?: string
+  maxFee?: string
   sendMax?: boolean
 }

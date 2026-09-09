@@ -1,3 +1,5 @@
+import { TaskSession } from '../../utils/taskSession'
+import { zanoScanReadiness } from '../../utils/zanoScanReadiness'
 import { nativeCoreService } from '../nativeCoreService'
 import { privacyCacheService } from '../privacyCacheService'
 import { privacyBirthService } from '../privacyBirthService'
@@ -304,7 +306,8 @@ const hasLockedNativeBalanceReady = (response: PrivacyWalletResponse) => {
 }
 
 const hasNativeBalanceReady = (response: PrivacyWalletResponse) =>
-  hasSpendableReady(response) || hasLockedNativeBalanceReady(response)
+  [response.balance, response.spendable].every(value => typeof value === 'string' && value.trim() !== '' && Number.isFinite(Number(value)) && Number(value) >= 0)
+  && (hasSpendableReady(response) || hasLockedNativeBalanceReady(response))
 
 const zanoNativeRegressesCachedHistory = (
   cached: { transactions?: unknown[]; lastScannedHeight?: number; scanState?: string } | null,
@@ -382,6 +385,7 @@ const zanoWithCachedHistory = (
 }
 
 const runExclusive = async <T,>(coin: PrivacyCoin, task: () => Promise<T>, reason = 'native-call'): Promise<T> => {
+  const session = taskSession.capture()
   const previous = nativeCallQueues[coin] ?? Promise.resolve()
   const queueId = ++nativeQueueSeq
   const queuedAt = Date.now()
@@ -393,6 +397,7 @@ const runExclusive = async <T,>(coin: PrivacyCoin, task: () => Promise<T>, reaso
     readiness: nativeReadiness[coin],
   })
   const current = previous.catch(() => undefined).then(async () => {
+    session.assertCurrent()
     const startedAt = Date.now()
     coinDebugLog(coin, 'privacy.native.queue.start', {
       queueId,
@@ -430,6 +435,7 @@ const runPriorityExclusive = async <T,>(
   reason: string,
   task: () => Promise<T>,
 ): Promise<T> => {
+  const session = taskSession.capture()
   const hadSnapshot = Boolean(snapshotInFlight[coin])
   const hadQueue = Boolean(nativeCallQueues[coin])
   if (hadSnapshot || hadQueue) {
@@ -443,6 +449,7 @@ const runPriorityExclusive = async <T,>(
     reason,
     readiness: nativeReadiness[coin],
   })
+  session.assertCurrent()
   const current = task()
     .then((result) => {
       coinDebugLog(coin, 'privacy.native.priority.done', {
@@ -494,28 +501,19 @@ const updateNativeReadiness = (
     lockedNativeBalanceReady,
   })
   if (coin === 'zano') {
+    if (response.ok && (code === 'zano-native-wallet' || code === 'zano-native-wallet-ready')) {
+      const scanReadiness = zanoScanReadiness(response)
+      if (scanReadiness !== 'ready') {
+        setNativeReadiness(coin, scanReadiness)
+        return
+      }
+    }
     if (
       response.ok
       && (code === 'zano-native-wallet' || code === 'zano-native-wallet-ready')
       && !nativeBalanceReady
     ) {
       setNativeReadiness(coin, 'syncing')
-      return
-    }
-    if (
-      nativeReadiness[coin] === 'ready'
-      && (
-        code === 'zano-native-wallet-syncing'
-        || code === 'zano-native-wallet-warming'
-        || code === 'zano-compact-scan'
-        || code === 'zano-compact-scan-verified'
-        || code === 'zano-compact-scan-needs-native'
-      )
-    ) {
-      coinDebugLog(coin, 'privacy.readiness.keepReady', {
-        source,
-        response: summarizePrivacyResponse(response),
-      })
       return
     }
     if (response.ok && code === 'zano-native-wallet-ready') setNativeReadiness(coin, 'ready')
@@ -532,12 +530,15 @@ const updateNativeReadiness = (
       response.cacheHistoryRegression === true
       || code === 'zano-native-wallet-syncing'
       || code === 'zano-native-wallet-warming'
+      || code === 'zano-compact-scan'
       || code === 'zano-compact-scan-verified'
       || code === 'zano-compact-scan-needs-native'
     ) setNativeReadiness(coin, 'syncing')
-    else if (!response.ok && code === 'zano-native-wallet-error') setNativeReadiness(coin, 'error')
+    else if (!response.ok) setNativeReadiness(coin, 'error')
   }
 }
+
+const taskSession = new TaskSession()
 
 const callNativeLightWallet = async (
   action: 'ensure' | 'warm' | 'snapshot' | 'send',
@@ -545,6 +546,7 @@ const callNativeLightWallet = async (
   body: Record<string, string | undefined> = {},
   onProgress?: (progress: NativePrivacyRecoveryProgress) => void,
 ) => {
+  const session = taskSession.capture()
   const callId = ++nativeCallSeq
   const callStartedAt = Date.now()
   const mnemonic = body.mnemonic
@@ -552,6 +554,7 @@ const callNativeLightWallet = async (
   const cached = shouldLoadCache
     ? await privacyCacheService.load(coin, mnemonic as string).catch(() => null)
     : null
+  session.assertCurrent()
   const cachedRestoreStart = Number(cached?.restoreStartHeight ?? 0)
   const zanoCachedRestoreStart = coin === 'zano' ? zanoCachedRestoreStartFrom(cached) : undefined
   const shouldUseRestoreStartHeight = Boolean(body.mnemonic && (action === 'snapshot' || coin === 'zano'))
@@ -623,6 +626,7 @@ const callNativeLightWallet = async (
     scanStateLength: scanState?.length ?? 0,
   })
   let response: PrivacyWalletResponse
+  session.assertCurrent()
   const progressKey = `${coin}:${callId}:${action}`
   try {
     response = await nativeCoreService.privacyLightWallet({
@@ -638,6 +642,7 @@ const callNativeLightWallet = async (
       verifyCompact,
       ...body,
     }, (progress) => {
+      if (!session.isCurrent()) return
       if (shouldLogNativeProgress(progressKey, progress)) {
         coinDebugLog(coin, 'privacy.native.progress', {
           callId,
@@ -648,7 +653,9 @@ const callNativeLightWallet = async (
       }
       onProgress?.(progress)
     })
+    if (action !== 'send') session.assertCurrent()
   } catch (error) {
+    if (action !== 'send' && session.isCurrent()) setNativeReadiness(coin, 'error')
     coinDebugLogError(coin, 'privacy.native.throw', error, {
       callId,
       action,
@@ -900,7 +907,7 @@ export const zanoPrivacyWalletService = {
       return response
     }
     const promise = runExclusive(coin, task, 'snapshot').finally(() => {
-        if (snapshotInFlight[coin]?.mnemonic === mnemonic) delete snapshotInFlight[coin]
+        if (snapshotInFlight[coin]?.promise === promise) delete snapshotInFlight[coin]
         listeners.clear()
       })
 
@@ -979,6 +986,7 @@ export const zanoPrivacyWalletService = {
   },
 
   resetNativeReadiness(coin?: PrivacyCoin) {
+    taskSession.invalidate()
     nativeReadinessEpoch += 1
     if (coin) {
       if (coin === 'zano') stopZanoReadinessPoll()

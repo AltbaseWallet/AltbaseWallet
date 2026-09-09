@@ -72,8 +72,8 @@ test('manual Epic rescan unlocks stale unconfirmed outputs', () => {
   const epicOwner = read('native/vendor/epic_wallet_src/libwallet/src/api_impl/owner.rs')
   const epicbox = read('native/vendor/epic_wallet_src/impls/src/adapters/epicbox.rs')
 
-  assert.match(service, /manual-rescan[\s\S]*?forceRescan:\s*['"]true['"]/)
-  assert.match(bridge, /forceRescan[\s\S]*?forceRescan\\\":true/)
+  assert.match(service, /manual-rescan[\s\S]*?forceRescan:\s*['"]true['"]/) 
+  assert.match(bridge, /forceRescan[\s\S]*?forceRescan\\":true/)
   assert.match(rust, /force_rescan:\s*Option<bool>/)
   assert.match(rust, /\.scan\(mask, Some\(start_height\), force_rescan\)/)
   assert.match(rust, /marker\.exists\(\) && !force_rescan/)

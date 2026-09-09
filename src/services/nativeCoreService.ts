@@ -599,12 +599,22 @@ export const nativeCoreService = {
     if (!response.ok || !response.result) {
       throw new Error(response.error ?? 'Native transaction planning failed')
     }
+    const selectedInputs = parseInputs(response.result.selectedInputs)
+    const outputs = parseOutputs(response.result.outputs)
+    const declaredFee = BigInt(response.result.feeSatoshis ?? '0')
+    const actualFee = outputs.length > 0
+      ? selectedInputs.reduce((sum, input) => sum + BigInt(input.satoshis), 0n)
+        - outputs.reduce((sum, output) => sum + output.satoshis, 0n)
+      : declaredFee
+    if (actualFee < 0n || actualFee > BigInt(Number.MAX_SAFE_INTEGER)) {
+      throw new Error('Invalid transaction fee returned by the native planner')
+    }
     return {
       amountSatoshis: BigInt(response.result.amountSatoshis ?? '0'),
-      feeSatoshis: Number(response.result.feeSatoshis ?? '0'),
+      feeSatoshis: Number(actualFee),
       inputCount: Number(response.result.inputCount ?? '0'),
-      selectedInputs: parseInputs(response.result.selectedInputs),
-      outputs: parseOutputs(response.result.outputs),
+      selectedInputs,
+      outputs,
     }
   },
 }

@@ -29,6 +29,7 @@ const expectedCoinIds = [
   'litecoinii',
   'monero',
   'neoxa',
+  'nonsense',
   'terracoin',
   'junkcoin',
   'raptoreum',
@@ -50,6 +51,7 @@ const specialRoutes: Record<string, string> = {
   pearl: 'pearl-wallet',
   qubic: 'qubic-js',
   kaspa: 'kaspa-wasm',
+  nonsense: 'nonsense-wasm',
   ckb: 'ckb-lumos',
 }
 
@@ -115,7 +117,7 @@ test('the modular wallet registry contains every supported coin exactly once', (
   const ids = registryModuleIds()
   assert.deepEqual(ids, expectedCoinIds)
   assert.equal(new Set(ids).size, expectedCoinIds.length)
-  assert.equal(ids.length, 25)
+  assert.equal(ids.length, 26)
 })
 
 test('every coin module owns its matching definition and native route', () => {
@@ -135,4 +137,15 @@ test('XGR account sends are dispatched through the dedicated wallet engine', () 
     /const usesDedicatedRemoteWalletEngine[\s\S]*?type LoadTransactionsResult/,
   )?.[0] ?? ''
   assert.match(dispatcher, /coin\.walletEngine === 'xgr-account'/)
+})
+
+test('Nonsense sends are dispatched through the dedicated wallet engine', () => {
+  const transactionStore = fs.readFileSync(
+    path.resolve(import.meta.dirname, '../src/store/transactionStore.ts'),
+    'utf8',
+  )
+  const dispatcher = transactionStore.match(
+    /const usesDedicatedRemoteWalletEngine[\s\S]*?type LoadTransactionsResult/,
+  )?.[0] ?? ''
+  assert.match(dispatcher, /coin\.walletEngine === 'nonsense-utxo'/)
 })

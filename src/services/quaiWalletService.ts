@@ -8,6 +8,7 @@ import {
 import { atomicAmountToBigInt, coinApiService } from './coinApiService'
 import { quaiDebugLog } from '../utils/quaiDebugLog'
 import { isValidQuaiAddress } from '../utils/quaiAddress'
+import { assertApprovedSpend } from '../utils/sendFeePolicy'
 
 const QUAI_COIN_ID = 'quai'
 const WEI_PER_UI_BASE = 10_000_000_000n
@@ -93,7 +94,7 @@ const effectiveGasPlan = (
   const networkGasPrice = baseGasPrice
   const gasPrice = feeCoin
     ? (() => {
-        const requested = ceilDiv(parseQuai(feeCoin), signGasLimit)
+        const requested = parseQuai(feeCoin) / signGasLimit
         return requested > networkGasPrice ? requested : networkGasPrice
       })()
     : networkGasPrice
@@ -151,7 +152,7 @@ export const quaiWalletService = {
         )
       : await coinApiService.getAccountFeeEstimate(coinId, 12_000, options)
     const plan = effectiveGasPlan(fee, null)
-    const feeWei = plan.feeWei > 0n ? plan.feeWei : feeWeiFromEstimate(fee)
+    const feeWei = plan.reserveFeeWei > 0n ? plan.reserveFeeWei : feeWeiFromEstimate(fee)
     return {
       satoshis: Math.max(1, Number(feeBaseUnitsFromWei(feeWei))),
       coin: ceilQuaiText(feeWei, 8),
@@ -161,7 +162,7 @@ export const quaiWalletService = {
   async estimateMaxSend(coinId: string, address: string, feeCoin?: string, toAddress?: string) {
     const recipient = toAddress && isValidQuaiAddress(toAddress) ? toAddress : undefined
     const [balance, context, freshFee] = await Promise.all([
-      coinApiService.getBalance(coinId, address),
+      coinApiService.getBalance(coinId, address, { priority: true }),
       coinApiService.getAccountTxContext(coinId, address, recipient),
       coinApiService.getAccountFeeEstimate(coinId, 8_000, { force: true }).catch(() => null),
     ])
@@ -197,8 +198,8 @@ export const quaiWalletService = {
     })
     return {
       amountCoin: floorQuaiText(maxWei, 8),
-      feeCoin: ceilQuaiText(feeWei, 8),
-      feeSatoshis: Number(feeBaseUnitsFromWei(feeWei)),
+      feeCoin: ceilQuaiText(reserveFeeWei, 8),
+      feeSatoshis: Number(feeBaseUnitsFromWei(reserveFeeWei)),
     }
   },
 
@@ -209,6 +210,7 @@ export const quaiWalletService = {
     toAddress: string
     amountCoin: string
     feeCoin?: string
+    maxFeeCoin?: string
     sendMax?: boolean
     onPrepared?: (prepared: PreparedQuaiTransaction) => void | Promise<void>
   }) {
@@ -228,26 +230,32 @@ export const quaiWalletService = {
         params.toAddress,
         { valueWeiHex: requestedValueWei === undefined ? undefined : `0x${requestedValueWei.toString(16)}` },
       ),
-      coinApiService.getBalance(params.coinId, fromAddress),
+      coinApiService.getBalance(params.coinId, fromAddress, { priority: true }),
       // Quai's network gas price drifts and the gateway caches it ~15 min, so the
       // tx-context price can be stale-low and the node bounces the send with
       // "incorrect or low gas price". Pull a forced fresh estimate too and take
       // the higher of the two.
       coinApiService.getAccountFeeEstimate(params.coinId, 8_000, { force: true }).catch(() => null),
     ])
-    const { signGasLimit, gasPrice, reserveFeeWei, feeWei } = effectiveGasPlan(context, freshFee, params.feeCoin)
+    // Preserve the approved MAX amount when the network price falls between
+    // estimation and signing. The confirmed reserve bounds the signing price;
+    // a price increase still has to pass assertApprovedSpend below.
+    const approvedGasFee = params.feeCoin ?? (params.sendMax ? params.maxFeeCoin : undefined)
+    const { signGasLimit, gasPrice, reserveFeeWei, feeWei } = effectiveGasPlan(context, freshFee, approvedGasFee)
     const rawSpendableBase = atomicAmountToBigInt(balance.balance_spendable ?? balance.balance)
     const spendableBase = rawSpendableBase > 0n ? rawSpendableBase : 0n
     const spendableWei = spendableBase * WEI_PER_UI_BASE
     const valueWei = params.sendMax
       ? (() => {
           if (spendableWei <= reserveFeeWei) throw new Error('Insufficient balance for the amount and network fee')
-          return spendableWei - reserveFeeWei
+          return parseQuai(floorQuaiText(spendableWei - reserveFeeWei, 8))
         })()
       : requestedValueWei ?? parseQuai(params.amountCoin)
     if (valueWei + reserveFeeWei > spendableWei) {
       throw new Error('Insufficient balance for gas * price + value')
     }
+    assertApprovedSpend({ actualFee: formatQuai(reserveFeeWei), maxFee: params.maxFeeCoin ?? params.feeCoin,
+      actualAmount: formatQuai(valueWei), approvedAmount: params.amountCoin, sendMax: params.sendMax })
     quaiDebugLog('send.quai.gasPlan', {
       from: fromAddress,
       to: params.toAddress,

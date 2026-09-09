@@ -22,6 +22,7 @@ for command_name in node npm cmake ninja unzip sha256sum; do
 done
 
 [[ -f package.json && -f scripts/stage-macos-universal-native.cjs ]] || fail "run this script from the Altbase repository"
+bash scripts/build-nonsense-wallet-wasm.sh
 if [[ ! -x node_modules/.bin/electron-builder ]]; then
   npm ci --prefer-offline --no-audit --no-fund
 fi
@@ -37,9 +38,10 @@ archive="$ROOT/release/Altbase-Wallet-macOS-universal.zip"
 app_dir="$ROOT/release/mac-universal/Altbase Wallet.app"
 dll="$app_dir/Contents/Resources/native-core/altbase_monero_wallet.dylib"
 xgr_node="$app_dir/Contents/Resources/native-core/altbase_xgr_node.dylib"
+nonsense_node="$app_dir/Contents/Resources/native-core/altbase_nonsense_node.dylib"
 asar="$app_dir/Contents/Resources/app.asar"
 plist="$app_dir/Contents/Info.plist"
-for required_file in "$archive" "$dll" "$xgr_node" "$asar" "$plist"; do
+for required_file in "$archive" "$dll" "$xgr_node" "$nonsense_node" "$asar" "$plist"; do
   [[ -s "$required_file" ]] || fail "missing build output: $required_file"
 done
 
@@ -59,6 +61,7 @@ fi
 [[ -x "$lipo_tool" ]] || fail "lipo or llvm-lipo is required"
 "$lipo_tool" "$dll" -verify_arch x86_64 arm64
 "$lipo_tool" "$xgr_node" -verify_arch x86_64 arm64
+"$lipo_tool" "$nonsense_node" -verify_arch x86_64 arm64
 
 embedded_hash="$(unzip -p "$archive" 'Altbase Wallet.app/Contents/Resources/native-core/altbase_monero_wallet.dylib' | sha256sum | awk '{print $1}')"
 [[ "$embedded_hash" == "$(sha256sum "$dll" | awk '{print $1}')" ]] \
@@ -66,9 +69,12 @@ embedded_hash="$(unzip -p "$archive" 'Altbase Wallet.app/Contents/Resources/nati
 embedded_xgr_hash="$(unzip -p "$archive" 'Altbase Wallet.app/Contents/Resources/native-core/altbase_xgr_node.dylib' | sha256sum | awk '{print $1}')"
 [[ "$embedded_xgr_hash" == "$(sha256sum "$xgr_node" | awk '{print $1}')" ]] \
   || fail "macOS ZIP contains a different XGR node module"
+embedded_nonsense_hash="$(unzip -p "$archive" 'Altbase Wallet.app/Contents/Resources/native-core/altbase_nonsense_node.dylib' | sha256sum | awk '{print $1}')"
+[[ "$embedded_nonsense_hash" == "$(sha256sum "$nonsense_node" | awk '{print $1}')" ]] \
+  || fail "macOS ZIP contains a different Nonsense node module"
 
 mkdir -p artifacts
 install -m 0644 "$archive" "artifacts/Altbase-Wallet-macOS-universal-v${version}.zip"
 
 printf 'macOS %s universal build passed.\n' "$version"
-sha256sum "artifacts/Altbase-Wallet-macOS-universal-v${version}.zip" "$dll" "$xgr_node"
+sha256sum "artifacts/Altbase-Wallet-macOS-universal-v${version}.zip" "$dll" "$xgr_node" "$nonsense_node"

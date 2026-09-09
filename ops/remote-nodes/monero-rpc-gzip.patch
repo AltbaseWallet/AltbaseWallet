@@ -1,0 +1,9 @@
+--- altbase-monero-rpc
++++ altbase-monero-rpc
+@@
+-    access_log off;
++    gzip_types application/json application/octet-stream;
++    gzip_comp_level 1;
++    gzip_min_length 1024;
++    gzip_proxied any;
++    access_log off;

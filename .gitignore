@@ -28,8 +28,6 @@ native-core/*
 !native-core/.gitkeep
 native/core/build
 native/epic_core/target
-native/kaspa_wallet_wasm/Cargo.toml
-native/kaspa_wallet_wasm/generated
 native/kaspa_wallet_wasm/target
 
 # Heavy optional third-party native dependencies
@@ -38,6 +36,7 @@ native/vendor/*
 !native/vendor/zano_native_lib
 !native/vendor/epic_wallet_src
 !native/vendor/epic_src
+!native/vendor/rust_secp256k1_zkp
 
 # Local archives and packaged artifacts
 *.tar
@@ -48,6 +47,8 @@ native/vendor/*
 *.deb
 *.rpm
 *.exe
+*.msi
+*.node
 *.dll
 *.so
 *.dylib
@@ -62,5 +63,43 @@ native/vendor/*
 *.suo
 *.ntvs*
 *.njsproj
-*.sln
 *.sw?
+
+# Private workspaces and publication exclusions
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+**/.git
+.cache/
+.work/
+.tmp*/
+artifacts/
+Binary/
+/native-core*/
+**/target*/
+**/build-*/
+**/wallet_secret.cpp*
+**/*wallet_secret*.cpp*
+**/*wallet_secret*.bak
+**/*.zan
+**/epic-light/
+**/zano-light/
+AUDIT-*.md
+CONSOLIDATION-*.md
+TECHNICAL-CHECKS-*.md
+*.wasm
+*.base64.js
+
+# Compiled objects and local review output
+*.o
+*.obj
+*.a
+*.pyc
+__pycache__/
+*.tsbuildinfo
+
+# Host-specific Rust manifests generated from their portable templates
+/native/kaspa_wallet_wasm/Cargo.toml

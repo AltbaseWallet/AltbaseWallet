@@ -8,7 +8,7 @@ import { CoinIcon } from './CoinIcon'
 
 export function TransactionRow({ tx, coin }: { tx: Transaction; coin?: Coin }) {
   const t = useT()
-  const statusLabel = tx.status === 'confirmed'
+  const statusLabel = tx.verification === 'unverified' ? t('txStatusUnverified') : tx.status === 'confirmed'
     ? t('txStatusConfirmed')
     : tx.status === 'failed'
       ? t('txStatusFailed')

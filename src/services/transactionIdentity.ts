@@ -13,6 +13,16 @@ const statusRank: Record<Transaction['status'], number> = {
   confirmed: 2,
 }
 
+// Account sends record an estimate before broadcast. Once mined, history
+// contains the receipt fee after unused gas and any price difference are returned.
+export const confirmedAccountTransactionFee = (previous: Transaction, incoming: Transaction) => {
+  if (incoming.coinId !== 'quai' && incoming.coinId !== 'xgr') return undefined
+  for (const tx of [incoming, previous]) {
+    if (tx.status === 'confirmed' && tx.fee !== undefined && /^\d+(?:\.\d+)?$/.test(tx.fee)) return tx.fee
+  }
+  return undefined
+}
+
 export const dedupeTransactionsByIdentity = (transactions: Transaction[]) => {
   const byKey = new Map<string, Transaction>()
   for (const tx of transactions) {
@@ -29,7 +39,8 @@ export const dedupeTransactionsByIdentity = (transactions: Transaction[]) => {
       ...preferred,
       type: previous.type === 'outgoing' || tx.type === 'outgoing' ? 'outgoing' : preferred.type,
       amount: previous.type === 'outgoing' ? previous.amount : preferred.amount,
-      fee: previous.type === 'outgoing' ? previous.fee ?? tx.fee : preferred.fee ?? fallback.fee,
+      fee: confirmedAccountTransactionFee(previous, tx)
+        ?? (previous.type === 'outgoing' ? previous.fee ?? tx.fee : preferred.fee ?? fallback.fee),
       from: previous.type === 'outgoing' ? previous.from ?? tx.from : preferred.from ?? fallback.from,
       to: previous.type === 'outgoing' ? previous.to ?? tx.to : preferred.to ?? fallback.to,
       internal: previous.internal ?? tx.internal,

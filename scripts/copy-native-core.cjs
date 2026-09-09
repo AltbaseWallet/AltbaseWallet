@@ -69,7 +69,7 @@ const utxoCoinIds = [
   'raptoreum',
   'pearl',
 ]
-const nodeCoinIds = [...utxoCoinIds, 'zano', 'epic', 'quai', 'xgr', 'qubic', 'kaspa', 'ckb']
+const nodeCoinIds = [...utxoCoinIds, 'zano', 'epic', 'quai', 'xgr', 'qubic', 'kaspa', 'nonsense', 'ckb']
 const nativeBuildFolder = {
   win32: 'vs2022-x64-release',
   darwin: macosBuildFolder,

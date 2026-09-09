@@ -20,7 +20,8 @@ import { formatAddress } from '../../utils/formatAddress'
 import { addAmounts, compareAmounts, fromBaseUnits, toBaseUnits } from '../../utils/decimalAmount'
 import { pickDefaultCoinId, sortCoinsByPortfolioValue } from '../../utils/coinSelection'
 import { isPrivacyCoin } from '../../utils/privacyCoins'
-import { shouldLockFinalFee } from '../../utils/sendFeePolicy'
+import { isSpendApprovalChanged, shouldLockFinalFee } from '../../utils/sendFeePolicy'
+import { withPreflightTimeout } from '../../utils/preflightTimeout'
 import { showSystemNotification } from '../../utils/systemNotification'
 import { translate, useT } from '../../utils/i18n'
 import { privacyFeeForCoin, walletEngineRegistry } from '../../wallet-engines/registry'
@@ -52,6 +53,7 @@ type ConfirmingData = SendForm & {
   feeMode: FeeMode
   sendMax?: boolean
   lockFee?: boolean
+  maxNotice?: string
 }
 type FeeEstimate = { satoshis: number; coin: string; exact?: boolean }
 
@@ -96,21 +98,6 @@ const subtractAmounts = (amount: string, fee: string, decimals = 8) => {
   return fromBaseUnits(next > 0n ? next : 0n, decimals)
 }
 
-const withPreflightTimeout = <T,>(promise: Promise<T>, label: string): Promise<T> =>
-  new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(`${label} timed out`)), FORM_PREFLIGHT_TIMEOUT_MS)
-    promise.then(
-      (value) => {
-        clearTimeout(timer)
-        resolve(value)
-      },
-      (error) => {
-        clearTimeout(timer)
-        reject(error)
-      },
-    )
-  })
-
 export default function Send() {
   const t = useT()
   const language = useSettingsStore((s) => s.settings.language)
@@ -140,6 +127,8 @@ export default function Send() {
   const [feeLoading, setFeeLoading] = useState(false)
   const [feeRefreshing, setFeeRefreshing] = useState(false)
   const [maxLoading, setMaxLoading] = useState(false)
+  const [maxNotice, setMaxNotice] = useState('')
+  const maxRequestSeqRef = useRef(0)
   const [feeMode, setFeeMode] = useState<FeeMode>('auto')
   const [manualFee, setManualFee] = useState('')
   const [manualFeeError, setManualFeeError] = useState('')
@@ -153,6 +142,7 @@ export default function Send() {
 
   const {
     register,
+    getValues,
     handleSubmit,
     control,
     setValue,
@@ -172,6 +162,27 @@ export default function Send() {
   const liveCoinId = useWatch({ control, name: 'coinId' })
   const amount = useWatch({ control, name: 'amount' }) ?? ''
   const recipientAddress = useWatch({ control, name: 'to' }) ?? ''
+
+  useEffect(() => {
+    const sequence = ++maxRequestSeqRef.current
+    void Promise.resolve().then(() => {
+      if (sequence !== maxRequestSeqRef.current) return
+      setMaxLoading(false)
+      setMaxNotice('')
+      setMaxIntent(null)
+      maxFeeEstimateRef.current = null
+    })
+    return () => { maxRequestSeqRef.current += 1 }
+  }, [liveCoinId, recipientAddress, feeMode, manualFee, sessionMnemonic])
+
+  const cancelMaxCalculation = () => {
+    maxRequestSeqRef.current += 1
+    setMaxLoading(false)
+    setMaxNotice('')
+    setMaxIntent(null)
+    maxFeeEstimateRef.current = null
+  }
+
 
   const enabledCoins = useMemo(() => coins.filter((c) => c.enabled), [coins])
   const pendingOutgoingCoins = useMemo(() => {
@@ -371,7 +382,6 @@ export default function Send() {
       && maxFee.amount === amount
     ) {
       setFeeState(maxFee.fee)
-      setSendError('')
       return
     }
     if (liveCoinPrivacy) {
@@ -526,6 +536,9 @@ export default function Send() {
 
   const handleMax = async () => {
     if (!liveCoin) return
+    const requestSeq = ++maxRequestSeqRef.current
+    const isCurrent = () => requestSeq === maxRequestSeqRef.current
+    setMaxNotice('')
     if (liveCoinLocked) {
       setError('amount', { message: t('pendingOutgoingLocked') })
       setValue('amount', '0', { shouldValidate: true })
@@ -566,6 +579,7 @@ export default function Send() {
             ),
             'Epic MAX estimate',
           )
+          if (!isCurrent()) return
           if (compareAmounts(result.amountCoin, '0', decimals) <= 0) {
             setError('amount', { message: t('balanceLessFee') })
             return
@@ -585,9 +599,10 @@ export default function Send() {
           // native estimate before Continue is clicked.
           setMaxIntent({ coinId: liveCoin.id, amount: result.amountCoin, fee: result.feeCoin })
         } catch (error) {
+      if (!isCurrent()) return
           setSendError(t('feeFetchFailed', { msg: (error as Error).message }))
         } finally {
-          setMaxLoading(false)
+          if (isCurrent()) setMaxLoading(false)
         }
         return
       }
@@ -612,13 +627,15 @@ export default function Send() {
     setSendError('')
     try {
       if (liveCoinEngine?.estimateMaxSend && liveCoin.address) {
-        const result = await liveCoinEngine.estimateMaxSend(
+        const result = await withPreflightTimeout(liveCoinEngine.estimateMaxSend(
           liveCoin,
           liveCoin.address,
           feeMode === 'manual' ? feeText : undefined,
           recipientAddress.trim(),
           sessionMnemonic ?? undefined,
-        )
+        ), 'MAX calculation', liveCoin.id === 'ckb' ? 180_000 : FORM_PREFLIGHT_TIMEOUT_MS)
+        if (!isCurrent()) return
+        setMaxNotice(result.remainingInputCount ? t('maxPartialNotice', { amount: result.remainingAmountCoin ?? '0', ticker: liveCoin.ticker }) : '')
         const fee = {
           satoshis: result.feeSatoshis ?? feeTextToSats(result.feeCoin, liveCoin.satsPerCoin ?? 100_000_000),
           coin: result.feeCoin,
@@ -653,13 +670,18 @@ export default function Send() {
       clearErrors('amount')
       setMaxIntent({ coinId: liveCoin.id, amount: maxAmount, fee: feeText })
     } catch (error) {
-      setError('amount', { message: t('feeFetchFailed', { msg: (error as Error).message }) })
+      if (!isCurrent()) return
+      setError('amount', { message: (error as Error).message })
     } finally {
-      setMaxLoading(false)
+      if (isCurrent()) setMaxLoading(false)
     }
   }
 
   const onSubmit = async (values: SendForm) => {
+    const submittedSeq = maxRequestSeqRef.current
+    const stillCurrent = () => submittedSeq === maxRequestSeqRef.current
+      && getValues('coinId') === values.coinId && getValues('to') === values.to
+      && getValues('amount') === values.amount
     const coin = coins.find((c) => c.id === values.coinId)
     if (!coin) return
 
@@ -669,12 +691,18 @@ export default function Send() {
     }
 
     const decimals = decimalsForScale(coin.satsPerCoin ?? 100_000_000)
+    const isMaxIntent = Boolean(maxIntent && maxIntent.coinId === coin.id && maxIntent.amount === values.amount)
+    const coinEngine = walletEngineRegistry.get(coin)
+    // A freshly planned UTXO MAX can already use an incoming output while
+    // the background balance snapshot still says zero. The send pipeline
+    // refreshes and verifies those inputs again before signing.
+    const hasUtxoMaxPlan = isMaxIntent && (coinEngine.id === 'bitcoin-utxo' || coinEngine.id === 'pearl-utxo')
 
     const availableBalance = isPrivacyCoin(coin)
       ? coin.spendableBalance ?? coin.balance
       : coin.spendableBalance ?? coin.balance
 
-    if (compareAmounts(availableBalance || '0', '0', decimals) <= 0) {
+    if (!hasUtxoMaxPlan && compareAmounts(availableBalance || '0', '0', decimals) <= 0) {
       setError('amount', { message: t('balanceLessFee') })
       return
     }
@@ -685,28 +713,57 @@ export default function Send() {
     }
 
     const to = values.to.trim()
-    const coinEngine = walletEngineRegistry.get(coin)
     let validAddress: boolean
     try {
       validAddress = await withPreflightTimeout(coinEngine.validateAddress(coin, to), 'Address validation')
     } catch (error) {
-      setSendError((error as Error).message)
+      if (stillCurrent()) setSendError((error as Error).message)
       return
     }
+    if (!stillCurrent()) return
     if (!validAddress) {
       setError('to', { message: t('invalidAddressLooks') })
       return
     }
 
+    if (isMaxIntent && !isPrivacyCoin(coin) && coinEngine.estimateMaxSend) {
+      const requestSeq = ++maxRequestSeqRef.current
+      setMaxLoading(true)
+      try {
+        const fresh = await withPreflightTimeout(coinEngine.estimateMaxSend(
+          coin, coin.address, feeMode === 'manual' ? manualFee.trim() : undefined,
+          to, sessionMnemonic ?? undefined,
+        ), 'MAX calculation', coin.id === 'ckb' ? 180_000 : FORM_PREFLIGHT_TIMEOUT_MS)
+        if (requestSeq !== maxRequestSeqRef.current) return
+        const changed = compareAmounts(fresh.amountCoin, values.amount, decimals) !== 0
+          || compareAmounts(fresh.feeCoin, maxIntent!.fee, decimals) !== 0
+        if (changed) {
+          const fee = { coin: fresh.feeCoin, satoshis: fresh.feeSatoshis ?? feeTextToSats(fresh.feeCoin, coin.satsPerCoin), exact: true }
+          maxFeeEstimateRef.current = { coinId: coin.id, amount: fresh.amountCoin, fee }
+          setFeeEstimate(fee)
+          setValue('amount', fresh.amountCoin, { shouldValidate: true, shouldDirty: true })
+          setMaxIntent({ coinId: coin.id, amount: fresh.amountCoin, fee: fresh.feeCoin })
+          setMaxNotice(fresh.remainingInputCount ? t('maxPartialNotice', {amount: fresh.remainingAmountCoin ?? '0', ticker: coin.ticker}) : '')
+          setSendError(t('maxUpdatedReview'))
+          return
+        }
+      } catch (error) {
+        if (requestSeq === maxRequestSeqRef.current) setSendError((error as Error).message)
+        return
+      } finally {
+        if (requestSeq === maxRequestSeqRef.current) setMaxLoading(false)
+      }
+    }
     setManualFeeError('')
+    const feeSeq = maxRequestSeqRef.current
     const resolvedFee = await resolveFee(coin, { force: feeMode === 'auto' })
+    if (feeSeq !== maxRequestSeqRef.current || getValues('to') !== values.to || getValues('amount') !== values.amount) return
     if (!resolvedFee) return
     const feeCoin = resolvedFee.coin
     if (feeMode === 'manual' && (!/^\d+(\.\d+)?$/.test(feeCoin) || parseFloat(feeCoin) <= 0)) {
       setManualFeeError(t('manualFeeGreaterThanZero'))
       return
     }
-    const isMaxIntent = Boolean(maxIntent && maxIntent.coinId === coin.id && maxIntent.amount === values.amount)
     const sendAmount = values.amount
     if (compareAmounts(sendAmount, '0', decimals) <= 0) {
       setError('amount', { message: t('balanceLessFee') })
@@ -719,6 +776,7 @@ export default function Send() {
       return
     }
 
+    setSendError('')
     setConfirming({
       ...values,
       amount: sendAmount,
@@ -726,6 +784,7 @@ export default function Send() {
       feeMode,
       sendMax: isMaxIntent,
       lockFee: shouldLockFinalFee(feeMode, isPrivacyCoin(coin)),
+      maxNotice,
     })
   }
 
@@ -756,6 +815,7 @@ export default function Send() {
         to: confirming.to,
         amount: confirming.amount,
         fee: confirming.lockFee ? confirming.estimatedFee : undefined,
+        maxFee: confirming.estimatedFee,
         comment: confirming.comment,
         sendMax: confirming.sendMax,
         mnemonic: sessionMnemonic,
@@ -765,6 +825,13 @@ export default function Send() {
       showSystemNotification(t('sentToast', { amount: confirming.amount, ticker }))
       navigate(`/app/tx/${tx.txHash}`, { state: { transaction: tx } })
     } catch (err) {
+      if (isSpendApprovalChanged(err)) {
+        setConfirming(null)
+        cancelMaxCalculation()
+        setFeeEstimate(null)
+        setSendError(t('maxUpdatedRetry'))
+        return
+      }
       const msg = err instanceof Error ? err.message : t('sendUnknownError')
       if (msg.startsWith('manualFeeBelowMinimum:')) {
         const minFee = msg.split(':').slice(1).join(':')
@@ -892,7 +959,7 @@ export default function Send() {
             </div>
           )}
 
-          <form className="mt-6 space-y-5" onSubmit={handleSubmit(onSubmit, onInvalid)}>
+          <form className="mt-6 space-y-5" onSubmit={(event) => { void handleSubmit(onSubmit, onInvalid)(event) }}>
             <input type="hidden" {...register('coinId')} />
             {errors.coinId?.message && (
               <p className="text-sm text-rose-300">{errors.coinId.message}</p>
@@ -911,11 +978,11 @@ export default function Send() {
                 <input
                   type="text"
                   inputMode="decimal"
-                  {...register('amount', {
-                    onChange: () => {
-                      setMaxIntent(null)
-                    },
-                  })}
+                  {...register('amount')}
+                  onChange={(event) => {
+                    cancelMaxCalculation()
+                    void register('amount').onChange(event)
+                  }}
                   className={`h-12 w-full rounded-2xl border bg-white/7 px-4 pr-24 text-slate-50 outline-none transition placeholder:text-slate-500 focus:border-[var(--accent)] disabled:opacity-50 ${
                     errors.amount?.message ? 'border-rose-400' : 'border-white/10'
                   }`}
@@ -931,6 +998,12 @@ export default function Send() {
                 </button>
               </div>
               {errors.amount?.message && <span className="text-xs text-rose-300">{errors.amount.message}</span>}
+              {maxLoading && <div role="status" className="flex items-center gap-3 text-xs text-slate-300">
+                <span>{t('maxCalculating')}</span>
+                <button type="button" onClick={cancelMaxCalculation} className="underline">{t('cancel')}</button>
+              </div>}
+              {maxNotice && <p role="status" className="text-xs text-amber-200">{maxNotice}</p>}
+
             </label>
 
             <div className="rounded-2xl border border-white/10 bg-white/6 p-4">
@@ -1170,6 +1243,7 @@ export default function Send() {
 
             <SeedPhraseWarning text={t('willBroadcastNote')} />
 
+            {confirming.maxNotice && <p className="text-sm text-amber-200">{confirming.maxNotice}</p>}
             {sendError && (
               <div className="rounded-2xl border border-rose-400/30 bg-rose-400/10 p-3 text-sm text-rose-300">
                 {sendError}

@@ -68,7 +68,7 @@ const createQubicRpcAdapter = ({ coin = 'qubic', liveBaseUrl = 'https://rpc.qubi
     const pending = activePending(identity)
     if (pending.length === 0) return
     const transactions = await transactionsFor(identity, 100, 0).catch(() => [])
-    const confirmed = new Set(transactions.map((tx) => String(tx.hash ?? tx.transactionHash ?? tx.txid ?? '').trim()).filter(Boolean))
+    const confirmed = new Set(transactions.filter((tx) => tx.moneyFlew === true).map((tx) => String(tx.hash ?? tx.transactionHash ?? tx.txid ?? '').trim()).filter(Boolean))
     for (const item of pending) if (confirmed.has(item.txid)) localPending.delete(item.txid)
   }
 
@@ -77,6 +77,7 @@ const createQubicRpcAdapter = ({ coin = 'qubic', liveBaseUrl = 'https://rpc.qubi
     if (!txid) return null
     const source = normalizeIdentity(tx.source ?? tx.sourceIdentity)
     const destination = normalizeIdentity(tx.destination ?? tx.destinationIdentity)
+    if (source !== identity && destination !== identity) return null
     const amount = asBigInt(tx.amount)
     const outgoing = source === identity
     const timestamp = timestampSeconds(tx.timestamp ?? tx.createdAt)
@@ -94,6 +95,7 @@ const createQubicRpcAdapter = ({ coin = 'qubic', liveBaseUrl = 'https://rpc.qubi
         vout: [{ value: amount.toString(), n: 0, scriptPubKey: { address: destination, addresses: destination ? [destination] : [] } }],
         blocktime: timestamp,
         confirmations,
+        status: confirmations > 0 ? 'confirmed' : 'pending',
         fee: '0',
       },
     }
@@ -144,14 +146,25 @@ const createQubicRpcAdapter = ({ coin = 'qubic', liveBaseUrl = 'https://rpc.qubi
       ])
       const currentTick = Number(info.tick ?? info.currentTick ?? 0)
       const rows = transactions.map((tx) => historyRow(tx, identity, currentTick)).filter(Boolean)
-      const confirmed = new Set(rows.map((row) => row.txid))
+      const confirmed = new Set(rows.filter((row) => row.raw.confirmations > 0).map((row) => row.txid))
+      const listed = new Set(rows.map((row) => row.txid))
       for (const txid of confirmed) localPending.delete(txid)
-      const pending = activePending(identity).filter((item) => !confirmed.has(item.txid)).map((item) => ({
+      const pending = activePending(identity).filter((item) => !listed.has(item.txid)).map((item) => ({
         txid: item.txid,
         satoshis: (item.from === identity ? -asBigInt(item.amount) : asBigInt(item.amount)).toString(),
         timestamp: Math.floor(item.createdAt / 1000),
       }))
-      return { address: identity, txids: [...pending.map((row) => row.txid), ...rows.map((row) => row.txid)], deltas: rows.map((row) => row.delta), mempool: pending, transactions: rows.map((row) => row.raw) }
+      // A scheduled tick and an absent/false moneyFlew flag do not prove either
+      // execution or failure. Keep these rows out of confirmed address deltas.
+      return {
+        address: identity,
+        txids: [...pending.map((row) => row.txid), ...rows.map((row) => row.txid)],
+        deltas: rows.filter((row) => row.raw.confirmations > 0).map((row) => row.delta),
+        mempool: [...pending, ...rows.filter((row) => row.raw.confirmations === 0).map((row) => ({
+          txid: row.txid, satoshis: row.delta.satoshis, timestamp: row.delta.timestamp,
+        }))],
+        transactions: rows.map((row) => row.raw),
+      }
     },
 
     async getMempool(address) {

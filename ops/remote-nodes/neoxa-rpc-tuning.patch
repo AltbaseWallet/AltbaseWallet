@@ -1,0 +1,7 @@
+--- neoxa.conf
++++ neoxa.conf
+@@ -1,2 +1,4 @@
+ server=1
++rpcthreads=16
++rpcworkqueue=256
+ listen=1

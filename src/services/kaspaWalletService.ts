@@ -1,4 +1,5 @@
 import { coinApiService, type Utxo } from './coinApiService'
+import { assertApprovedSpend } from '../utils/sendFeePolicy'
 
 type KaspaSdk = typeof import('kaspa-wasm')
 type KaspaWalletSdk = KaspaSdk & {
@@ -194,6 +195,7 @@ export const kaspaWalletService = {
     toAddress: string
     amountCoin: string
     sendMax?: boolean
+    maxFeeCoin?: string
   }) {
     const { sdk: loadedSdk, privateKey, address } = await walletKey(params.mnemonic)
     const sdk = loadedSdk as KaspaWalletSdk
@@ -217,6 +219,8 @@ export const kaspaWalletService = {
     const totalInput = entries.reduce((sum, entry) => sum + entry.amount, 0n)
     const amount = params.sendMax ? totalInput - totalFee : parseKasAmount(params.amountCoin)
     if (amount <= 0n) throw new Error('Amount must be greater than 0')
+    assertApprovedSpend({ actualFee: sompiText(totalFee), maxFee: params.maxFeeCoin,
+      actualAmount: sompiText(amount), approvedAmount: params.amountCoin, sendMax: params.sendMax })
     if (plan.transactions.length === 0) throw new Error('Kaspa signing library returned no transactions')
     let finalTxid = ''
     let signedFee = 0n

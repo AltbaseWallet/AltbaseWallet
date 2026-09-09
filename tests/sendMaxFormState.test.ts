@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import test from 'node:test'
 
 const source = fs.readFileSync(new URL('../src/pages/Send/Send.tsx', import.meta.url), 'utf8')
-const handleMax = source.match(/const handleMax = async \(\) => \{[\s\S]*?\n  const onSubmit =/)?.[0] ?? ''
+const handleMax = source.match(/const handleMax = async \(\) => \{[\s\S]*?\n {2}const onSubmit =/)?.[0] ?? ''
 
 test('every successful MAX branch clears stale amount errors before preserving MAX intent', () => {
   const valueThenClear = handleMax.match(

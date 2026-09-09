@@ -7,6 +7,7 @@ import {
   parseEther,
 } from 'ethers'
 import { atomicAmountToBigInt, coinApiService, type AccountFeeEstimate } from './coinApiService'
+import { assertApprovedSpend } from '../utils/sendFeePolicy'
 
 export const XGR_CHAIN_ID = 1643
 export const XGR_DERIVATION_PATH = "m/44'/60'/0'/0/0"
@@ -62,7 +63,7 @@ const gasPlan = (context: XgrFeeContext, requestedFeeCoin?: string) => {
   if (networkPrice <= 0n) throw new Error('XGR node returned an invalid gas price')
 
   const requestedPrice = requestedFeeCoin
-    ? ceilDiv(parseEther(requestedFeeCoin), gasLimit)
+    ? parseEther(requestedFeeCoin) / gasLimit
     : 0n
   const signingPrice = requestedPrice > networkPrice ? requestedPrice : networkPrice
   const useEip1559 = contextMaxFee > 0n || context.transactionType === 'eip1559'
@@ -123,7 +124,7 @@ export const xgrWalletService = {
   ) {
     const [balance, context] = await Promise.all([
       knownSpendableCoin === undefined
-        ? coinApiService.getBalance(coinId, address)
+        ? coinApiService.getBalance(coinId, address, { priority: true })
         : Promise.resolve(null),
       coinApiService.getAccountFeeEstimate(coinId, 12_000) as Promise<XgrFeeContext>,
     ])
@@ -149,6 +150,7 @@ export const xgrWalletService = {
     toAddress: string
     amountCoin: string
     feeCoin?: string
+    maxFeeCoin?: string
     sendMax?: boolean
     knownSpendableCoin?: string
   }) {
@@ -182,7 +184,7 @@ export const xgrWalletService = {
     const valueWei = params.sendMax
       ? (() => {
           if (spendableWei <= feeWei) throw new Error('Insufficient XGR balance for the network fee')
-          return spendableWei - feeWei
+          return parseEther(floorCoinText(spendableWei - feeWei, 8))
         })()
       : requestedValueWei ?? parseEther(params.amountCoin)
     if (valueWei <= 0n) throw new Error('XGR amount must be greater than zero')
@@ -191,6 +193,13 @@ export const xgrWalletService = {
     }
 
     const chainId = Number(context.chainId ?? XGR_CHAIN_ID)
+    assertApprovedSpend({
+      actualFee: formatEther(feeWei),
+      maxFee: params.maxFeeCoin ?? params.feeCoin,
+      actualAmount: formatEther(valueWei),
+      approvedAmount: params.amountCoin,
+      sendMax: params.sendMax,
+    })
     if (chainId !== XGR_CHAIN_ID) throw new Error(`Unexpected XGR chain id: ${chainId}`)
     const signedTx = await wallet.signTransaction({
       ...transactionFields,

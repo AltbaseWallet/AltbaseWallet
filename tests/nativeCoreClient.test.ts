@@ -17,12 +17,63 @@ const { NativeCoreClient } = require('../electron/native-core-client.cjs') as {
     waitForEpicSend(timeoutMs?: number): Promise<void>
     terminateChild(child: unknown, forceAfterMs?: number): void
     stop(): void
+    closeSession(onClosed?: () => void): void
+    start(): void
+    restartAfterTimeout(message: string): void
     request(method: string, params?: Record<string, unknown>): Promise<unknown>
     requestNow(method: string, params?: Record<string, unknown>): Promise<unknown>
   }
 }
 
 const client = new NativeCoreClient({})
+
+test('closing a wallet session stops readers and prevents queued requests from restarting it', async (t) => {
+  const closing = new NativeCoreClient({})
+  const stop = t.mock.method(closing, 'stop', () => undefined)
+  closing.closeSession()
+  assert.equal(stop.mock.callCount(), 1)
+  await assert.rejects(closing.requestNow('privacyLightWallet', { action: 'snapshot' }), /session is closed/)
+  await assert.rejects(closing.request('coinNodeRequest'), /session is closed/)
+})
+
+test('locking lets an already submitted privacy send settle before stopping its helper', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  const closing = new NativeCoreClient({})
+  const stop = t.mock.method(closing, 'stop', () => undefined)
+  let result = ''
+  let closed = false
+  const slot = { method: 'privacyLightWallet', params: { coin: 'epic', action: 'send' },
+    resolve: (value: string) => { result = value }, reject: () => undefined }
+  closing.pending.set('1', slot)
+  closing.closeSession(() => { closed = true })
+  assert.equal(stop.mock.callCount(), 0)
+  assert.equal(closed, false)
+  await assert.rejects(closing.requestNow('privacyLightWallet', { action: 'send' }), /session is closed/)
+  closing.pending.delete('1')
+  slot.resolve('accepted')
+  assert.equal(result, 'accepted')
+  assert.equal(closing.hasPendingEpicSend(), true)
+  assert.equal(stop.mock.callCount(), 0)
+  t.mock.timers.tick(3_000)
+  assert.equal(stop.mock.callCount(), 1)
+  assert.equal(closed, true)
+  assert.equal(closing.hasPendingEpicSend(), false)
+})
+
+test('a send timeout releases a closing session as well as a successful response', async (t) => {
+  const closing = new NativeCoreClient({ getPath: () => '/tmp/altbase-test-only' })
+  closing.child = { stdin: { write: (_payload: string, callback: () => void) => callback() } }
+  t.mock.method(closing, 'start', () => undefined)
+  t.mock.method(closing, 'stop', () => undefined)
+  t.mock.method(closing, 'restartAfterTimeout', () => undefined)
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  const result = assert.rejects(closing.requestNow('privacyLightWallet', { coin: 'monero', action: 'send' }), /timeout/)
+  let closed = false
+  closing.closeSession(() => { closed = true })
+  t.mock.timers.tick(300_000)
+  await result
+  assert.equal(closed, true)
+})
 
 test('coin node timeout includes a bounded process grace period', () => {
   assert.equal(client.timeoutFor('coinNodeRequest', { timeoutMs: 2_500 }), 30_000)
@@ -57,6 +108,7 @@ test('coin node requests start one at a time instead of expiring in the native q
 
 test('privacy wallet operations keep their longer synchronization window', () => {
   assert.equal(client.timeoutFor('privacyLightWallet', { action: 'send' }), 120_000)
+  assert.equal(client.timeoutFor('privacyLightWallet', { coin: 'monero', action: 'send' }), 300_000)
   assert.equal(client.timeoutFor('privacyLightWallet', { coin: 'epic', action: 'send' }), 240_000)
   assert.equal(client.timeoutFor('privacyLightWallet', { coin: 'epic', action: 'snapshot' }), 3_600_000)
   assert.equal(client.timeoutFor('privacyLightWallet', { coin: 'monero', action: 'snapshot' }), 3_600_000)

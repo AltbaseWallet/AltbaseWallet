@@ -835,6 +835,11 @@ const createBitcoinForkAdapter = ({ coin, rpcUrl, rpcUser, rpcPassword, readProf
     kind: 'bitcoin-rpc',
     readProfile: profile,
 
+    async getRawTransaction(txid, height) {
+      const raw = await getRawTransactionVerbose(txid, height)
+      return raw.hex || await rpc('getrawtransaction', [txid, false])
+    },
+
     async getNetwork() {
       const [chain, net, mempool] = await Promise.all([
         rpc('getblockchaininfo'),

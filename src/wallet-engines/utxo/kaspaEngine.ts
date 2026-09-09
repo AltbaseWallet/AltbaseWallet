@@ -26,9 +26,9 @@ export const kaspaEngine: WalletEngine = {
   async estimateMaxSend(coin, address, _feeCoin, toAddress) {
     return kaspaWalletService.estimateMaxSend(coin.id, address, toAddress)
   },
-  async send({ coin, mnemonic, fromAddress, toAddress, amountCoin, sendMax }) {
+  async send({ coin, mnemonic, fromAddress, toAddress, amountCoin, sendMax, maxFeeCoin }) {
     if (!fromAddress) throw new Error(`Address for ${coin.id} not derived yet - reopen the wallet`)
-    return kaspaWalletService.send({ coinId: coin.id, mnemonic, fromAddress, toAddress, amountCoin, sendMax })
+    return kaspaWalletService.send({ coinId: coin.id, mnemonic, fromAddress, toAddress, amountCoin, sendMax, maxFeeCoin })
   },
   async exportSecret(_coin, mnemonic) { return kaspaWalletService.exportPrivateKey(mnemonic) },
 }

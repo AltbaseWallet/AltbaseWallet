@@ -192,6 +192,7 @@ docker exec \
       native/epic_core/target/aarch64-apple-darwin/release
 
     bash scripts/build-kaspa-wallet-wasm.sh
+    bash scripts/build-nonsense-wallet-wasm.sh
     npm ci --prefer-offline --no-audit --no-fund
     node scripts/build-monero-wallet-module.cjs --target=macos-universal
 

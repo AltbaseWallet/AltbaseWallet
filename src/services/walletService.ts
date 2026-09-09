@@ -427,6 +427,8 @@ export const walletService = {
   async lockWallet() {
     bumpWalletSessionRevision()
     sessionMnemonicCache = null
+    privacyWalletService.resetNativeReadiness()
+    await window.altbaseWallet?.resetCoreSession?.()
     return true
   },
 
@@ -501,6 +503,7 @@ export const walletService = {
     bumpWalletSessionRevision()
     sessionMnemonicCache = null
     privacyWalletService.resetNativeReadiness()
+    void window.altbaseWallet?.resetCoreSession?.().catch(() => undefined)
     storageService.clear()
   },
 
@@ -509,6 +512,7 @@ export const walletService = {
     bumpWalletSessionRevision()
     sessionMnemonicCache = null
     privacyWalletService.resetNativeReadiness()
+    void window.altbaseWallet?.resetCoreSession?.().catch(() => undefined)
     storageService.remove(WALLET_KEY)
     storageService.remove(WALLET_ADDRESSES_KEY)
   },

@@ -3,7 +3,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 const { pathToFileURL } = require('node:url')
 const { NativeCoreClient, stopAllNativeCoreChildren } = require('./native-core-client.cjs')
-const { priorityNodeLane, priorityNodePoolKey } = require('./native-core-routing.cjs')
+const { priorityNodePoolKey } = require('./native-core-routing.cjs')
 const { MiningModuleManager } = require('./mining-module-manager.cjs')
 
 const APP_ID = 'com.altbase.wallet'
@@ -139,7 +139,6 @@ const getPriorityNodeNativeCore = (coin = 'node', requestPath = '') => {
   // hold the fee response (or vice versa) until the form-level watchdog fires.
   // Keep fee and transaction preparation in separate bounded pools;
   // background polling still uses the established pool above.
-  const lane = priorityNodeLane(requestPath)
   const key = priorityNodePoolKey(normalizedCoin, requestPath, PRIORITY_NODE_NATIVE_CORE_POOL_SIZE)
   if (!priorityNodeNativeCores.has(key)) {
     priorityNodeNativeCores.set(key, new NativeCoreClient(app, `priority-node:${key}`))
@@ -157,8 +156,10 @@ const nativeCoreForRequest = (method, params = {}) => {
   return getNativeCore()
 }
 
+const closingNativeCores = new Set()
 const activeNativeClients = () => [
   nativeCore,
+  ...closingNativeCores,
   ...privacyNativeCores.values(),
   ...nodeNativeCores.values(),
   ...priorityNodeNativeCores.values(),
@@ -173,6 +174,8 @@ const resetNativeCoreClients = () => {
   nodeNativeCores.clear()
   for (const client of priorityNodeNativeCores.values()) client.stop()
   priorityNodeNativeCores.clear()
+  for (const client of closingNativeCores) client.stop()
+  closingNativeCores.clear()
   stopAllNativeCoreChildren()
 }
 
@@ -454,7 +457,15 @@ ipcMain.handle('core:request', async (event, request = {}) => {
 ipcMain.handle('core:reset-session', async (event) => {
   try {
     if (!isTrustedIpcEvent(event)) throw new Error('Untrusted IPC sender')
-    resetNativeCoreClients()
+    for (const client of activeNativeClients()) {
+      if (closingNativeCores.has(client)) continue
+      closingNativeCores.add(client)
+      client.closeSession(() => closingNativeCores.delete(client))
+    }
+    nativeCore = null
+    privacyNativeCores.clear()
+    nodeNativeCores.clear()
+    priorityNodeNativeCores.clear()
     return { ok: true }
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : String(error) }

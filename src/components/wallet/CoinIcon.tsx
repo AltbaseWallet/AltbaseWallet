@@ -25,6 +25,7 @@ import xgrLogo from '../../assets/coins/xgr.png'
 import pearlLogo from '../../assets/coins/prl.png'
 import qubicLogo from '../../assets/coins/qubic.png'
 import kaspaLogo from '../../assets/coins/kaspa.png'
+import nonsenseLogo from '../../assets/coins/nonsense.png'
 import ckbLogo from '../../assets/coins/ckb.svg'
 
 /** Map ticker → bundled PNG. Lookup is case-insensitive. */
@@ -53,6 +54,7 @@ const LOGO_MAP: Record<string, string> = {
   PRL:   pearlLogo,
   QUBIC: qubicLogo,
   KAS:   kaspaLogo,
+  NNN:   nonsenseLogo,
   CKB:   ckbLogo,
 }
 

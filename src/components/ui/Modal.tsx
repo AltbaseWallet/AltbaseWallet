@@ -25,6 +25,9 @@ export function Modal({ open, title, children, onClose, placement = 'center', cl
       }`}
     >
       <motion.div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
         initial={{ opacity: 0, y: placement === 'top' ? -10 : 20, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         className="max-h-[calc(100dvh-1rem)] w-full max-w-lg overflow-y-auto rounded-lg border border-white/10 bg-[#101827] p-4 shadow-soft sm:max-h-[calc(100dvh-2rem)] sm:p-5"

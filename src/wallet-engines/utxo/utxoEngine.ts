@@ -113,7 +113,7 @@ export const utxoEngine: WalletEngine = {
     })
   },
 
-  async send({ coin, mnemonic, fromAddress, toAddress, amountCoin, feeCoin, sendMax }) {
+  async send({ coin, mnemonic, fromAddress, toAddress, amountCoin, feeCoin, maxFeeCoin, sendMax }) {
     if (!coin.cryptoParams) throw new Error(`Coin "${coin.id}" has no crypto parameters configured`)
     if (!fromAddress) throw new Error(`Address for ${coin.id} not derived yet - reopen the wallet`)
     return coinTxService.send({
@@ -125,6 +125,7 @@ export const utxoEngine: WalletEngine = {
       toAddress,
       amountCoin,
       feeCoin,
+      maxFeeCoin,
       sendMax,
     })
   },

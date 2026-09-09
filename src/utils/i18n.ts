@@ -17,6 +17,11 @@ export const SUPPORTED_LANGUAGES: { code: Language; native: string; english: str
 /* ───── dictionary type ───── */
 
 const en = {
+  maxCalculating: 'Calculating MAX and checking network data…',
+  balanceNotCurrent: 'Current balance not verified',
+  maxPartialNotice: 'This amount fits in one transaction. Remaining balance: {amount} {ticker}.',
+  maxUpdatedReview: 'MAX amount or fee changed. Review the new values and press Continue again.',
+  maxUpdatedRetry: 'The network amount or fee changed. Recalculate MAX or the fee and review the transfer again.', 
   // common
   cancel: 'Cancel',
   confirm: 'Confirm',
@@ -218,6 +223,8 @@ const en = {
   txTypeIncoming: 'incoming',
   txTypeOutgoing: 'outgoing',
   txStatusPending: 'pending',
+  txStatusUnverified: 'status unverified',
+  txUnverifiedExplanation: 'Execution has not been verified by the network. A relay acknowledgement or scheduled tick does not prove receipt. This record is not proof of success or failure.',
   txStatusConfirmed: 'confirmed',
   txStatusFailed: 'failed',
   noTxForFilter: 'No transactions match the selected filters',
@@ -1136,6 +1143,11 @@ ariaAddFavorite: 'お気に入りに追加',
 }
 
 const ru: Partial<Record<TranslationKey, string>> = {
+  maxCalculating: 'Рассчитываем MAX и проверяем данные сети…',
+  balanceNotCurrent: 'Актуальный баланс не проверен',
+  maxPartialNotice: 'Эта сумма помещается в одну транзакцию. Остаток: {amount} {ticker}.',
+  maxUpdatedReview: 'Сумма MAX или комиссия изменилась. Проверьте новые значения и снова нажмите «Продолжить».',
+  maxUpdatedRetry: 'Сумма или комиссия сети изменилась. Пересчитайте MAX или комиссию и проверьте перевод заново.', 
   cancel: 'Отмена', confirm: 'Подтвердить', continue: 'Продолжить', save: 'Сохранить',
   back: 'Назад', next: 'Далее', copy: 'Скопировать', close: 'Закрыть',
   hide: 'Скрыть', show: 'Показать', search: 'Поиск', loading: 'Загрузка…',
@@ -1269,6 +1281,8 @@ const ru: Partial<Record<TranslationKey, string>> = {
   allCoins: 'Все монеты', allTypes: 'Все типы', allStatuses: 'Все статусы',
   txTypeIncoming: 'входящая', txTypeOutgoing: 'исходящая',
   txStatusPending: 'в обработке', txStatusConfirmed: 'подтверждена', txStatusFailed: 'невыполненная',
+  txStatusUnverified: 'статус не подтверждён',
+  txUnverifiedExplanation: 'Выполнение не подтверждено сетью. Ответ ретранслятора или назначенный тик не доказывает получение средств. Эта запись не доказывает ни успех, ни отказ.',
   noTxForFilter: 'Нет транзакций под выбранные фильтры',
 
   txDetailsTitle: 'Детали транзакции', txHash: 'хеш транзакции', txFrom: 'отправитель', txTo: 'получатель',

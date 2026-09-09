@@ -11,6 +11,7 @@ export type CoinWalletEngine =
   | 'xgr-account'
   | 'qubic-account'
   | 'kaspa-utxo'
+  | 'nonsense-utxo'
   | 'ckb-cell'
 export type UtxoReadProfile = 'address-index' | 'scan-utxo' | 'local-index' | 'blockbook' | 'mempool-space'
 

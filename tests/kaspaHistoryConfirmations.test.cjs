@@ -16,7 +16,8 @@ test('Kaspa history derives confirmations from accepting_block_blue_score', asyn
       inputs: [],
       outputs: [],
     }]],
-    ['/info/blockdag', { virtualDaaScore: 125 }],
+    ['/info/blockdag', { virtualDaaScore: 2_000_125 }],
+    ['/info/virtual-chain-blue-score', { blueScore: 125 }],
   ])
 
   Module._load = function patchedLoad(request, parent, isMain) {
@@ -39,6 +40,7 @@ test('Kaspa history derives confirmations from accepting_block_blue_score', asyn
     const history = await createKaspaRestAdapter().getHistory('kaspa:qtest')
     assert.equal(history.transactions[0].confirmations, 6)
     assert.equal(history.deltas[0].height, 120)
+    assert.equal(history.transactions[0].blocktime, 1_700_000_000)
   } finally {
     Module._load = originalLoad
   }
@@ -63,7 +65,8 @@ test('Kaspa sender history reads the current API previous-outpoint fields', asyn
         script_public_key_address: recipient,
       }],
     }]],
-    ['/info/blockdag', { virtualDaaScore: 205 }],
+    ['/info/blockdag', { virtualDaaScore: 2_000_205 }],
+    ['/info/virtual-chain-blue-score', { blueScore: 205 }],
   ])
 
   Module._load = function patchedLoad(request, parent, isMain) {
@@ -91,6 +94,36 @@ test('Kaspa sender history reads the current API previous-outpoint fields', asyn
   } finally {
     Module._load = originalLoad
   }
+})
+
+test('Kaspa separates DAA scores, missing blue tips, and unaccepted rows', async () => {
+  const rows = [
+    { transaction_id:'1'.repeat(64), block_daa_score:2_000_200, is_accepted:true },
+    { transaction_id:'2'.repeat(64), accepting_block_blue_score:200, is_accepted:true },
+    { transaction_id:'3'.repeat(64), accepting_block_blue_score:200, is_accepted:false },
+  ]
+  Module._load = function patchedLoad(request, parent, isMain) {
+    if (request.endsWith('/lib/rpc.cjs')) {
+      return {
+        RpcError: class RpcError extends Error {},
+        httpRequest: async (url) => {
+          if (url.pathname === '/info/virtual-chain-blue-score') throw new Error('Unavailable blue score')
+          return { status:200, body:JSON.stringify(url.pathname === '/info/blockdag'
+            ? {virtualDaaScore:2_000_205} : rows) }
+        },
+      }
+    }
+    return originalLoad.call(this, request, parent, isMain)
+  }
+  try {
+    const modulePath = require.resolve('../ops/remote-nodes/adapters/kaspaRest.cjs')
+    delete require.cache[modulePath]
+    const {createKaspaRestAdapter} = require(modulePath)
+    const history = await createKaspaRestAdapter().getHistory('kaspa:qtest')
+    assert.deepEqual(history.transactions.map(tx => tx.confirmations), [6,1,0])
+    assert.equal(history.deltas.length, 2)
+    assert.equal(history.mempool[0].txid, rows[2].transaction_id)
+  } finally { Module._load = originalLoad }
 })
 
 test('Kaspa mempool exposes pending amounts in KAS rather than raw sompi', async () => {

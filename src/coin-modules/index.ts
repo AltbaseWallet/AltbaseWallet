@@ -14,6 +14,7 @@ import litecoinii from './litecoinii'
 import monero from './monero'
 import mydogecoin from './mydogecoin'
 import neoxa from './neoxa'
+import nonsense from './nonsense'
 import pearl from './pearl'
 import pepecoin from './pepecoin'
 import quai from './quai'
@@ -40,6 +41,7 @@ export const coinModules: readonly CoinModule[] = [
   litecoinii,
   monero,
   neoxa,
+  nonsense,
   terracoin,
   junkcoin,
   raptoreum,

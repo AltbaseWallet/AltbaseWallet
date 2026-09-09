@@ -7,6 +7,7 @@ import { CoinIcon } from './CoinIcon'
 import { CoinStatusBadge } from './CoinStatusBadge'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useT } from '../../utils/i18n'
+import { usePrivacyBalanceDisplay } from '../../hooks/usePrivacyBalanceDisplay'
 
 type CoinRowProps = {
   coin: Coin
@@ -19,6 +20,7 @@ type CoinRowProps = {
 export function CoinRow({ coin, compact, onFavorite, onHide, onSelect }: CoinRowProps) {
   const t = useT()
   const hideBalances = useSettingsStore((state) => state.settings.hideBalances)
+  const display = usePrivacyBalanceDisplay(coin)
 
   return (
     <div className={`grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 rounded-lg border border-white/10 px-3 py-3 transition md:grid-cols-[1.4fr_1fr_1fr_auto] md:gap-4 ${
@@ -40,11 +42,11 @@ export function CoinRow({ coin, compact, onFavorite, onHide, onSelect }: CoinRow
       </Link>
 
       <div className="order-3 col-span-2 flex min-w-0 items-end justify-between gap-3 border-t border-white/10 pt-2 md:order-none md:col-span-1 md:block md:border-0 md:pt-0">
-        <p className="min-w-0 truncate text-sm font-semibold text-white">{hideBalances ? '••••' : formatAmount(coin.balance, coin.ticker)}</p>
-        <p className="shrink-0 text-xs text-slate-500">{hideBalances ? '••••' : formatUsd(coin.fiatValue)}</p>
+        <p className="min-w-0 truncate text-sm font-semibold text-white">{hideBalances ? '••••' : display.hideZero ? '—' : formatAmount(coin.balance, coin.ticker)}</p>
+        <p className="shrink-0 text-xs text-slate-500">{hideBalances ? '••••' : display.unverified ? t('balanceNotCurrent') : formatUsd(coin.fiatValue)}</p>
       </div>
 
-      <CoinStatusBadge status={coin.status} recoveryProgress={coin.recoveryProgress} className="hidden md:order-none md:inline-flex" />
+      <CoinStatusBadge status={display.status} recoveryProgress={coin.recoveryProgress} className="hidden md:order-none md:inline-flex" />
 
       <div className="order-2 flex items-center gap-1 md:order-none">
         {onFavorite && (

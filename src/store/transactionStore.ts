@@ -9,6 +9,7 @@ import { coinService, cryptoParamsFor } from '../services/coinService'
 import { coinTxService, UtxoBroadcastError } from '../services/coinTxService'
 import { reconcileEpicPendingDuplicates } from '../services/epicTransactionReconciliation'
 import {
+  confirmedAccountTransactionFee,
   dedupeTransactionsByIdentity,
   normalizedTransactionHash,
   transactionIdentityKey,
@@ -24,6 +25,7 @@ import type { Coin } from '../types/coin'
 import type { SendPayload, Transaction } from '../types/transaction'
 import { coinDebugLog, quaiDebugLog, quaiDebugLogError } from '../utils/quaiDebugLog'
 import { privacyStatusAfterConfirmations } from '../utils/privacyTransactionStatus'
+import { normalizeQubicTransaction } from '../utils/qubicTransactionStatus'
 import { isWalletAddressVariant } from '../utils/walletAddressOwnership'
 import { walletEngineRegistry } from '../wallet-engines/registry'
 import { fromBaseUnits, toBaseUnits } from '../utils/decimalAmount'
@@ -35,6 +37,7 @@ const usesDedicatedRemoteWalletEngine = (coin: Coin) =>
   coin.walletEngine === 'xgr-account'
   || coin.walletEngine === 'qubic-account'
   || coin.walletEngine === 'kaspa-utxo'
+  || coin.walletEngine === 'nonsense-utxo'
   || coin.walletEngine === 'ckb-cell'
 
 type LoadTransactionsResult = {
@@ -778,6 +781,7 @@ const activeSpentOutpointsForCoin = (coinId: string, transactions: Transaction[]
 }
 
 const normalizeStoredTransaction = (tx: Transaction): Transaction => {
+  if (tx.coinId === 'qubic') return normalizeQubicTransaction(tx)
   // Releases before 0.1.7 incorrectly converted locally-broadcast UTXO rows
   // to `failed` after a ten-minute history miss. Deterministic send failures
   // never reach storage (the prepared row is removed in the catch path), so a
@@ -1181,7 +1185,8 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
         to: trustLocalOutgoing ? prev.to ?? tx.to : tx.to,
         from: trustLocalOutgoing ? prev.from ?? tx.from : tx.from,
         internal: prev.internal ?? tx.internal,
-        fee: trustLocalOutgoing ? prev.fee ?? tx.fee : tx.fee ?? prev.fee,
+        fee: confirmedAccountTransactionFee(prev, tx)
+          ?? (trustLocalOutgoing ? prev.fee ?? tx.fee : tx.fee ?? prev.fee),
         spentOutpoints: prev.spentOutpoints ?? tx.spentOutpoints,
         balanceBefore: prev.balanceBefore ?? tx.balanceBefore,
         expectedBalanceAfter: prev.expectedBalanceAfter ?? tx.expectedBalanceAfter,
@@ -1681,7 +1686,8 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
         to: trustLocalOutgoing ? prev.to ?? tx.to : tx.to,
         from: trustLocalOutgoing ? prev.from ?? tx.from : tx.from,
         internal: prev.internal ?? tx.internal,
-        fee: trustLocalOutgoing ? prev.fee ?? tx.fee : tx.fee ?? prev.fee,
+        fee: confirmedAccountTransactionFee(prev, tx)
+          ?? (trustLocalOutgoing ? prev.fee ?? tx.fee : tx.fee ?? prev.fee),
         spentOutpoints: prev.spentOutpoints ?? tx.spentOutpoints,
         balanceBefore: prev.balanceBefore ?? tx.balanceBefore,
         expectedBalanceAfter: prev.expectedBalanceAfter ?? tx.expectedBalanceAfter,
@@ -1811,7 +1817,8 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
         to: trustLocalOutgoing ? prev.to ?? tx.to : tx.to,
         from: trustLocalOutgoing ? prev.from ?? tx.from : tx.from,
         internal: prev.internal ?? tx.internal,
-        fee: trustLocalOutgoing ? prev.fee ?? tx.fee : tx.fee ?? prev.fee,
+        fee: confirmedAccountTransactionFee(prev, tx)
+          ?? (trustLocalOutgoing ? prev.fee ?? tx.fee : tx.fee ?? prev.fee),
         spentOutpoints: prev.spentOutpoints ?? tx.spentOutpoints,
         balanceBefore: prev.balanceBefore ?? tx.balanceBefore,
         expectedBalanceAfter: prev.expectedBalanceAfter ?? tx.expectedBalanceAfter,
@@ -2175,6 +2182,7 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
               toAddress: to,
               amountCoin: amount,
               feeCoin: payload.fee,
+          maxFeeCoin: payload.maxFee,
               sendMax: payload.sendMax,
               onPrepared: async (prepared) => {
                 const tx: Transaction = {
@@ -2305,6 +2313,7 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
           toAddress: to,
           amountCoin: amount,
           feeCoin: payload.fee,
+          maxFeeCoin: payload.maxFee,
           sendMax: payload.sendMax,
           memo: payload.comment,
         })
@@ -2372,6 +2381,7 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
           toAddress: to,
           amountCoin: amount,
           feeCoin: payload.fee,
+          maxFeeCoin: payload.maxFee,
           sendMax: payload.sendMax,
           excludeOutpoints: activeSpentOutpointsForCoin(coinId, get().transactions),
           onPrepared: async (prepared) => {

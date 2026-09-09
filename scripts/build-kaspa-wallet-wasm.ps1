@@ -1,6 +1,6 @@
 param(
   [ValidateRange(1, 32)]
-  [int]$Threads = 7,
+  [int]$Threads = 1,
   [string]$SourceRoot = ""
 )
 

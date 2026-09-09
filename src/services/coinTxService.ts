@@ -9,6 +9,8 @@ import type { CoinCryptoParams } from '../types/crypto'
 import { addressVariantsFromLegacyAddress, legacyAddressForNativeScript } from '../utils/addressVariants'
 import { coinApiService, type FeeRateInfo, type Utxo } from './coinApiService'
 import { nativeCoreService } from './nativeCoreService'
+import { assertApprovedSpend } from '../utils/sendFeePolicy'
+import { assertProvenUtxo, verifiedTransactionOutputs } from '../utils/utxoTransactionProof'
 
 /* ───── amount / utxo helpers ───── */
 
@@ -43,8 +45,12 @@ const coinAmountToSats = (value: string, satsPerCoin: number, label: string) => 
   return BigInt(whole || '0') * scale + BigInt(padded || '0')
 }
 
-const satsToCoinText = (sats: bigint | number, satsPerCoin: number) =>
-  (Number(sats) / satsPerCoin).toFixed(8).replace(/\.?0+$/, '') || '0'
+const satsToCoinText = (sats: bigint | number, satsPerCoin: number) => {
+  const value = BigInt(sats)
+  const scale = BigInt(satsPerCoin)
+  const fraction = (value % scale).toString().padStart(decimalsForScale(satsPerCoin), '0').replace(/0+$/, '')
+  return fraction ? `${value / scale}.${fraction}` : `${value / scale}`
+}
 
 const toNativeUtxos = (utxos: Utxo[]) =>
   utxos.map((utxo) => ({
@@ -107,7 +113,7 @@ const isDeterministicBroadcastRejection = (error: unknown) => {
   if (!(error instanceof Error)) return false
   const status = Number((error as Error & { status?: number }).status)
   if (Number.isFinite(status) && status >= 400 && status < 500 && status !== 408) return true
-  return /bad-txns-inputs-missingorspent|missing.?or.?spent|txn-mempool-conflict|min relay fee not met|mempool full|mandatory-script-verify|non-mandatory-script-verify|bad-txns|insufficient fee|dust/i.test(error.message)
+  return /bad-txns-inputs-missingorspent|missing.?or.?spent|txn-mempool-conflict|min relay fee not met|mempool full|mempool-script-verify-flag-failed|mandatory-script-verify|non-mandatory-script-verify|bad-txns|insufficient fee|dust/i.test(error.message)
 }
 
 export class UtxoBroadcastError extends Error {
@@ -284,7 +290,14 @@ export const coinTxService = {
     excludeOutpoints?: Array<{ txid: string; vout: number }>
   }): Promise<CoinMaxSendResult> {
     const { coinId, cryptoParams, satsPerCoin, fromAddress, feeCoin, excludeOutpoints } = params
-    const utxos = await fetchFundingUtxos(coinId, fromAddress, cryptoParams, { fast: true, excludeOutpoints })
+    // MAX becomes the amount and fee shown for approval. Use the same fresh
+    // funding set and fee policy as send(), never the short display fallback.
+    const [utxos, feeRatePerKb] = await Promise.all([
+      fetchFundingUtxos(coinId, fromAddress, cryptoParams, { force: true, fast: false, excludeOutpoints }),
+      feeCoin
+        ? Promise.resolve(COIN_FALLBACK_FEE_RATE_PER_KB[coinId] ?? FALLBACK_FEE_RATE_PER_KB)
+        : getFeeRate(coinId, { force: true }),
+    ])
     if (utxos.length === 0) throw new Error('No spendable UTXOs (balance is 0 or unconfirmed)')
     const manualFeeSats = feeCoin ? coinAmountToSats(feeCoin, satsPerCoin, 'fee') : undefined
     if (manualFeeSats !== undefined) {
@@ -295,7 +308,7 @@ export const coinTxService = {
         mode: 'max',
         utxos: toNativeUtxos(utxos),
         satsPerCoin,
-        feeRatePerKb: feeCoin ? (COIN_FALLBACK_FEE_RATE_PER_KB[coinId] ?? FALLBACK_FEE_RATE_PER_KB) : await getFeeRate(coinId, { force: false }),
+        feeRatePerKb,
         manualFeeSats,
       })
     return {
@@ -322,6 +335,7 @@ export const coinTxService = {
     sendMax?: boolean
     excludeOutpoints?: Array<{ txid: string; vout: number }>
     onPrepared?: (prepared: PreparedCoinSend) => void | Promise<void>
+    maxFeeCoin?: string
   }): Promise<CoinSendResult> {
     const { coinId, cryptoParams, satsPerCoin, mnemonic, fromAddress, toAddress, amountCoin, feeCoin, sendMax, excludeOutpoints } = params
 
@@ -360,6 +374,26 @@ export const coinTxService = {
       await assertManualFeeAboveRelay(coinId, satsPerCoin, manualFeeSats, plan.inputCount, plan.outputs.length)
     }
 
+    // Legacy signatures do not commit input amounts. A wrong amount from
+    // an upstream node would otherwise turn the difference into a miner fee.
+    const checkedTransactions = new Map<string, ReturnType<typeof verifiedTransactionOutputs>>()
+    for (const input of plan.selectedInputs) {
+      if (cryptoParams.sighashStyle === 'bip143-forkid' || /^(0014|5120)/i.test(input.script)) continue
+      let outputs = checkedTransactions.get(input.txid)
+      if (!outputs) {
+        const source = utxos.find((utxo) => utxo.txid === input.txid)
+        outputs = verifiedTransactionOutputs(await coinApiService.getRawTransaction(coinId, input.txid, source?.height), input.txid)
+        checkedTransactions.set(input.txid, outputs)
+      }
+      assertProvenUtxo(outputs[input.vout], input)
+    }
+    assertApprovedSpend({
+      actualFee: satsToCoinText(plan.feeSatoshis, satsPerCoin),
+      maxFee: params.maxFeeCoin ?? feeCoin,
+      actualAmount: satsToCoinText(plan.amountSatoshis, satsPerCoin),
+      approvedAmount: amountCoin,
+      sendMax,
+    })
     const signed = await nativeCoreService.signTransaction({
       coinId,
       mnemonic,

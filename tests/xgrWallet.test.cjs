@@ -163,3 +163,19 @@ test('XGR signs an EIP-1559 native transfer for chain 1643 before broadcast', as
     coinApiService.broadcast = originalBroadcast
   }
 })
+
+test('XGR preserves the confirmed fee cap with manual gas rounding and rejects an increased network price', async (t) => {
+  t.mock.method(coinApiService, 'getAccountTxContext', async () => feeContext)
+  const broadcast = t.mock.method(coinApiService, 'broadcast', async (_coin, raw) => {
+    const tx = Transaction.from(raw)
+    assert.ok(tx.gasLimit * tx.maxFeePerGas <= parseEther('0.05'))
+    return tx.hash
+  })
+  const params = { coinId: 'xgr', mnemonic: TEST_MNEMONIC, fromAddress: TEST_ADDRESS,
+    toAddress: RECIPIENT, amountCoin: '0.1', feeCoin: '0.05', maxFeeCoin: '0.05', knownSpendableCoin: '1' }
+  await xgrWalletService.send(params)
+  assert.equal(broadcast.mock.callCount(), 1)
+  t.mock.method(coinApiService, 'getAccountTxContext', async () => ({ ...feeContext, maxFeePerGas: '4002000000000' }))
+  await assert.rejects(xgrWalletService.send(params), /fee increased/)
+  assert.equal(broadcast.mock.callCount(), 1)
+})

@@ -1,0 +1,102 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -201,7 +201,7 @@
+   set(RELEASE_FLAGS "-Ofast -DNDEBUG -Wno-unused-variable")
+ 
+   if(NOT APPLE AND NOT (CMAKE_SYSTEM_NAME STREQUAL "Android"))
+-    set(RELEASE_FLAGS "${RELEASE_FLAGS} -flto=auto -g3")
++    set(RELEASE_FLAGS "${RELEASE_FLAGS}") # Altbase isolated build: omit LTO/debug to bound memory
+   endif()
+   #if(CMAKE_C_COMPILER_ID STREQUAL "GNU" AND NOT MINGW)
+   #  set(RELEASE_FLAGS "${RELEASE_FLAGS} -fno-fat-lto-objects")
+--- a/src/common/boost_serialization_maps.h
++++ b/src/common/boost_serialization_maps.h
+@@ -54,8 +54,10 @@
+ template <std::size_t Expected, std::size_t Actual>
+ struct if_you_see_this_check_END_BOOST_SERIALIZATION_TOTAL_FIELDS_macro;
+ 
++#ifndef DISABLE_PFR_SERIALIZATION_SELFCHECK
+ template <class T, std::size_t Expected>
+ using validate_fields_t = std::conditional_t<(boost::pfr::tuple_size_v<T> == Expected), int, if_you_see_this_check_END_BOOST_SERIALIZATION_TOTAL_FIELDS_macro<Expected, boost::pfr::tuple_size_v<T>>>;
++#endif
+ 
+ template<std::size_t expected, std::size_t actual>
+ constexpr bool static_check_num_eq() { static_assert(expected == actual, "numbers mismatched -- see static_check_num_eq<expected, actual> in the instantiation below"); return expected == actual; }
+--- a/src/wallet/plain_wallet_api.cpp
++++ b/src/wallet/plain_wallet_api.cpp
+@@ -185,7 +185,7 @@
+ #ifdef ANDROID_BUILD
+     epee::log_space::log_singletone::add_logger(new android_logger());
+ #else
+-    epee::log_space::log_singletone::add_logger(LOGGER_CONSOLE_NO_ALLOC, NULL, NULL);
++    // Altbase keeps stdout reserved for JSON IPC; use the file logger below.
+ #endif
+ 
+     epee::log_space::log_singletone::add_logger(LOGGER_FILE, "plain_wallet.log", log_dir.c_str());
+@@ -272,7 +272,7 @@
+       return GENERAL_INTERNAL_ERRROR_INIT;
+     }
+     
+-    ptr->gwm.set_use_deffered_global_outputs(true);
++    ptr->gwm.set_use_deffered_global_outputs(false);
+ 
+     if (!ptr->postponed_run_wallet && !ptr->postponed_main_worked_started)
+     {
+@@ -562,6 +562,16 @@
+     auto cb = [&](wallets_manager& gwm, view::open_wallet_response& rsp, const std::wstring& path_full)
+       {
+         return gwm.restore_wallet(path_full, password, secret_derivation, auditable_wallet, creation_timestamp, rsp);
++      };
++
++    return restore(path, password, cb);
++  }
++
++  std::string restore(const std::string& path, const std::string& password, const std::string& secret_derivation, bool auditable_wallet, uint64_t creation_timestamp, uint64_t minimum_height)
++  {
++    auto cb = [&](wallets_manager& gwm, view::open_wallet_response& rsp, const std::wstring& path_full)
++      {
++        return gwm.restore_wallet(path_full, password, secret_derivation, auditable_wallet, creation_timestamp, minimum_height, rsp);
+       };
+ 
+     return restore(path, password, cb);
+--- a/src/wallet/plain_wallet_api.h
++++ b/src/wallet/plain_wallet_api.h
+@@ -29,6 +29,7 @@
+ 
+   std::string open(const std::string& path, const std::string& password);
+   std::string restore(const std::string& seed, const std::string& path, const std::string& password, const std::string& seed_password);
++  std::string restore(const std::string& path, const std::string& password, const std::string& secret_derivation, bool auditable_wallet, uint64_t creation_timestamp, uint64_t minimum_height);
+   std::string generate(const std::string& path, const std::string& password);
+   std::string get_opened_wallets();  
+ 
+--- a/src/wallet/wallets_manager.cpp
++++ b/src/wallet/wallets_manager.cpp
+@@ -1453,6 +1453,18 @@
+   return restore_wallet(path, password, cb, owr);
+ }
+ 
++std::string wallets_manager::restore_wallet(const std::wstring& path, const std::string& password, const std::string& secret_derivation, bool is_auditabe_wallet, uint64_t creation_timestamp, uint64_t minimum_height, view::open_wallet_response& owr)
++{
++  auto cb = [&](tools::wallet2& x)
++    {
++      x.restore(path, password, secret_derivation, is_auditabe_wallet, creation_timestamp);
++      if (minimum_height > 0)
++        x.set_minimum_height(minimum_height);
++      return true;
++    };
++  return restore_wallet(path, password, cb, owr);
++}
++
+ std::string wallets_manager::restore_wallet(const std::wstring& path, const std::string& password, const std::string& seed_phrase, const std::string& seed_password, view::open_wallet_response& owr)
+ {
+   auto cb = [&](tools::wallet2& x)
+--- a/src/wallet/wallets_manager.h
++++ b/src/wallet/wallets_manager.h
+@@ -103,6 +103,7 @@
+   std::string generate_wallet(const std::wstring& path, const std::string& password, view::open_wallet_response& owr);
+   std::string restore_wallet(const std::wstring& path, const std::string& password, const std::string& seed_phrase, const std::string& seed_password, view::open_wallet_response& owr);
+   std::string restore_wallet(const std::wstring& path, const std::string& password, const std::string& secret_derivation, bool auditable_walet, uint64_t creation_timestamp, view::open_wallet_response& owr);
++  std::string restore_wallet(const std::wstring& path, const std::string& password, const std::string& secret_derivation, bool auditable_walet, uint64_t creation_timestamp, uint64_t minimum_height, view::open_wallet_response& owr);
+   std::string invoke(uint64_t wallet_id, std::string params);
+   std::string get_wallet_status(uint64_t wallet_id);
+   std::string run_wallet(uint64_t wallet_id);

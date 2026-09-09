@@ -130,3 +130,22 @@ test('Epic synthetic confirmed entry replaces its matching local pending entry',
   assert.equal(reconciled.removedCount, 1)
   assert.equal(reconciled.transactions.length, 0)
 })
+
+test('confirmed account receipts replace the send-time gas estimate and survive stale pending duplicates', () => {
+  for (const coinId of ['quai', 'xgr']) {
+    const local = tx(coinId, 'pending', { fee: '0.4518761' })
+    const receipt = tx(coinId, 'confirmed', { fee: '0.37619799', blockHeight: 99 })
+    for (const input of [[local, receipt, local], [receipt, local]]) {
+      const [merged] = dedupeTransactionsByIdentity(input)
+      assert.equal(merged.fee, '0.37619799', coinId)
+      assert.equal(merged.amount, local.amount)
+      assert.equal(merged.status, 'confirmed')
+    }
+    assert.equal(dedupeTransactionsByIdentity([local, { ...receipt, fee: undefined }])[0].fee, local.fee)
+  }
+  const [utxo] = dedupeTransactionsByIdentity([
+    tx('bitcoin', 'pending', { fee: '0.00001' }),
+    tx('bitcoin', 'confirmed', { fee: '0.00002' }),
+  ])
+  assert.equal(utxo.fee, '0.00001')
+})

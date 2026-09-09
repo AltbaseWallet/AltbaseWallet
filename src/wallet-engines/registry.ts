@@ -9,12 +9,14 @@ import type { WalletEngine, WalletEngineKind } from './types'
 import { pearlEngine } from './utxo/pearlEngine'
 import { utxoEngine } from './utxo/utxoEngine'
 import { kaspaEngine } from './utxo/kaspaEngine'
+import { nonsenseEngine } from './utxo/nonsenseEngine'
 
 const engineForCoin = (coin?: Pick<Coin, 'walletEngine'> | null): WalletEngine => {
   if (coin?.walletEngine === 'quai-account') return quaiEngine
   if (coin?.walletEngine === 'xgr-account') return xgrEngine
   if (coin?.walletEngine === 'qubic-account') return qubicEngine
   if (coin?.walletEngine === 'kaspa-utxo') return kaspaEngine
+  if (coin?.walletEngine === 'nonsense-utxo') return nonsenseEngine
   if (coin?.walletEngine === 'ckb-cell') return ckbEngine
   if (coin?.walletEngine === 'pearl-utxo') return pearlEngine
   if (coin?.walletEngine === 'zano-light' || coin?.walletEngine === 'epic-light' || coin?.walletEngine === 'monero-light') return privacyEngine

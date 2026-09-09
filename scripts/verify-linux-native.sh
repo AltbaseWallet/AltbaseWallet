@@ -26,7 +26,7 @@ expected_node_modules=(
   altbase_neoxa_node.so altbase_terracoin_node.so altbase_junkcoin_node.so
   altbase_raptoreum_node.so altbase_pearl_node.so altbase_zano_node.so
   altbase_epic_node.so altbase_quai_node.so altbase_xgr_node.so
-  altbase_qubic_node.so altbase_kaspa_node.so altbase_ckb_node.so
+  altbase_qubic_node.so altbase_kaspa_node.so altbase_nonsense_node.so altbase_ckb_node.so
 )
 
 actual_wallet_modules="$(

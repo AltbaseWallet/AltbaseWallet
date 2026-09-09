@@ -40,7 +40,7 @@ export default function TransactionDetails() {
 
   if (!tx && loading) return <Card>{t('loading')}</Card>
   if (!tx) return <Card>{t('txNotFound')}</Card>
-  const statusLabel = tx.status === 'confirmed'
+  const statusLabel = tx.verification === 'unverified' ? t('txStatusUnverified') : tx.status === 'confirmed'
     ? t('txStatusConfirmed')
     : tx.status === 'failed'
       ? t('txStatusFailed')
@@ -55,6 +55,7 @@ export default function TransactionDetails() {
         </div>
         <StatusBadge status={tx.status} label={statusLabel} />
       </div>
+      {tx.verification === 'unverified' && <p className="mb-4 text-sm text-amber-200">{t('txUnverifiedExplanation')}</p>}
       <div className="grid gap-3 text-sm lg:grid-cols-2">
         {[
           [t('txHash'), tx.txHash],

@@ -103,13 +103,10 @@ export const networkToStatus = (
   if (n.initialBlockDownload === true) return 'syncing'
   const blocks = Number(n.blocks ?? 0)
   const headers = Number(n.headers ?? 0)
-  const progress = Number(n.verificationProgress ?? 1)
   if (
     headers > 0
     && blocks > 0
     && headers - blocks > 100
-    && Number.isFinite(progress)
-    && progress < 0.995
   ) {
     return 'syncing'
   }
@@ -497,6 +494,16 @@ const coinNodeJsonWithTimeout = async <T>(
         return data
       } catch (error) {
         lastError = normalizeNetworkError(error, timeoutMs)
+        // A transient transport failure during preparation is safe to retry.
+        // Keep broadcasts and other writes out of this explicit read allowlist.
+        const retryableRead = priority && [
+          '/address/utxos', '/address/balance', '/tx/raw', '/account/tx-context', '/fee/estimate',
+        ].includes(path.split('?')[0])
+        if (attempt === 0 && retryableRead && lastError instanceof Error
+          && /timed?\s*out|timeout|could not resolve|couldn't resolve|couldn't connect|failed to fetch|connection (?:reset|closed)|recv failure/i.test(lastError.message)) {
+          await sleep(300)
+          continue
+        }
         if (!isRateLimited(lastError) || attempt === RATE_LIMIT_RETRIES_MS.length) break
         await sleep(RATE_LIMIT_RETRIES_MS[attempt])
       }
@@ -630,13 +637,16 @@ export const mapRawTxToTransaction = (
   // must keep using the FIRST createdAt it ever saw for this txid so the
   // list doesn't reorder when the same tx flips from pending→confirmed.
   const ts = raw.blocktime ?? raw.time ?? meta.timestamp ?? Math.floor(Date.now() / 1000)
-  const resolvedStatus = raw.status === 'failed' || raw.status === 'error' ? 'failed' : status
+  // Qubic history can contain a scheduled tick without proof that money moved.
+  // Kaspa's generic network height is DAA, while history heights can be blue scores.
+  const resolvedStatus = raw.status === 'failed' || raw.status === 'error' ? 'failed'
+    : coinId === 'qubic' ? (Number(raw.confirmations) > 0 ? 'confirmed' : 'pending') : status
 
   const confirmations = resolveTransactionConfirmations(
     resolvedStatus,
     raw.confirmations,
-    meta.height,
-    meta.tipHeight,
+    coinId === 'kaspa' || coinId === 'qubic' ? undefined : meta.height,
+    coinId === 'kaspa' || coinId === 'qubic' ? undefined : meta.tipHeight,
   )
 
   return {
@@ -646,6 +656,7 @@ export const mapRawTxToTransaction = (
     amount,
     fee,
     status: resolvedStatus,
+    verification: coinId === 'qubic' ? (resolvedStatus === 'pending' ? 'unverified' : 'verified') : undefined,
     txHash: raw.txid,
     from,
     to,
@@ -780,9 +791,17 @@ export const coinApiService = {
     }
   },
 
+  /** Previous transaction bytes for local input amount and script verification. */
+  async getRawTransaction(coinId: string, txid: string, height?: number): Promise<string> {
+    if (!/^[0-9a-f]{64}$/i.test(txid)) throw new Error('Invalid transaction id')
+    const result = await postPriorityJson<{ hex: string }>(coinId, '/tx/raw', { txid, height }, 30_000)
+    if (typeof result.hex !== 'string') throw new Error('The node did not provide the previous transaction')
+    return result.hex
+  },
+
   /** Raw network state. */
   async getNetwork(coinId: string): Promise<CoinNetwork> {
-    return getJson<CoinNetwork>(coinId, '/network')
+    return getJson<CoinNetwork>(coinId, '/network', coinId === 'nonsense' ? 45_000 : 10_000)
   },
 
   /** Non-throwing version. */
@@ -803,7 +822,7 @@ export const coinApiService = {
       coinId,
       '/address/balance',
       { address },
-      options.priority ? INTERACTIVE_BALANCE_TIMEOUT_MS : 12_000,
+      options.priority || coinId === 'nonsense' ? INTERACTIVE_BALANCE_TIMEOUT_MS : 12_000,
     )
     return r.result
   },
@@ -820,7 +839,9 @@ export const coinApiService = {
         coinId,
         '/address/utxos',
         { address, force: options.force === true, fast: options.fast === true },
-        options.priority ? INTERACTIVE_TRANSACTION_TIMEOUT_MS : 15_000,
+        options.priority
+          ? INTERACTIVE_TRANSACTION_TIMEOUT_MS
+          : coinId === 'nonsense' ? INTERACTIVE_BALANCE_TIMEOUT_MS : 15_000,
       )
       value = r.result?.utxos ?? []
     } catch (error) {
@@ -849,7 +870,9 @@ export const coinApiService = {
         coinId,
         '/address/utxos',
         { addresses: unique, force: options.force === true, fast: options.fast === true },
-        options.priority ? INTERACTIVE_TRANSACTION_TIMEOUT_MS : options.force ? 25_000 : 15_000,
+        options.priority
+          ? INTERACTIVE_TRANSACTION_TIMEOUT_MS
+          : coinId === 'nonsense' ? INTERACTIVE_BALANCE_TIMEOUT_MS : options.force ? 25_000 : 15_000,
       )
       value = r.result?.utxos ?? []
     } catch (error) {
@@ -991,7 +1014,12 @@ export const coinApiService = {
 
   /** Validate an address against the daemon. */
   async validateAddress(coinId: string, address: string): Promise<{ isvalid: boolean }> {
-    const r = await postJson<{ ok: true; result: { isvalid: boolean } }>(coinId, '/validate', { address }, 12_000)
+    const r = await postJson<{ ok: true; result: { isvalid: boolean } }>(
+      coinId,
+      '/validate',
+      { address },
+      coinId === 'nonsense' ? INTERACTIVE_BALANCE_TIMEOUT_MS : 12_000,
+    )
     return r.result
   },
 
@@ -1109,7 +1137,12 @@ export const coinApiService = {
   ): Promise<Transaction[]> {
     let history: HistoryResponse
     try {
-      history = await postJson<HistoryResponse>(coinId, '/address/history', { address, limit, offset })
+      history = await postJson<HistoryResponse>(
+        coinId,
+        '/address/history',
+        { address, limit, offset },
+        coinId === 'nonsense' ? INTERACTIVE_BALANCE_TIMEOUT_MS : 10_000,
+      )
     } catch {
       return []
     }
@@ -1117,7 +1150,12 @@ export const coinApiService = {
   },
 
   async getAddressMempool(coinId: string, address: string): Promise<AddressMempoolResponse> {
-    const r = await postJson<{ ok: true } & AddressMempoolResponse>(coinId, '/address/mempool', { address })
+    const r = await postJson<{ ok: true } & AddressMempoolResponse>(
+      coinId,
+      '/address/mempool',
+      { address },
+      coinId === 'nonsense' ? INTERACTIVE_BALANCE_TIMEOUT_MS : 10_000,
+    )
     return {
       address: r.address,
       hasPendingOutgoing: Boolean(r.hasPendingOutgoing),
@@ -1129,7 +1167,12 @@ export const coinApiService = {
     const unique = Array.from(new Set(addresses.map((address) => address.trim()).filter(Boolean)))
     if (unique.length === 0) return { address: '', hasPendingOutgoing: false, pending: [] }
     if (unique.length === 1) return this.getAddressMempool(coinId, unique[0])
-    const r = await postJson<{ ok: true } & AddressMempoolResponse>(coinId, '/address/mempool', { addresses: unique })
+    const r = await postJson<{ ok: true } & AddressMempoolResponse>(
+      coinId,
+      '/address/mempool',
+      { addresses: unique },
+      coinId === 'nonsense' ? INTERACTIVE_BALANCE_TIMEOUT_MS : 10_000,
+    )
     return {
       address: r.address,
       hasPendingOutgoing: Boolean(r.hasPendingOutgoing),

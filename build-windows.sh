@@ -31,6 +31,7 @@ export TMPDIR="${ALTBASE_BUILD_TMPDIR:-$cache_base/altbase-build/tmp}"
 mkdir -p "$TMPDIR"
 
 [[ -f package.json && -f scripts/build-native-installer.cjs ]] || fail "run this script from the Altbase repository"
+bash scripts/build-nonsense-wallet-wasm.sh
 if [[ ! -x node_modules/.bin/electron-builder ]]; then
   npm ci --prefer-offline --no-audit --no-fund
 fi
@@ -53,9 +54,14 @@ npm run dist:win:dir
 if [[ "${OSTYPE:-}" == msys* || "${OSTYPE:-}" == cygwin* || "${OSTYPE:-}" == win32* ]]; then
   node scripts/build-native-installer.cjs
 else
-  for command_name in cc gcab msibuild msiinfo msiextract pkg-config timeout wine winepath wineserver xvfb-run xwininfo; do
+  for command_name in cc gcab msibuild msiinfo msiextract pkg-config timeout; do
     require_command "$command_name"
   done
+  if [[ "${ALTBASE_SKIP_WINE_ACCEPTANCE:-0}" != "1" ]]; then
+    for command_name in wine winepath wineserver xvfb-run xwininfo; do
+      require_command "$command_name"
+    done
+  fi
   cross_root="${ALTBASE_CROSS_MSI_TOOLS:-/}"
   # electron-builder's WiX tools share the default Wine server. A server left
   # by an earlier run can keep a duplicate light.exe alive and race the next
@@ -71,9 +77,10 @@ app_dir="$ROOT/release/win-unpacked"
 msi="$ROOT/release/Altbase-Wallet-Windows.msi"
 dll="$app_dir/resources/native-core/altbase_monero_wallet.dll"
 xgr_node="$app_dir/resources/native-core/altbase_xgr_node.dll"
+nonsense_node="$app_dir/resources/native-core/altbase_nonsense_node.dll"
 bridge="$app_dir/resources/native-core/altbase_core_bridge.exe"
 asar="$app_dir/resources/app.asar"
-for required_file in "$msi" "$dll" "$xgr_node" "$bridge" "$asar"; do
+for required_file in "$msi" "$dll" "$xgr_node" "$nonsense_node" "$bridge" "$asar"; do
   [[ -s "$required_file" ]] || fail "missing build output: $required_file"
 done
 
@@ -91,9 +98,12 @@ expected_exports=$'altbase_monero_wallet_free\naltbase_monero_wallet_request'
 xgr_exports="$(x86_64-w64-mingw32-objdump -p "$xgr_node" | sed -n '/\[Ordinal\/Name Pointer\] Table/,/The Function Table/p' | sed -n 's/.*altbase_xgr_node_\(free\|request\)$/altbase_xgr_node_\1/p' | sort -u)"
 expected_xgr_exports=$'altbase_xgr_node_free\naltbase_xgr_node_request'
 [[ "$xgr_exports" == "$expected_xgr_exports" ]] || fail "XGR node DLL does not have the exact two-function ABI"
+nonsense_exports="$(x86_64-w64-mingw32-objdump -p "$nonsense_node" | sed -n '/\[Ordinal\/Name Pointer\] Table/,/The Function Table/p' | sed -n 's/.*altbase_nonsense_node_\(free\|request\)$/altbase_nonsense_node_\1/p' | sort -u)"
+expected_nonsense_exports=$'altbase_nonsense_node_free\naltbase_nonsense_node_request'
+[[ "$nonsense_exports" == "$expected_nonsense_exports" ]] || fail "Nonsense node DLL does not have the exact two-function ABI"
 
 bridge_imports="$(x86_64-w64-mingw32-objdump -p "$bridge" | sed -n 's/^[[:space:]]*DLL Name:[[:space:]]*//p' | tr '[:upper:]' '[:lower:]' | sort -u)"
-expected_bridge_imports=$'altbase_bitcoin2_node.dll\naltbase_bitcoin2_wallet.dll\naltbase_bitcoin_node.dll\naltbase_bitcoin_wallet.dll\naltbase_bitcoincashii_node.dll\naltbase_bitcoincashii_wallet.dll\naltbase_btgs_node.dll\naltbase_btgs_wallet.dll\naltbase_capstash_node.dll\naltbase_capstash_wallet.dll\naltbase_ckb_node.dll\naltbase_epic_node.dll\naltbase_epic_wallet.dll\naltbase_firo_node.dll\naltbase_firo_wallet.dll\naltbase_hypercoin_node.dll\naltbase_hypercoin_wallet.dll\naltbase_junkcoin_node.dll\naltbase_junkcoin_wallet.dll\naltbase_kaspa_node.dll\naltbase_kerrigan_node.dll\naltbase_kerrigan_wallet.dll\naltbase_litecoinii_node.dll\naltbase_litecoinii_wallet.dll\naltbase_mydogecoin_node.dll\naltbase_mydogecoin_wallet.dll\naltbase_neoxa_node.dll\naltbase_neoxa_wallet.dll\naltbase_pearl_node.dll\naltbase_pearl_wallet.dll\naltbase_pepecoin_node.dll\naltbase_pepecoin_wallet.dll\naltbase_quai_node.dll\naltbase_qubic_node.dll\naltbase_raptoreum_node.dll\naltbase_raptoreum_wallet.dll\naltbase_scash_node.dll\naltbase_scash_wallet.dll\naltbase_terracoin_node.dll\naltbase_terracoin_wallet.dll\naltbase_utxo_address.dll\naltbase_utxo_derivation.dll\naltbase_utxo_planner.dll\naltbase_utxo_signer.dll\naltbase_wallet_vault.dll\naltbase_xgr_node.dll\naltbase_zano_node.dll\naltbase_zano_wallet.dll\nkernel32.dll\nuser32.dll'
+expected_bridge_imports=$'altbase_bitcoin2_node.dll\naltbase_bitcoin2_wallet.dll\naltbase_bitcoin_node.dll\naltbase_bitcoin_wallet.dll\naltbase_bitcoincashii_node.dll\naltbase_bitcoincashii_wallet.dll\naltbase_btgs_node.dll\naltbase_btgs_wallet.dll\naltbase_capstash_node.dll\naltbase_capstash_wallet.dll\naltbase_ckb_node.dll\naltbase_epic_node.dll\naltbase_epic_wallet.dll\naltbase_firo_node.dll\naltbase_firo_wallet.dll\naltbase_hypercoin_node.dll\naltbase_hypercoin_wallet.dll\naltbase_junkcoin_node.dll\naltbase_junkcoin_wallet.dll\naltbase_kaspa_node.dll\naltbase_kerrigan_node.dll\naltbase_kerrigan_wallet.dll\naltbase_litecoinii_node.dll\naltbase_litecoinii_wallet.dll\naltbase_mydogecoin_node.dll\naltbase_mydogecoin_wallet.dll\naltbase_neoxa_node.dll\naltbase_neoxa_wallet.dll\naltbase_nonsense_node.dll\naltbase_pearl_node.dll\naltbase_pearl_wallet.dll\naltbase_pepecoin_node.dll\naltbase_pepecoin_wallet.dll\naltbase_quai_node.dll\naltbase_qubic_node.dll\naltbase_raptoreum_node.dll\naltbase_raptoreum_wallet.dll\naltbase_scash_node.dll\naltbase_scash_wallet.dll\naltbase_terracoin_node.dll\naltbase_terracoin_wallet.dll\naltbase_utxo_address.dll\naltbase_utxo_derivation.dll\naltbase_utxo_planner.dll\naltbase_utxo_signer.dll\naltbase_wallet_vault.dll\naltbase_xgr_node.dll\naltbase_zano_node.dll\naltbase_zano_wallet.dll\nkernel32.dll\nuser32.dll'
 [[ "$bridge_imports" == "$expected_bridge_imports" ]] \
   || fail "native bridge imports differ from the official modular ABI: ${bridge_imports//$'\n'/, }"
 
@@ -115,12 +125,16 @@ trap cleanup EXIT
 msiextract -C "$verify_root" "$msi" >/dev/null
 extracted_dll="$(find "$verify_root" -type f -name altbase_monero_wallet.dll -print -quit)"
 extracted_xgr_node="$(find "$verify_root" -type f -name altbase_xgr_node.dll -print -quit)"
+extracted_nonsense_node="$(find "$verify_root" -type f -name altbase_nonsense_node.dll -print -quit)"
 [[ -n "$extracted_dll" ]] || fail "MSI does not contain the Monero wallet DLL"
 [[ -n "$extracted_xgr_node" ]] || fail "MSI does not contain the XGR node DLL"
+[[ -n "$extracted_nonsense_node" ]] || fail "MSI does not contain the Nonsense node DLL"
 [[ "$(sha256sum "$extracted_dll" | awk '{print $1}')" == "$(sha256sum "$dll" | awk '{print $1}')" ]] \
   || fail "MSI contains a different Monero wallet DLL"
 [[ "$(sha256sum "$extracted_xgr_node" | awk '{print $1}')" == "$(sha256sum "$xgr_node" | awk '{print $1}')" ]] \
   || fail "MSI contains a different XGR node DLL"
+[[ "$(sha256sum "$extracted_nonsense_node" | awk '{print $1}')" == "$(sha256sum "$nonsense_node" | awk '{print $1}')" ]] \
+  || fail "MSI contains a different Nonsense node DLL"
 
 if [[ "${OSTYPE:-}" != msys* && "${OSTYPE:-}" != cygwin* && "${OSTYPE:-}" != win32* ]]; then
   summary="$(msiinfo suminfo "$msi")"
@@ -134,6 +148,7 @@ if [[ "${OSTYPE:-}" != msys* && "${OSTYPE:-}" != cygwin* && "${OSTYPE:-}" != win
   [[ "$msi_reinstall_mode" == "amus" ]] \
     || fail "MSI does not force exact payload replacement during major upgrades"
 
+  if [[ "${ALTBASE_SKIP_WINE_ACCEPTANCE:-0}" != "1" ]]; then
   user_cache_root="${XDG_CACHE_HOME:-$(node -p "require('node:os').homedir()")/.cache}"
   wine_test_root="${ALTBASE_WINE_TEST_ROOT:-$user_cache_root/altbase-build}"
   mkdir -p "$wine_test_root"
@@ -361,6 +376,7 @@ if [[ "${OSTYPE:-}" != msys* && "${OSTYPE:-}" != cygwin* && "${OSTYPE:-}" != win
     fail "installed Windows wallet failed create/restore UI verification"
   fi
   reset_wine_server
+  fi
 fi
 
 mkdir -p artifacts

@@ -178,6 +178,7 @@ build_in_container() {
       rm -rf node_modules dist release native-core native/core/build/linux-x64-release native/epic_core/target/release native/target-epic-modular-linux native/vendor/zano_native_lib/Zano/build/altbase-linux-x64
     fi
     bash scripts/build-kaspa-wallet-wasm.sh
+    bash scripts/build-nonsense-wallet-wasm.sh
     npm ci --prefer-offline --no-audit --no-fund
 $(build_privacy_native)
     node scripts/build-monero-wallet-module.cjs --target=linux-x64
@@ -194,7 +195,7 @@ $(build_privacy_native)
     install -m 0755 \"\$appimage\" \"/out/$appimage_name\"
     file native-core/altbase_core_bridge
     test \"\$(find native-core -maxdepth 1 -type f \( -name 'altbase_*_wallet.so' -o -name 'libaltbase_*_wallet.so' \) | wc -l)\" -eq 20
-    test \"\$(find native-core -maxdepth 1 -type f -name 'altbase_*_node.so' | wc -l)\" -eq 23
+    test \"\$(find native-core -maxdepth 1 -type f -name 'altbase_*_node.so' | wc -l)\" -eq 24
   "
 }
 

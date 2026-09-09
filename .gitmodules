@@ -126,3 +126,7 @@
 	path = modules/xgr
 	url = https://github.com/AltbaseWallet/module-xgr.git
 	branch = main
+[submodule "modules/nonsense"]
+	path = modules/nonsense
+	url = https://github.com/AltbaseWallet/module-nonsense.git
+	branch = main

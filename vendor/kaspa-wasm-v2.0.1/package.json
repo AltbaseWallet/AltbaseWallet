@@ -1,0 +1,18 @@
+{
+  "name": "kaspa-wasm",
+  "version": "2.0.1",
+  "type": "module",
+  "main": "./kaspa.js",
+  "types": "./kaspa.d.ts",
+  "exports": {
+    ".": {
+      "types": "./kaspa.d.ts",
+      "import": "./kaspa.js"
+    },
+    "./kaspa_bg.base64.js": {
+      "types": "./kaspa_bg.base64.d.ts",
+      "import": "./kaspa_bg.base64.js"
+    }
+  },
+  "license": "ISC"
+}

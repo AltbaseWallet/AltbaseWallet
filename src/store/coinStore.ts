@@ -1742,9 +1742,15 @@ const resolveUtxoSnapshotBalance = async (
     if (balance) return { balance, coinSnapshot: withUtxoFallbackBalance(coinSnapshot, addresses, balance) }
   }
   try {
+    const fallbackTimeoutMs = coin.id === 'nonsense'
+      ? 45_000
+      : UTXO_BALANCE_FALLBACK_TIMEOUT_MS
     const utxos = await withTimeout(
-      coinApiService.getUtxosForAddresses(coin.id, addresses, { fast: true }),
-      UTXO_BALANCE_FALLBACK_TIMEOUT_MS,
+      coinApiService.getUtxosForAddresses(coin.id, addresses, {
+        fast: true,
+        priority: coin.id === 'nonsense',
+      }),
+      fallbackTimeoutMs,
     )
     const balance = coinBalanceFromUtxos(utxos)
     if (!balance) return null
@@ -2136,6 +2142,12 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
     const sendReadyCoins = enabled.filter((coin) => !coin.deferStartupBalance && !isPrivacyCoin(coin))
     const nonAccountSendReadyCoins = sendReadyCoins.filter((coin) => !isAccountCoin(coin))
     const accountSendReadyCoins = sendReadyCoins.filter((coin) => isAccountCoin(coin))
+    const sendReadyBalanceTimeoutMs = nonAccountSendReadyCoins.some((coin) => coin.id === 'nonsense')
+      ? 45_000
+      : SEND_READY_BALANCE_TIMEOUT_MS
+    const sendReadyNetworkTimeoutMs = enabled.some((coin) => coin.id === 'nonsense')
+      ? 45_000
+      : SEND_READY_NETWORK_TIMEOUT_MS
 
     if (
       hadCache
@@ -2152,11 +2164,11 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
     const networkPromise = walletSnapshotService.fetchNetwork(enabled)
     const sendReadyPromise = withTimeout(
       walletSnapshotService.fetchSendReadyBalancesChunked(nonAccountSendReadyCoins, {
-        timeoutMs: SEND_READY_BALANCE_TIMEOUT_MS,
+        timeoutMs: sendReadyBalanceTimeoutMs,
       }),
-      Math.max(SEND_READY_BALANCE_TIMEOUT_MS * 2, SEND_READY_BALANCE_TIMEOUT_MS + 5_000),
+      Math.max(sendReadyBalanceTimeoutMs * 2, sendReadyBalanceTimeoutMs + 5_000),
     ).catch(() => null)
-    const networkSnapshot = await withTimeout(networkPromise, SEND_READY_NETWORK_TIMEOUT_MS).catch(() => emptyWalletSnapshot())
+    const networkSnapshot = await withTimeout(networkPromise, sendReadyNetworkTimeoutMs).catch(() => emptyWalletSnapshot())
     if (loadSeq !== coinLoadSeq || !stillSameWallet(expectedScope, expectedMnemonic)) return
 
     const statusNow = Date.now()
@@ -2296,7 +2308,12 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
     const utxoItems = items.filter((item) => coinById.get(item.coin)?.cryptoParams && item.addresses.length > 0)
     const sendReadyWarmup = Promise.all([
       coinApiService.prefetchUtxos(utxoItems),
-      ...utxoItems.map((item) => coinApiService.getFeeRate(item.coin, 6, 2_500).catch(() => null)),
+      ...utxoItems.map((item) => coinApiService.getFeeRate(
+        item.coin,
+        6,
+        item.coin === 'nonsense' ? 45_000 : 2_500,
+        item.coin === 'nonsense' ? { priority: true } : {},
+      ).catch(() => null)),
     ]).catch(() => undefined)
     await withTimeout(sendReadyWarmup, SEND_READY_PREFETCH_TIMEOUT_MS).catch(() => undefined)
     void sendReadyWarmup
@@ -4136,9 +4153,11 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
             })
           }
 
-          const current = get().coins.length > 0 ? get().coins : await coinService.getCoins()
-          if (!stillSameWallet(expectedScope, mnemonic)) return
           const network = await coinApiService.tryGetNetwork(coin.id)
+          if (!stillSameWallet(expectedScope, mnemonic)) return
+          // Read after the network wait so this privacy refresh cannot restore
+          // older balances for unrelated coins when it commits the portfolio.
+          const current = get().coins.length > 0 ? get().coins : await coinService.getCoins()
           if (!stillSameWallet(expectedScope, mnemonic)) return
           const baseNetworkStatus = network ? networkToStatus(network) : coin.status
           const networkStatus = statusWithPrivacyRuntime(coin, baseNetworkStatus)
@@ -4278,8 +4297,9 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
     }
     if (!stillSameWallet(expectedScope, expectedMnemonic)) return
 
-    const current = get().coins.length > 0 ? get().coins : await coinService.getCoins()
     const network = await coinApiService.tryGetNetwork(coinId)
+    if (!stillSameWallet(expectedScope, expectedMnemonic)) return
+    const current = get().coins.length > 0 ? get().coins : await coinService.getCoins()
     if (!stillSameWallet(expectedScope, expectedMnemonic)) return
     const baseNetworkStatus = network ? networkToStatus(network) : coin.status
     const next = current.map((item) => {

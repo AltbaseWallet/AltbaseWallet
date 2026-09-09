@@ -171,6 +171,7 @@ export const hasSpendableReady = (response: PrivacyWalletResponse) => {
 }
 
 export const hasNativeBalanceReady = (response: PrivacyWalletResponse, nativeCode: string) => {
+  if (![response.balance, response.spendable].every(value => typeof value === 'string' && value.trim() !== '' && Number.isFinite(Number(value)) && Number(value) >= 0)) return false
   if (hasSpendableReady(response)) return true
   if (!response.ok || response.code !== nativeCode) return false
   const balance = Number.parseFloat(String(response.balance ?? '0'))

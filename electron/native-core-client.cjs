@@ -179,7 +179,13 @@ class NativeCoreClient {
       return Math.min(Math.max(requestTimeout + 15_000, 30_000), 90_000)
     }
     if (method === 'privacyLightWallet') {
-      if (params.action === 'send') return params.coin === 'epic' ? 240_000 : 120_000
+      if (params.action === 'send') {
+        // Monero refreshes the wallet before constructing a transfer. On a
+        // slow connection that refresh alone can consume most of two minutes.
+        // Leave time for construction and relay, with a finite overall limit.
+        if (params.coin === 'monero') return 300_000
+        return params.coin === 'epic' ? 240_000 : 120_000
+      }
       // Initial Epic and Monero restores can legitimately spend longer than
       // ten minutes inside a native scan. Restarting the bridge at that exact
       // boundary discards the in-memory progress and creates an endless retry
@@ -205,6 +211,7 @@ class NativeCoreClient {
   }
 
   hasPendingEpicSend() {
+    if (this.epicCloseGrace) return true
     return Array.from(this.pending.values()).some((slot) => (
       slot.method === 'privacyLightWallet'
       && slot.params?.coin === 'epic'
@@ -249,6 +256,7 @@ class NativeCoreClient {
   }
 
   requestNow(method, params = {}, onProgress) {
+    if (this.sessionClosed) return Promise.reject(new Error('Native wallet session is closed'))
     const nativeParams = {
       ...params,
       userDataDir: this.app.getPath('userData'),
@@ -269,11 +277,14 @@ class NativeCoreClient {
       const timeoutMs = this.timeoutFor(method, nativeParams)
       let timer
       const expire = () => {
+        const slot = this.pending.get(id)
         this.pending.delete(id)
         const details = method === 'privacyLightWallet'
           ? `${nativeParams.coin || 'privacy'} ${nativeParams.action || 'request'}`
           : method
-        reject(new Error(`native core timeout during ${details} after ${Math.round(timeoutMs / 1000)}s`))
+        const error = new Error(`native core timeout during ${details} after ${Math.round(timeoutMs / 1000)}s`)
+        if (slot) slot.reject(error)
+        else reject(error)
         this.restartAfterTimeout(`native core restarted after ${details} timeout`)
       }
       const armTimeout = () => {
@@ -310,6 +321,42 @@ class NativeCoreClient {
         failWrite(error)
       }
     })
+  }
+
+  closeSession(onClosed = () => undefined) {
+    this.sessionClosed = true
+    const sends = Array.from(this.pending.values()).filter((slot) => (
+      slot.method === 'privacyLightWallet' && slot.params?.action === 'send'
+    ))
+    if (sends.length === 0) {
+      this.stop()
+      onClosed()
+      return
+    }
+    // An already submitted transfer must settle before its helper is stopped.
+    // Revoke new/queued requests immediately while retaining those send results.
+    let remaining = sends.length
+    const needsEpicGrace = sends.some((slot) => slot.params?.coin === 'epic')
+    const settled = () => {
+      if (--remaining === 0) {
+        const finish = () => {
+          this.epicCloseGrace = false
+          this.stop()
+          onClosed()
+        }
+        if (needsEpicGrace) {
+          // Keep the same post-send flush window used by the app quit guard.
+          this.epicCloseGrace = true
+          setTimeout(finish, 3_000)
+        } else finish()
+      }
+    }
+    for (const slot of sends) {
+      for (const key of ['resolve', 'reject']) {
+        const original = slot[key]
+        slot[key] = (value) => { try { original(value) } finally { settled() } }
+      }
+    }
   }
 
   stop() {

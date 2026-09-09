@@ -18,6 +18,7 @@ import { formatAmount, formatUsd } from '../../utils/formatAmount'
 import { useT } from '../../utils/i18n'
 import { hasLoadedHistoryPage } from '../../utils/historyPagination'
 import { isPrivacyCoin } from '../../utils/privacyCoins'
+import { usePrivacyBalanceDisplay } from '../../hooks/usePrivacyBalanceDisplay'
 
 export default function CoinDetails() {
   const t = useT()
@@ -32,6 +33,7 @@ export default function CoinDetails() {
   const [rescanError, setRescanError] = useState('')
   const txPageSize = 8
   const coin = coins.find((item) => item.id === coinId)
+  const display = usePrivacyBalanceDisplay(coin)
   const effectiveAddress = coin ? walletService.getWalletAddresses()[coin.id] ?? coin.address : ''
   const privacyCoin = isPrivacyCoin(coin)
   const coinTx = useMemo(() => transactions.filter((tx) => tx.coinId === coinId), [coinId, transactions])
@@ -167,13 +169,13 @@ export default function CoinDetails() {
             <div>
               <h1 className="text-2xl font-bold text-white">{coin.name}</h1>
               <p className="text-slate-500">
-                {coin.ticker} - {coin.status}
+                {coin.ticker} - {display.status}
               </p>
             </div>
           </div>
           <div className="min-w-0 text-left md:text-right">
-            <p className="break-all text-2xl font-bold text-white sm:text-3xl">{hideBalances ? '\u2022\u2022\u2022\u2022' : formatAmount(coin.balance, coin.ticker)}</p>
-            <p className="text-slate-500">{hideBalances ? '\u2022\u2022\u2022\u2022' : formatUsd(coin.fiatValue)}</p>
+            <p className="break-all text-2xl font-bold text-white sm:text-3xl">{hideBalances ? '\u2022\u2022\u2022\u2022' : display.hideZero ? '—' : formatAmount(coin.balance, coin.ticker)}</p>
+            <p className="text-slate-500">{hideBalances ? '\u2022\u2022\u2022\u2022' : display.unverified ? t('balanceNotCurrent') : formatUsd(coin.fiatValue)}</p>
           </div>
         </div>
         <div className="mt-6 grid gap-5 lg:grid-cols-[1fr_230px]">

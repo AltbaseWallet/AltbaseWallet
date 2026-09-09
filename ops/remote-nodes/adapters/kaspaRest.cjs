@@ -62,7 +62,7 @@ const createKaspaRestAdapter = ({ coin = 'kaspa', apiBaseUrl = 'https://api.kasp
     const response = await requestJson(`/addresses/${encodeURIComponent(normalized)}/full-transactions-page?${query}`).catch(() => [])
     const transactions = Array.isArray(response) ? response : response.transactions ?? []
     const confirmed = new Set(transactions
-      .filter((tx) => tx.isAccepted !== false && tx.accepted !== false)
+      .filter((tx) => tx.isAccepted !== false && tx.is_accepted !== false && tx.accepted !== false)
       .map((tx) => String(tx.transactionId ?? tx.transaction_id ?? tx.id ?? tx.hash ?? '').trim())
       .filter(Boolean))
     for (const item of pending) if (confirmed.has(item.txid)) localPending.delete(item.txid)
@@ -88,7 +88,7 @@ const createKaspaRestAdapter = ({ coin = 'kaspa', apiBaseUrl = 'https://api.kasp
       ?? input?.amount
       ?? 0
 
-  const historyRow = (tx, ownAddress, virtualDaaScore = 0) => {
+  const historyRow = (tx, ownAddress, virtualDaaScore = 0, virtualBlueScore = 0) => {
     const txid = String(tx.transactionId ?? tx.transaction_id ?? tx.id ?? tx.hash ?? '').trim()
     if (!txid) return null
     const inputs = tx.inputs ?? []
@@ -98,20 +98,20 @@ const createKaspaRestAdapter = ({ coin = 'kaspa', apiBaseUrl = 'https://api.kasp
     const inputValue = ownInputs.reduce((sum, input) => sum + asBigInt(inputAmount(input)), 0n)
     const outputValue = ownOutputs.reduce((sum, output) => sum + asBigInt(output.amount ?? output.value ?? 0), 0n)
     const delta = outputValue - inputValue
-    const timestamp = Math.floor(Number(tx.blockTime ?? tx.block_time ?? tx.acceptingBlockTime ?? Date.now()) / (Number(tx.blockTime ?? tx.block_time ?? 0) > 9_999_999_999 ? 1000 : 1))
-    const blockDaaScore = Number(
-      tx.blockDaaScore
-        ?? tx.block_daa_score
-        ?? tx.acceptingBlockBlueScore
-        ?? tx.accepting_block_blue_score
-        ?? 0,
-    )
-    const confirmations = tx.isAccepted === false || tx.accepted === false
+    const rawTime = Number(tx.blockTime ?? tx.block_time ?? tx.acceptingBlockTime ?? tx.accepting_block_time ?? Date.now())
+    const timestamp = Math.floor(rawTime / (rawTime > 9_999_999_999 ? 1000 : 1))
+    const blockDaaScore = Number(tx.blockDaaScore ?? tx.block_daa_score ?? 0)
+    const blockBlueScore = Number(tx.acceptingBlockBlueScore ?? tx.accepting_block_blue_score ?? 0)
+    // DAA and blue scores are different counters. Compare only like scores;
+    // acceptance still proves one confirmation if the tip lookup fails.
+    const blockScore = blockDaaScore > 0 ? blockDaaScore : blockBlueScore
+    const tipScore = blockDaaScore > 0 ? virtualDaaScore : virtualBlueScore
+    const confirmations = tx.isAccepted === false || tx.is_accepted === false || tx.accepted === false
       ? 0
-      : Math.max(1, blockDaaScore > 0 && virtualDaaScore >= blockDaaScore ? virtualDaaScore - blockDaaScore + 1 : 1)
+      : Math.max(1, blockScore > 0 && tipScore >= blockScore ? tipScore - blockScore + 1 : 1)
     return {
       txid,
-      delta: { txid, satoshis: delta.toString(), height: blockDaaScore || undefined, timestamp },
+      delta: { txid, satoshis: delta.toString(), height: blockScore || undefined, timestamp },
       raw: {
         txid,
         hash: txid,
@@ -175,16 +175,18 @@ const createKaspaRestAdapter = ({ coin = 'kaspa', apiBaseUrl = 'https://api.kasp
     async getHistory(address, { limit = 25, offset = 0 } = {}) {
       const normalized = normalizeAddress(address)
       const query = new URLSearchParams({ limit: String(Math.min(Math.max(limit + offset, 1), 100)), resolve_previous_outpoints: 'light' })
-      const [response, dag] = await Promise.all([
+      const [response, dag, blue] = await Promise.all([
         requestJson(`/addresses/${encodeURIComponent(normalized)}/full-transactions-page?${query}`).catch((error) => {
           if (error?.status === 404) return []
           throw error
         }),
         requestJson('/info/blockdag').catch(() => ({})),
+        requestJson('/info/virtual-chain-blue-score').catch(() => ({})),
       ])
       const transactions = (Array.isArray(response) ? response : response.transactions ?? []).slice(offset, offset + limit)
       const virtualDaaScore = Number(dag.virtualDaaScore ?? dag.virtual_daa_score ?? 0)
-      const rows = transactions.map((tx) => historyRow(tx, normalized, virtualDaaScore)).filter(Boolean)
+      const virtualBlueScore = Number(blue.blueScore ?? blue.blue_score ?? 0)
+      const rows = transactions.map((tx) => historyRow(tx, normalized, virtualDaaScore, virtualBlueScore)).filter(Boolean)
       const confirmed = new Set(rows.filter((row) => row.raw.confirmations > 0).map((row) => row.txid))
       for (const txid of confirmed) localPending.delete(txid)
       const pending = activePending(normalized).filter((item) => !confirmed.has(item.txid)).map((item) => ({ txid: item.txid, satoshis: (item.from === normalized ? -asBigInt(item.amount) - asBigInt(item.fee) : asBigInt(item.amount)).toString(), timestamp: Math.floor(item.createdAt / 1000) }))

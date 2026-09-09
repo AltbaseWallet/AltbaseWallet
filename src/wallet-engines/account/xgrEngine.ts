@@ -43,7 +43,7 @@ export const xgrEngine: WalletEngine = {
     )
   },
 
-  async send({ coin, mnemonic, fromAddress, toAddress, amountCoin, feeCoin, sendMax }) {
+  async send({ coin, mnemonic, fromAddress, toAddress, amountCoin, feeCoin, maxFeeCoin, sendMax }) {
     if (!fromAddress) throw new Error(`Address for ${coin.id} not derived yet - reopen the wallet`)
     return xgrWalletService.send({
       coinId: coin.id,
@@ -52,6 +52,7 @@ export const xgrEngine: WalletEngine = {
       toAddress,
       amountCoin,
       feeCoin,
+      maxFeeCoin,
       sendMax,
       knownSpendableCoin: coin.spendableBalance ?? coin.balance ?? '0',
     })

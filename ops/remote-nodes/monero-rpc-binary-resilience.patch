@@ -1,0 +1,90 @@
+--- proxy.cjs
++++ proxy.cjs
+@@ -7,6 +7,8 @@
+ const LISTEN_PORT = Number(process.env.MONERO_PROXY_PORT || 38090)
+ const MAX_BODY_BYTES = Number(process.env.MONERO_PROXY_MAX_BODY_BYTES || 64 * 1024 * 1024)
+ const REQUEST_TIMEOUT_MS = Number(process.env.MONERO_PROXY_TIMEOUT_MS || 120_000)
++const BINARY_REQUEST_TIMEOUT_MS = Number(process.env.MONERO_PROXY_BINARY_TIMEOUT_MS || 30_000)
++const BINARY_FAILURE_COOLDOWN_MS = Number(process.env.MONERO_PROXY_BINARY_COOLDOWN_MS || 5 * 60_000)
+ const HEALTH_TIMEOUT_MS = Number(process.env.MONERO_PROXY_HEALTH_TIMEOUT_MS || 15_000)
+ const HEALTH_INTERVAL_MS = Number(process.env.MONERO_PROXY_HEALTH_INTERVAL_MS || 30_000)
+ const MAX_HEIGHT_LAG = Number(process.env.MONERO_PROXY_MAX_HEIGHT_LAG || 20)
+@@ -14,7 +16,7 @@
+ const DEFAULT_UPSTREAMS = [
++  'https://xmr.privacygateway.io:443',
+   'https://monero.econanon.com:443',
+   'https://xmr-01.tari.com',
+-  'https://xmr.privacygateway.io:443',
+   'https://connect.xmr-node.org',
+   'https://xmr-node.cakewallet.com:18081',
+ ]
+@@ -105,14 +107,18 @@
+   upstream.blockedUntil = Date.now() + delay
+ }
+ 
+-const markSuccess = (upstream, latencyMs) => {
+-  upstream.failures = 0
+-  upstream.blockedUntil = 0
++const updateLatency = (upstream, latencyMs) => {
+   upstream.latencyMs = Math.round((upstream.latencyMs === Number.MAX_SAFE_INTEGER
+     ? latencyMs
+     : upstream.latencyMs * 0.7 + latencyMs * 0.3))
+ }
+ 
++const markSuccess = (upstream, latencyMs) => {
++  upstream.failures = 0
++  upstream.blockedUntil = 0
++  updateLatency(upstream, latencyMs)
++}
++
+ const healthBody = Buffer.from(JSON.stringify({ jsonrpc: '2.0', id: 'health', method: 'get_info' }))
+ 
+ const probeUpstream = async (upstream) => {
+@@ -128,7 +134,9 @@
+     upstream.synchronized = true
+     upstream.height = Number(info.height || 0)
+     upstream.lastCheckedAt = Date.now()
+-    markSuccess(upstream, result.latencyMs)
++    // A cheap get_info response must not erase a cooldown earned by a failed
++    // multi-megabyte binary RPC request.
++    updateLatency(upstream, result.latencyMs)
+     return true
+   } catch {
+     upstream.synchronized = false
+@@ -165,6 +173,36 @@
+     available = candidates()
+   }
+ 
++  if (path.endsWith('.bin')) {
++    const attempted = available.slice(0, 3)
++    if (attempted.length === 0) throw new Error('No Monero RPC upstream is available')
++    try {
++      return await Promise.any(attempted.map(async (upstream) => {
++        try {
++          const result = await requestUpstream(
++            upstream,
++            path,
++            body,
++            contentType,
++            BINARY_REQUEST_TIMEOUT_MS,
++          )
++          if (result.statusCode !== 200) throw new Error(`upstream status ${result.statusCode}`)
++          markSuccess(upstream, result.latencyMs)
++          return result
++        } catch (error) {
++          markFailure(upstream)
++          upstream.blockedUntil = Math.max(
++            upstream.blockedUntil,
++            Date.now() + BINARY_FAILURE_COOLDOWN_MS,
++          )
++          throw error
++        }
++      }))
++    } catch (error) {
++      throw error instanceof AggregateError ? error.errors.at(-1) || error : error
++    }
++  }
++
+   let lastError = new Error('No healthy Monero RPC upstream is available')
+   for (const upstream of available.slice(0, 3)) {
+     try {
