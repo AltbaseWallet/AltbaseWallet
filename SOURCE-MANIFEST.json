@@ -1,5 +1,5 @@
 {
-  "preparedAt": "2026-09-09T20:54:24.381730+00:00",
+  "preparedAt": "2026-09-09T22:02:48.887473+00:00",
   "sourceRoot": "Altbase",
   "restrictedSourceOmitted": false,
   "gitHistoryIncluded": false,
@@ -232,7 +232,8 @@
       "vendor/kaspa-wasm-v2.0.1/kaspa_bg.base64.js",
       "vendor/nonsense-wasm-v0.1.7/nonsense_bg.wasm",
       "vendor/nonsense-wasm-v0.1.7/nonsense_bg.base64.js"
-    ]
+    ],
+    "releaseAsset": false
   },
   "files": [
     {
@@ -252,13 +253,13 @@
     },
     {
       "path": "CHANGELOG.md",
-      "bytes": 3779,
-      "sha256": "f2090695cba22aaf99f03e7e4c4f454c231a04a79ed55325056e651627215bd9"
+      "bytes": 3800,
+      "sha256": "a2499b27109598eae1137d17a1f1d250b8e87df0a222a43dbbbb06837ffb992b"
     },
     {
       "path": "README.md",
-      "bytes": 4894,
-      "sha256": "8e92c60e449897a44dbadd831df810f1b229bf3829844ee2b1f8545c6545106e"
+      "bytes": 5021,
+      "sha256": "4b3d25126008eb1dde3d103742880a13b670d110a627cab47913a64f261e3ba6"
     },
     {
       "path": "SOURCE-REVIEW.md",
@@ -31397,7 +31398,7 @@
     }
   ],
   "version": "0.1.8",
-  "update": "Publish through separate module repositories with pinned Git submodules and changes relative to public 0.1.7; preserve owner-provided storage sources without content inspection.",
+  "update": "Clarify English release documentation and local/source-build WASM prerequisites after removal of the runtime archive from release downloads.",
   "restrictedSourceContentInspected": false,
   "localExportModulesPopulated": true,
   "publicationPreservesGitHistory": true,

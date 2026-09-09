@@ -46,9 +46,12 @@ release builds. Dependency licenses and copyright notices are retained.
 
 ## Prepare frontend dependencies
 
-Use Node.js 22 or newer and npm. Compiled WASM assets are distributed separately
-from this source snapshot. Download the [verified runtime bundle](https://github.com/AltbaseWallet/AltbaseWallet/releases/download/v0.1.8/Altbase-WASM-runtime-v0.1.7.zip)
-from the 0.1.8 release and restore it before installing and building:
+Use Node.js 22 or newer and npm. Compiled WASM assets are required before
+frontend builds and are not included in the application release downloads.
+Build them using the platform-specific [Kaspa helper](scripts/build-kaspa-wallet-wasm.ps1)
+and [Nonsense helper](scripts/build-nonsense-wallet-wasm.sh), with the required
+Rust and platform tooling. If a verified runtime bundle is already available
+locally, restore it before installing and building:
 
 ```sh
 python3 scripts/restore-vendor-runtime.py /path/to/Altbase-WASM-runtime-v0.1.7.zip

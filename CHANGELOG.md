@@ -48,8 +48,8 @@
 - Correct Git inclusion rules for native source, Rust lockfiles, Kaspa glue and
   the signed Mining manifest. Default build jobs and Kaspa WASM threads to one.
 - Publish Windows as a ZIP containing the MSI, Linux as an x86_64 AppImage, and
-  macOS as a universal ZIP. Include SHA-256 checksums and the separate WASM
-  dependency bundle needed for frontend builds from source.
+  macOS as a universal ZIP. Include SHA-256 checksums for the application packages.
+  Building the frontend from source requires prepared WASM dependencies.
 - Pass 135 wallet and 11 Mining tests in an isolated frontend build on one CPU.
 - Pass nine BC2 fixture cases on Linux and nine on Windows, covering P2PKH,
   P2WPKH and P2TR. No real user transactions were signed or broadcast in these
