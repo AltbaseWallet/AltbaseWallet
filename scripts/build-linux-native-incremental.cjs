@@ -30,12 +30,13 @@ const standardLibraries = (cachedStandardLibraries || '')
   .filter(Boolean)
 
 const walletCoins = [
+  'bitcoincash', 'digibyte', 'peercoin',
   'bitcoin', 'bitcoin2', 'bitcoincashii', 'firo', 'btgs', 'capstash',
   'hypercoin', 'mydogecoin', 'pepecoin', 'kerrigan', 'scash', 'litecoinii',
   'neoxa', 'terracoin', 'junkcoin', 'raptoreum', 'pearl',
 ]
 const nodeCoins = [
-  ...walletCoins, 'zano', 'epic', 'quai', 'xgr', 'qubic', 'kaspa', 'nonsense', 'ckb',
+  ...walletCoins, 'nexa', 'zcash', 'zano', 'epic', 'quai', 'xgr', 'qubic', 'kaspa', 'nonsense', 'ckb',
 ]
 
 const run = (command, args, options = {}) => {
@@ -151,6 +152,18 @@ if (JSON.stringify(nonsenseExportNames) !== JSON.stringify(['altbase_nonsense_no
 }
 fs.copyFileSync(nonsenseOutput, path.join(buildBin, 'altbase_nonsense_node.so'))
 fs.chmodSync(path.join(buildBin, 'altbase_nonsense_node.so'), 0o755)
+
+// GrandPool coin wrappers remain separate modules and reuse the existing ABI.
+for (const coin of ['bitcoincash','digibyte','peercoin','nexa','zcash']) {
+  const object=path.join(work,`${coin}-node.o`)
+  compile(path.join(source,'coin_node_module.cpp'),object,[`ALTBASE_NODE_MODULE_COIN="${coin}"`,`ALTBASE_NODE_MODULE_REQUEST=altbase_${coin}_node_request`,`ALTBASE_NODE_MODULE_FREE=altbase_${coin}_node_free`])
+  run(compiler,['-shared',object,...xgrObjects.slice(1),path.join(buildBin,'libaltbase_net_core.so'),'-Wl,--gc-sections','-Wl,-z,relro,-z,now',`-Wl,-soname,altbase_${coin}_node.so`,'-Wl,-rpath,$ORIGIN','-o',path.join(buildBin,`altbase_${coin}_node.so`)])
+}
+for (const coin of ['bitcoincash','digibyte','peercoin']) {
+  const object=path.join(work,`${coin}-wallet.o`)
+  compile(path.join(source,'utxo_wallet_module.cpp'),object,[`ALTBASE_UTXO_MODULE_COIN="${coin}"`,`ALTBASE_UTXO_MODULE_REQUEST=altbase_${coin}_wallet_request`,`ALTBASE_UTXO_MODULE_FREE=altbase_${coin}_wallet_free`])
+  run(compiler,['-shared',object,xgrObjects[2],...['address','derivation','planner','signer'].map(service=>path.join(buildBin,`libaltbase_utxo_${service}.so`)),'-Wl,--gc-sections','-Wl,-z,relro,-z,now',`-Wl,-soname,altbase_${coin}_wallet.so`,'-Wl,-rpath,$ORIGIN','-o',path.join(buildBin,`altbase_${coin}_wallet.so`)])
+}
 
 const bridgeObjects = [
   ['bridge-main', path.join(source, 'main.cpp')],

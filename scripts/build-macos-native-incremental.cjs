@@ -32,12 +32,13 @@ const configurations = [
 ]
 
 const walletCoins = [
+  'bitcoincash', 'digibyte', 'peercoin',
   'bitcoin', 'bitcoin2', 'bitcoincashii', 'firo', 'btgs', 'capstash',
   'hypercoin', 'mydogecoin', 'pepecoin', 'kerrigan', 'scash', 'litecoinii',
   'neoxa', 'terracoin', 'junkcoin', 'raptoreum', 'pearl',
 ]
 const nodeCoins = [
-  ...walletCoins, 'zano', 'epic', 'quai', 'xgr', 'qubic', 'kaspa', 'nonsense', 'ckb',
+  ...walletCoins, 'nexa', 'zcash', 'zano', 'epic', 'quai', 'xgr', 'qubic', 'kaspa', 'nonsense', 'ckb',
 ]
 
 const run = (command, args, options = {}) => {
@@ -74,7 +75,7 @@ const buildArchitecture = (config) => {
   const compiler = path.join(bin, 'clang++')
   const otool = path.join(bin, `${config.host}-otool`)
   const sdk = path.join(depends, 'SDK')
-  const buildBin = path.join(root, 'native', 'core', 'build', `macos-${config.arch}-release`, 'bin')
+  const buildBin = path.join(process.env.ALTBASE_MACOS_NATIVE_BUILD_ROOT || path.join(root, 'native', 'core', 'build'), `macos-${config.arch}-release`, 'bin')
   const work = path.join(workRoot, config.arch)
   for (const filename of [compiler, otool, sdk, path.join(buildBin, 'libaltbase_net_core.dylib')]) requireFile(filename)
   fs.mkdirSync(work, { recursive: true })
@@ -159,6 +160,17 @@ const buildArchitecture = (config) => {
     '-o', nonsenseOutput,
   ])
   fs.copyFileSync(nonsenseOutput, path.join(buildBin, 'altbase_nonsense_node.dylib'))
+
+  for (const coin of ['bitcoincash','digibyte','peercoin','nexa','zcash']) {
+    const object=path.join(work,`${coin}-node.o`)
+    compile(path.join(source,'coin_node_module.cpp'),object,[`ALTBASE_NODE_MODULE_COIN="${coin}"`,`ALTBASE_NODE_MODULE_REQUEST=altbase_${coin}_node_request`,`ALTBASE_NODE_MODULE_FREE=altbase_${coin}_node_free`])
+    run(compiler,[...common,'-dynamiclib',object,...xgrObjects.slice(1),path.join(buildBin,'libaltbase_net_core.dylib'),'-Wl,-dead_strip',`-Wl,-install_name,@rpath/altbase_${coin}_node.dylib`,'-Wl,-rpath,@loader_path',`-Wl,-exported_symbol,_altbase_${coin}_node_free`,`-Wl,-exported_symbol,_altbase_${coin}_node_request`,'-o',path.join(buildBin,`altbase_${coin}_node.dylib`)])
+  }
+  for (const coin of ['bitcoincash','digibyte','peercoin']) {
+    const object=path.join(work,`${coin}-wallet.o`)
+    compile(path.join(source,'utxo_wallet_module.cpp'),object,[`ALTBASE_UTXO_MODULE_COIN="${coin}"`,`ALTBASE_UTXO_MODULE_REQUEST=altbase_${coin}_wallet_request`,`ALTBASE_UTXO_MODULE_FREE=altbase_${coin}_wallet_free`])
+    run(compiler,[...common,'-dynamiclib',object,xgrObjects[2],...['address','derivation','planner','signer'].map(service=>path.join(buildBin,`libaltbase_utxo_${service}.dylib`)),'-Wl,-dead_strip',`-Wl,-install_name,@rpath/altbase_${coin}_wallet.dylib`,'-Wl,-rpath,@loader_path',`-Wl,-exported_symbol,_altbase_${coin}_wallet_free`,`-Wl,-exported_symbol,_altbase_${coin}_wallet_request`,'-o',path.join(buildBin,`altbase_${coin}_wallet.dylib`)])
+  }
 
   const bridgeObjects = [
     ['bridge-main', path.join(source, 'main.cpp')],

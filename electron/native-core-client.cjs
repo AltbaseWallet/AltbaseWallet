@@ -56,15 +56,16 @@ class NativeCoreClient {
   }
 
   corePath() {
-    const packaged = path.join(process.resourcesPath, 'native-core', CORE_EXE)
-    if (this.app.isPackaged) return packaged
+    if (this.app.isPackaged) return path.join(process.resourcesPath, 'native-core', CORE_EXE)
 
     const release = path.join(__dirname, '..', 'native', 'core', 'build', 'vs2022-x64-release', 'bin', 'Release', CORE_EXE)
     const debug = path.join(__dirname, '..', 'native', 'core', 'build', 'vs2022-x64-debug', 'bin', 'Debug', CORE_EXE)
     const macosRelease = path.join(__dirname, '..', 'native', 'core', 'build', 'macos-x64-release', 'bin', CORE_EXE)
     const linuxRelease = path.join(__dirname, '..', 'native', 'core', 'build', 'linux-x64-release', 'bin', CORE_EXE)
     const singleConfig = path.join(__dirname, '..', 'native', 'core', 'build', 'bin', CORE_EXE)
-    return [release, debug, macosRelease, linuxRelease, singleConfig].find((candidate) => fs.existsSync(candidate)) ?? release
+    const candidates = process.platform === 'win32' ? [release, debug, singleConfig]
+      : process.platform === 'darwin' ? [macosRelease, singleConfig] : [linuxRelease, singleConfig]
+    return candidates.find((candidate) => fs.existsSync(candidate)) ?? candidates[0]
   }
 
   start() {
@@ -123,6 +124,13 @@ class NativeCoreClient {
     })
     child.on('error', (error) => {
       traceNativeCore('error', child, `message=${String(error?.message || error).replace(/\s+/g, ' ').slice(0, 300)}`)
+      if (this.child !== child) return
+      this.rejectAll(error.message)
+      this.terminateChild(child)
+    })
+    // A write callback does not consume the pipe's error event. Handle a
+    // bridge closing stdin without letting Electron open a blocking error box.
+    child.stdin.on('error', (error) => {
       if (this.child !== child) return
       this.rejectAll(error.message)
       this.terminateChild(child)

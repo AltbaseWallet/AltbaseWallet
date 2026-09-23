@@ -12,7 +12,8 @@ const { spawnSync } = require('node:child_process')
 const root = path.resolve(__dirname, '..')
 const source = path.join(root, 'native', 'core', 'src')
 const packageVersion = require(path.join(root, 'package.json')).version.split('-')[0]
-const buildBin = path.join(root, 'native', 'core', 'build', 'vs2022-x64-release', 'bin')
+const buildRoot = process.env.ALTBASE_WINDOWS_NATIVE_BUILD_DIR || path.join(root, 'native', 'core', 'build', 'vs2022-x64-release')
+const buildBin = path.join(buildRoot, 'bin')
 const releaseBin = path.join(buildBin, 'Release')
 const work = path.join(os.homedir(), '.cache', 'altbase-build', 'windows-native-incremental')
 const sdkRoot = process.env.ALTBASE_XWIN_SDK
@@ -29,12 +30,13 @@ const tools = {
 }
 
 const walletCoins = [
+  'bitcoincash', 'digibyte', 'peercoin',
   'bitcoin', 'bitcoin2', 'bitcoincashii', 'firo', 'btgs', 'capstash',
   'hypercoin', 'mydogecoin', 'pepecoin', 'kerrigan', 'scash', 'litecoinii',
   'neoxa', 'terracoin', 'junkcoin', 'raptoreum', 'pearl',
 ]
 const nodeCoins = [
-  ...walletCoins, 'zano', 'epic', 'quai', 'xgr', 'qubic', 'kaspa', 'nonsense', 'ckb',
+  ...walletCoins, 'nexa', 'zcash', 'zano', 'epic', 'quai', 'xgr', 'qubic', 'kaspa', 'nonsense', 'ckb',
 ]
 
 const run = (command, args, options = {}) => {
@@ -351,6 +353,20 @@ if (JSON.stringify(epicWalletExports) !== JSON.stringify(expectedEpicWalletExpor
 for (const destination of [path.join(releaseBin, 'altbase_epic_wallet.dll'), path.join(buildBin, 'altbase_epic_wallet.dll')]) {
   fs.copyFileSync(epicWalletDll, destination)
   process.stdout.write(`staged Epic wallet module: ${destination}\n`)
+}
+
+const utxoImports=['address','derivation','planner','signer'].map(service=>importLibraryFor(path.join(releaseBin,`altbase_utxo_${service}.dll`)))
+for (const [kind,coins] of [['node',['bitcoincash','digibyte','peercoin','nexa','zcash']],['wallet',['bitcoincash','digibyte','peercoin']]]) {
+  for (const coin of coins) {
+    const object=path.join(work,`${coin}-${kind}.obj`),prefix=kind==='node'?'ALTBASE_NODE_MODULE':'ALTBASE_UTXO_MODULE'
+    compile(path.join(source,kind==='node'?'coin_node_module.cpp':'utxo_wallet_module.cpp'),object,[`${prefix}_COIN="${coin}"`,`${prefix}_REQUEST=altbase_${coin}_${kind}_request`,`${prefix}_FREE=altbase_${coin}_${kind}_free`])
+    const filename=`altbase_${coin}_${kind}.dll`,dll=path.join(work,filename)
+    const resource=renderVersionResource(filename,`${coin}${kind}`,`Altbase ${coin} ${kind} Module`)
+    run(tools.linker,['/dll',`/out:${dll}`,object,xgrObjects[2],...(kind==='node'?[xgrObjects[1],netImport]:utxoImports),resource,...libraryPaths,...hardenedLinkArgs,'/subsystem:windows,6.01','kernel32.lib'])
+    const expected=[`altbase_${coin}_${kind}_free`,`altbase_${coin}_${kind}_request`]
+    if(JSON.stringify(exportsFor(dll).sort())!==JSON.stringify(expected))throw new Error(`Invalid ${filename} exports`)
+    for(const dir of [buildBin,releaseBin])fs.copyFileSync(dll,path.join(dir,filename))
+  }
 }
 
 const bridgeObjects = [

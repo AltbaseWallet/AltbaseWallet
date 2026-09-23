@@ -23,3 +23,9 @@ test('unfinished and unavailable privacy reads cannot be displayed as a verified
  assert.equal(positive.hideZero,false);assert.equal(positive.unverified,true);
  assert.deepEqual(privacyBalanceDisplay({id:'monero',status:'active',balance:'0'},'ready'),{unverified:false,hideZero:false,status:'active'});
 });
+test('local Xelis and MWC scans never display an unverified zero',()=>{
+ for(const id of ['xelis','mwc']){
+  for(const status of ['syncing','offline','preparing'])assert.deepEqual(privacyBalanceDisplay({id,status,balance:'0'},'ready'),{unverified:true,hideZero:true,status})
+  assert.deepEqual(privacyBalanceDisplay({id,status:'active',balance:'0'},'ready'),{unverified:false,hideZero:false,status:'active'})
+ }
+})

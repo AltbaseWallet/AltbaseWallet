@@ -434,6 +434,19 @@ const appendDebugLogLine = (coin, line) => {
   return current
 }
 
+ipcMain.handle('coin-sdk:request', async (event, request) => {
+  try {
+    if (!isTrustedIpcEvent(event)) throw new Error('Untrusted IPC sender')
+    const { requestCoinSdk } = require('./coin-sdk.cjs')
+    return { ok: true, result: await requestCoinSdk(request, {userData:app.getPath('userData'),resources:app.isPackaged?process.resourcesPath:path.resolve(__dirname,'..')}) }
+  } catch (error) {
+    // SDK errors may include input values. Do not expose mnemonic-bearing errors.
+    const message = error instanceof Error ? error.message : 'Local wallet module failed'
+    const secret = request?.params?.mnemonic
+    return { ok: false, error: secret ? 'Local wallet could not open or derive this recovery phrase' : message }
+  }
+})
+
 ipcMain.handle('core:request', async (event, request = {}) => {
   try {
     if (!isTrustedIpcEvent(event)) throw new Error('Untrusted IPC sender')
@@ -457,6 +470,7 @@ ipcMain.handle('core:request', async (event, request = {}) => {
 ipcMain.handle('core:reset-session', async (event) => {
   try {
     if (!isTrustedIpcEvent(event)) throw new Error('Untrusted IPC sender')
+    await require('./coin-sdk.cjs').closeCoinSdks()
     for (const client of activeNativeClients()) {
       if (closingNativeCores.has(client)) continue
       closingNativeCores.add(client)
@@ -770,5 +784,6 @@ app.on('before-quit', (event) => {
       })
     return
   }
+  void require('./coin-sdk.cjs').closeCoinSdks()
   resetNativeCoreClients()
 })

@@ -22,6 +22,7 @@ contextBridge.exposeInMainWorld('altbaseWallet', {
   openExternal: (url) => ipcRenderer.invoke('app:open-external', url),
   notify: (payload) => ipcRenderer.invoke('app:notify', payload),
   debugLog: (payload) => ipcRenderer.invoke('app:debug-log', payload),
+  coinSdk: (request) => ipcRenderer.invoke('coin-sdk:request', request),
   core: (request) => ipcRenderer.invoke('core:request', request),
   resetCoreSession: () => ipcRenderer.invoke('core:reset-session'),
   mining: {

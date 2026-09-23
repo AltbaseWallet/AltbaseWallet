@@ -12,6 +12,7 @@ const DEFAULT_PROFILE: UtxoBalanceSyncProfile = {
 }
 
 const PROFILES: Record<UtxoReadProfile, UtxoBalanceSyncProfile> = {
+  electrum: { refreshBeforeHistoryCommit: true, freshIncomingOverlay: true },
   'address-index': {
     refreshBeforeHistoryCommit: true,
     freshIncomingOverlay: true,

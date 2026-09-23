@@ -3,9 +3,13 @@
 Altbase Wallet is a non-custodial desktop cryptocurrency wallet built with
 Electron, React, TypeScript and local native wallet modules.
 
-Current application version: **0.1.8**.
+Current application version: **0.1.9**.
 
-## Version 0.1.8
+## Version 0.1.9
+
+Adds BCH, DGB, PPC, ZEC, NEXA, XEL and MWC through remote blockchain nodes behind the Altbase API. Mining 0.1.13 defaults new GrandPool jobs to its France pool and includes GPU presets and external ASIC setup. See [release verification and supported operations](docs/VERIFICATION-0.1.9.md) and [reference-wallet build inputs](docs/REFERENCE-WALLETS.md).
+
+## Previous version 0.1.8
 
 Bitcoin II (BC2) now signs transactions in its own wallet module using the
 BC2 replay-protected digest. This fixes Windows packages whose shared UTXO
@@ -59,7 +63,7 @@ npm ci
 ```
 
 The unchanged dependency bundle keeps its `v0.1.7` filename; the application
-version is `0.1.8`. The restore script verifies its SHA-256 and exact file list.
+version is `0.1.9`. The restore script verifies its SHA-256 and exact file list.
 See [the source review](SOURCE-REVIEW.md) for the bundle checksum and validation.
 
 ## Build and test the frontend
@@ -89,8 +93,7 @@ published storage implementation. No substitute implementation is generated.
 A local review export may omit restricted copies; a recursive Git checkout
 uses the versions committed in their respective repositories.
 
-This publication does not constitute a new full native build. Recipes that
-explicitly support incremental linking may reuse an existing compiled object.
+The 0.1.9 packages rebuild the native dispatcher and new coin modules for each target while retaining verified 0.1.8 protocol dependencies and the BC2/Zano fixes. Incremental recipes may reuse existing compiled objects.
 
 Platform dependency procedures:
 

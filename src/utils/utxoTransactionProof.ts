@@ -3,12 +3,16 @@ import { getBytes, hexlify, sha256 } from 'ethers'
 export type ProvenTxOutput = { satoshis: bigint; script: string }
 
 /** Read outputs only after binding the complete previous transaction to its txid. */
-export const verifiedTransactionOutputs = (hex: string, expectedTxid: string): ProvenTxOutput[] => {
+export const verifiedTransactionOutputs = (hex: string, expectedTxid: string, options: { peercoin?: boolean } = {}): ProvenTxOutput[] => {
   if (!/^[0-9a-f]{64}$/i.test(expectedTxid) || !/^(?:[0-9a-f]{2})+$/i.test(hex) || hex.length > 8_000_000) {
     throw new Error('Invalid previous transaction proof')
   }
   const bytes = getBytes(`0x${hex}`)
-  let offset = 4
+  if (bytes.length < 10) throw new Error('Truncated previous transaction proof')
+  const version = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getInt32(0, true)
+  // Peercoin v1/v2 include nTime after version; v3 uses the standard header.
+  const prefixLength = options.peercoin && version < 3 ? 8 : 4
+  let offset = prefixLength
   const take = (length: number) => {
     if (!Number.isSafeInteger(length) || length < 0 || offset + length > bytes.length) {
       throw new Error('Truncated previous transaction proof')
@@ -27,8 +31,8 @@ export const verifiedTransactionOutputs = (hex: string, expectedTxid: string): P
     if (value > BigInt(bytes.length)) throw new Error('Invalid previous transaction length')
     return Number(value)
   }
-  const witness = bytes[4] === 0 && bytes[5] === 1
-  if (witness) offset = 6
+  const witness = bytes[prefixLength] === 0 && bytes[prefixLength + 1] === 1
+  if (witness) offset = prefixLength + 2
   const inputs = count()
   if (inputs === 0) throw new Error('Previous transaction has no inputs')
   for (let i = 0; i < inputs; i += 1) {
@@ -54,7 +58,7 @@ export const verifiedTransactionOutputs = (hex: string, expectedTxid: string): P
   // Some supported forks append an extra payload after locktime. It is part
   // of the txid too; retain it while removing only SegWit marker/witnesses.
   const committed = witness
-    ? new Uint8Array([...bytes.slice(0, 4), ...bytes.slice(6, witnessStart), ...bytes.slice(locktimeStart)])
+    ? new Uint8Array([...bytes.slice(0, prefixLength), ...bytes.slice(prefixLength + 2, witnessStart), ...bytes.slice(locktimeStart)])
     : bytes
   const txid = hexlify(getBytes(sha256(sha256(committed))).reverse()).slice(2)
   if (txid.toLowerCase() !== expectedTxid.toLowerCase()) throw new Error('Previous transaction hash does not match the input')

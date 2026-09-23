@@ -1,0 +1,53 @@
+{
+  "source": "https://github.com/zcash/zcash-test-vectors",
+  "generator": "zip_0244.signature_digest (SIGHASH_ALL), NU6.2 transparent fixtures",
+  "vectors": [
+    {
+      "inputCount": 1,
+      "height": 3493840,
+      "branch": 1412952880,
+      "txid": "4d022bcb38bda28ab5e70b3c5de82ff4604151142f5062460a6cbec1694530ed",
+      "digests": [
+        "e3298d974193d996779b6266a485bf861b82aee9a16f62e12deee9e5f470a0d2"
+      ]
+    },
+    {
+      "inputCount": 2,
+      "height": 3493840,
+      "branch": 1412952880,
+      "txid": "706c37a8fb05e5c1b424c131bc8ce4b283c081573a3cf41da0ae679b4d943ab7",
+      "digests": [
+        "bdad169c854e9c23da1cc276f0dee205c2b88fe9cb1aee1ea6aad329a91bd08c",
+        "8c176327af337386c4fb9a77b248cde71dc0ed74b5bba7504b51e6f6c17053b5"
+      ]
+    },
+    {
+      "inputCount": 20,
+      "height": 3493840,
+      "branch": 1412952880,
+      "txid": "88014add98dad14c9f261bb341357886c442b767d68a92cbeff6a3a27f30a391",
+      "digests": [
+        "44045bdb177c06c1652e3cbe1a7a3b83ab6a60a0d29580278406a0636c79c67f",
+        "54554d42bbe9ee0ac6a8a7cb4cc8b867c2477ec67daed283409c93cc1f74006f",
+        "b5147f2711b9300e1000071cc7a12d0f9bcaefade2b32b7d93c47bedf3d77be2",
+        "d0f494adf9b91e7dc506a215127057c859b1e5f5fb66610e017639b80b23bf6e",
+        "18e3b9903f016d5a8b2911b6fe764f4abd5078313089ed6eea77143d8b7ee6ad",
+        "081d9ea9637141106e6f9955d76b8b11881580925e13815db6f59c5f7526d2fb",
+        "6ce30b53925d4dae06017fb581e176eebd65bd50c235537089ffd7a44036dabe",
+        "6720c52aaa54e8f4b6df3cfb0ab526517883d8d2bbb972122735f79bf519e769",
+        "e2d88fdd499866d31c44462f82e9f60d3a69baa356d7e72d836eface66b3a8ff",
+        "3f472a180fa7583019de5a0b0ccc604ea4d8b8b746318fc5312cf2f9a13e9b94",
+        "8c14902b6ea9f1357f3e325da40f7457ee91560fe7ac236322bb46b90a40e542",
+        "33adbd072d0b5e91cf7016d37a166cf16b7c952055e149bd6e4a9214c2a51088",
+        "675c84cc4e49ee8a246f947cc003f0b8eb0ebc3abe8ea014bfad926028d45346",
+        "fbd1b6af7cfce58fadaaef71f48a1ad2f5cb180dee3b7a71a25900fcc07f2895",
+        "76e18541428d9d077cd9382a5d27972a15fdb0a4a3bed458657c2b5d19c765ab",
+        "ca7ee3ef0b272d55206010b54952a3203c32f6d084bc4e3c4ff0ed87e046a0d6",
+        "d791bb21692c6e36276f6f21f2c8631e56f9f845f8f0595ded0da13194f759d0",
+        "1398922732e465b8124e2e41a84ce8b775c9ab301f0453bfd81256643af0ee7e",
+        "699b44cf59e470ba64383b7000465ee4c9bd7d5db1b6f6840e37d7286acd6fd3",
+        "31ca7ef8089f883097b2168075a2221a181572436384ad46fcb4cd54a1e71f7f"
+      ]
+    }
+  ]
+}

@@ -1,3 +1,8 @@
+if (process.platform !== 'win32' && !process.env.ALTBASE_RCEDIT) {
+  require('./set-win-resources-native.cjs')
+  return
+}
+
 const { spawnSync } = require('node:child_process')
 const path = require('node:path')
 const fs = require('node:fs')
@@ -8,7 +13,7 @@ const pkg = require(path.join(root, 'package.json'))
 const releaseDir = process.env.ALTBASE_RELEASE_DIR || 'release'
 const exePath = path.join(root, releaseDir, 'win-unpacked', 'Altbase Wallet.exe')
 const iconPath = path.join(root, 'build', 'icon.ico')
-const rceditPath = path.join(root, 'node_modules', 'electron-winstaller', 'vendor', 'rcedit.exe')
+const rceditPath = process.env.ALTBASE_RCEDIT || path.join(root, 'node_modules', 'electron-winstaller', 'vendor', 'rcedit.exe')
 const appName = 'Altbase Wallet'
 const companyName = 'Altbase'
 const copyright = 'Copyright (C) 2026 Altbase. All rights reserved.'
@@ -75,6 +80,7 @@ for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
   lastResult = spawnSync(rceditCommand, commandArgs, {
     encoding: 'utf8',
     windowsHide: true,
+    timeout: 90_000,
     env: commandEnv,
   })
 

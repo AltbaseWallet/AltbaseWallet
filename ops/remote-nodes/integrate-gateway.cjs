@@ -1,0 +1,17 @@
+'use strict'
+// Apply to a backed-up gateway; does not access service credentials.
+const fs=require('node:fs'),path=require('node:path')
+const directory=path.resolve(process.argv[2]||'.'),file=path.join(directory,'gateway.cjs')
+let source=fs.readFileSync(file,'utf8')
+if(source.includes('const grandpoolRuntime ='))throw new Error('GrandPool integration is already installed')
+source=source.replace("const { AdapterRegistry } = require('./adapters/index.cjs')", "const { AdapterRegistry } = require('./adapters/index.cjs')\nconst { createGrandpoolAdapters, createPrivateRemoteAdapters, attachPrivateRemoteProxy } = require('./grandpool.cjs')")
+source=source.replace('const router = new Router()', 'const grandpoolRuntime = createPrivateRemoteAdapters()\nfor (const adapter of [...createGrandpoolAdapters(), ...grandpoolRuntime.adapters]) registry.register(adapter)\n\nconst router = new Router()')
+source=source.replace('const shutdown = (signal) => {', 'attachPrivateRemoteProxy(server, router, { readJsonBody, sendJson }, grandpoolRuntime)\n\nconst shutdown = (signal) => {')
+if(!source.includes('attachPrivateRemoteProxy(server')||!source.includes('const grandpoolRuntime ='))throw new Error('Unsupported gateway source layout')
+source=require('./authoritative-balance-patch.cjs').patchAuthoritativeBalances(source)
+fs.writeFileSync(file,source)
+const prices=path.join(directory,'lib','priceFeed.cjs');let feed=fs.readFileSync(prices,'utf8')
+feed=feed.replace('const COIN_LCW_CODE = {', "const COIN_LCW_CODE = {\n  bitcoincash: 'BCH', digibyte: 'DGB', peercoin: 'PPC', zcash: 'ZEC', mwc: 'MWC', nexa: 'NEXA', xelis: '__XEL',")
+feed=feed.replace('const COINGECKO_IDS = {', "const COINGECKO_IDS = {\n  bitcoincash: 'bitcoin-cash', digibyte: 'digibyte', peercoin: 'peercoin', zcash: 'zcash', nexa: 'nexa', xelis: 'xelis', mwc: 'mimblewimblecoin',")
+fs.writeFileSync(prices,feed)
+console.log('Gateway registry, privacy node routes, and seven price mappings added')

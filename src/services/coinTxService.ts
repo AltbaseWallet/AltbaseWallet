@@ -18,6 +18,7 @@ const FALLBACK_FEE_RATE_PER_KB = 0.00001
 const FAST_FEE_TIMEOUT_MS = 2_500
 const INTERACTIVE_FEE_TIMEOUT_MS = 30_000
 const COIN_FALLBACK_FEE_RATE_PER_KB: Record<string, number> = {
+  peercoin: 0.01,
   neoxa: 0.01,
   pepecoin: 0.001,
 }
@@ -382,7 +383,7 @@ export const coinTxService = {
       let outputs = checkedTransactions.get(input.txid)
       if (!outputs) {
         const source = utxos.find((utxo) => utxo.txid === input.txid)
-        outputs = verifiedTransactionOutputs(await coinApiService.getRawTransaction(coinId, input.txid, source?.height), input.txid)
+        outputs = verifiedTransactionOutputs(await coinApiService.getRawTransaction(coinId, input.txid, source?.height), input.txid, { peercoin: coinId === 'peercoin' })
         checkedTransactions.set(input.txid, outputs)
       }
       assertProvenUtxo(outputs[input.vout], input)

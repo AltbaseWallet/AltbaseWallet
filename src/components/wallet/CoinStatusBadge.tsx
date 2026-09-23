@@ -17,10 +17,12 @@ export function CoinStatusBadge({
   status,
   className,
   recoveryProgress,
+  walletScanPercent,
 }: {
   status: CoinStatus
   className?: string
   recoveryProgress?: CoinRecoveryProgress
+  walletScanPercent?: number
 }) {
   const t = useT()
   const progress = recoveryProgress
@@ -41,8 +43,8 @@ export function CoinStatusBadge({
   return (
     <StatusBadge
       status={status}
-      label={label}
-      progressPercent={status === 'recovering' || status === 'syncing' ? recoveryProgress?.percent : undefined}
+      label={status === 'syncing' && walletScanPercent !== undefined ? `${label} · ${Math.floor(walletScanPercent)}%` : label}
+      progressPercent={status === 'recovering' || status === 'syncing' ? walletScanPercent ?? recoveryProgress?.percent : undefined}
       className={className}
     />
   )

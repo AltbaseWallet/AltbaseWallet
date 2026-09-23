@@ -4,6 +4,10 @@ export type CoinStatus = 'active' | 'syncing' | 'preparing' | 'recovering' | 'of
 export type CoinWalletEngine =
   | 'bitcoin-utxo'
   | 'pearl-utxo'
+  | 'zcash-utxo'
+  | 'nexa-utxo'
+  | 'xelis-local'
+  | 'mwc-local'
   | 'zano-light'
   | 'epic-light'
   | 'monero-light'
@@ -13,7 +17,7 @@ export type CoinWalletEngine =
   | 'kaspa-utxo'
   | 'nonsense-utxo'
   | 'ckb-cell'
-export type UtxoReadProfile = 'address-index' | 'scan-utxo' | 'local-index' | 'blockbook' | 'mempool-space'
+export type UtxoReadProfile = 'address-index' | 'scan-utxo' | 'local-index' | 'electrum' | 'blockbook' | 'mempool-space'
 
 export type CoinRecoveryProgress = {
   fromHeight: number
@@ -56,4 +60,5 @@ export type Coin = {
   deferStartupBalance?: boolean
   /** Local privacy-wallet recovery progress; runtime-only, not persisted. */
   recoveryProgress?: CoinRecoveryProgress
+  walletScanPercent?: number
 }

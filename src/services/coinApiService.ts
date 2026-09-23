@@ -1,3 +1,4 @@
+import { isLocalWalletCoin, mergeLocalWalletSnapshots, readLocalWalletSnapshot } from './localWalletSnapshot'
 /**
  * Multi-coin API client for api.altbase.io.
  *
@@ -79,6 +80,7 @@ const summarizePearlSnapshot = (response: WalletSnapshotResponse) => summarizeCo
 /* ───── chain network ───── */
 
 export type CoinNetwork = {
+  walletScanPercent?: number
   ok: true
   coin: string
   chain: string
@@ -801,6 +803,13 @@ export const coinApiService = {
 
   /** Raw network state. */
   async getNetwork(coinId: string): Promise<CoinNetwork> {
+    if(isLocalWalletCoin(coinId)){
+      const network=await getGlobal<CoinNetwork>(`/${coinId}/network`)
+      const response=await mergeLocalWalletSnapshots({coins:[{coin:coinId,addresses:[]}],includeBalances:false,includeHistory:false},{prices:{},pricesUpdatedAt:null,coins:{[coinId]:{coin:coinId,network,balances:{},histories:{}}}})
+      const local=response.coins[coinId].network
+      if(!local)throw new Error(response.coins[coinId].errors?.localWallet||'Local wallet is unavailable')
+      return {...network,initialBlockDownload:local.initialBlockDownload}
+    }
     return getJson<CoinNetwork>(coinId, '/network', coinId === 'nonsense' ? 45_000 : 10_000)
   },
 
@@ -817,6 +826,11 @@ export const coinApiService = {
 
   /** Balance in satoshis (gateway returns satoshis already). */
   async getBalance(coinId: string, address: string, options: { priority?: boolean } = {}): Promise<CoinBalance> {
+    if(isLocalWalletCoin(coinId)){
+      const result=await readLocalWalletSnapshot(coinId,address,await this.getNetwork(coinId),{includeHistory:false})
+      if(result.syncing||!result.balance)throw new Error('Local wallet scan is still in progress')
+      return result.balance
+    }
     const request = options.priority ? postPriorityJson : postJson
     const r = await request<{ ok: true; address: string; result: CoinBalance }>(
       coinId,
@@ -1074,7 +1088,9 @@ export const coinApiService = {
     }
 
     try {
-      const response = await postGlobal<{ ok: true } & WalletSnapshotResponse>('/wallet/snapshot', request, timeoutMs)
+      const remoteRequest={...request,coins:request.coins.map(item=>isLocalWalletCoin(item.coin)?{...item,addresses:[]}:item)}
+      const response = await postGlobal<{ ok: true } & WalletSnapshotResponse>('/wallet/snapshot', remoteRequest, timeoutMs)
+      await mergeLocalWalletSnapshots(request,response)
       const value = {
         prices: response.prices ?? {},
         pricesUpdatedAt: response.pricesUpdatedAt ?? null,
@@ -1136,6 +1152,12 @@ export const coinApiService = {
     offset = 0,
   ): Promise<Transaction[]> {
     let history: HistoryResponse
+    if(isLocalWalletCoin(coinId)){
+      const network=await this.getNetwork(coinId)
+      const local=await readLocalWalletSnapshot(coinId,address,network,{historyLimit:limit,historyOffset:offset})
+      if(local.syncing||!local.history)throw new Error('Local wallet history is still synchronizing')
+      return mapHistoryResponseToTransactions(local.history,coinId,address,satsPerCoin,[address],network.blocks)
+    }
     try {
       history = await postJson<HistoryResponse>(
         coinId,

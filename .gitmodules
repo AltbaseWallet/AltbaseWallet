@@ -130,3 +130,31 @@
 	path = modules/nonsense
 	url = https://github.com/AltbaseWallet/module-nonsense.git
 	branch = main
+[submodule "modules/bitcoincash"]
+	path = modules/bitcoincash
+	url = https://github.com/AltbaseWallet/module-bitcoincash.git
+	branch = main
+[submodule "modules/digibyte"]
+	path = modules/digibyte
+	url = https://github.com/AltbaseWallet/module-digibyte.git
+	branch = main
+[submodule "modules/peercoin"]
+	path = modules/peercoin
+	url = https://github.com/AltbaseWallet/module-peercoin.git
+	branch = main
+[submodule "modules/zcash"]
+	path = modules/zcash
+	url = https://github.com/AltbaseWallet/module-zcash.git
+	branch = main
+[submodule "modules/nexa"]
+	path = modules/nexa
+	url = https://github.com/AltbaseWallet/module-nexa.git
+	branch = main
+[submodule "modules/xelis"]
+	path = modules/xelis
+	url = https://github.com/AltbaseWallet/module-xelis.git
+	branch = main
+[submodule "modules/mwc"]
+	path = modules/mwc
+	url = https://github.com/AltbaseWallet/module-mwc.git
+	branch = main

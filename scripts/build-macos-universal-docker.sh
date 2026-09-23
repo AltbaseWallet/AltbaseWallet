@@ -14,7 +14,7 @@ IMAGE_NAME="${ALTBASE_MACOS_IMAGE:-altbase-wallet-builder:macos-universal}"
 CONTAINER_NAME="${ALTBASE_MACOS_CONTAINER:-altbase-wallet-build-macos-universal}"
 ARTIFACT_NAME="${ALTBASE_MACOS_ARTIFACT:-Altbase-Wallet-macOS-universal.zip}"
 LEGACY_ARTIFACT_NAME="${ALTBASE_MACOS_LEGACY_ARTIFACT:-Altbase-Wallet-macOS-x64.zip}"
-BUILD_JOBS="${ALTBASE_BUILD_JOBS:-2}"
+BUILD_JOBS="${ALTBASE_BUILD_JOBS:-1}"
 REFRESH_DEPENDENCIES="${ALTBASE_REFRESH_MACOS_DEPS:-0}"
 CACHE_DIR="${ALTBASE_MACOS_CACHE_DIR:-$ROOT_DIR/cache/macos}"
 ZANO_DEPS_DIR="${ALTBASE_ZANO_MACOS_DEPS_DIR:-$ROOT_DIR/dependencies/zano-macosx}"
@@ -276,6 +276,8 @@ docker exec \
     done <<< "$x64_files"
 
     npm test
+    node scripts/prepare-coin-runtimes.cjs --target=macos --arch=universal
+    node scripts/stage-coin-runtimes.cjs --target=macos --arch=universal
     npm run build:release
     package_attempt=0
     while true; do

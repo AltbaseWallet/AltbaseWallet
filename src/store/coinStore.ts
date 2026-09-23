@@ -1,3 +1,4 @@
+import { isLocalWalletCoin } from '../services/localWalletSnapshot'
 ﻿import { create } from 'zustand'
 import type { Coin } from '../types/coin'
 import type { Transaction } from '../types/transaction'
@@ -2704,6 +2705,10 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
       addresses?: string[]
     }>()
     for (const { id, rawStatus, balance, spendableBalance, balanceFromServer, coinSnapshot, addresses } of probed) {
+      if(isLocalWalletCoin(id)){
+        finalById.set(id,{status:rawStatus,balance,spendableBalance,balanceFromServer,coinSnapshot,addresses})
+        continue
+      }
       if (snapshotUnavailable) {
         if (rawStatus === 'active') {
           lastActiveAt[id] = now
@@ -2908,6 +2913,7 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
         ? getRememberedPrivacyRecoveryProgress(c.id as PrivacyCoin)
         : undefined
       const recoveryProgress = recoveryProgressById.get(c.id) ?? rememberedRecoveryProgress
+      const walletScanPercent = isLocalWalletCoin(c.id) && status === 'syncing' ? f?.coinSnapshot?.network?.walletScanPercent : undefined
       const nextBalance = f?.balance ?? current.balance
       const decimals = decimalsForSatsPerCoin(c.satsPerCoin ?? 100_000_000)
       const previousUnits = toBaseUnits(current.balance || '0', decimals)
@@ -3425,6 +3431,7 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
       }
       return {
         ...c,
+        walletScanPercent,
         enabled: current.enabled,
         favorite: current.favorite,
         status,

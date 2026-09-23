@@ -21,7 +21,7 @@ const mergeAddressVariants = (primary: AddressVariant[], secondary: AddressVaria
   return Array.from(byId.values())
 }
 
-const preferCashaddrCoinIds = new Set(['bitcoincashii'])
+const preferCashaddrCoinIds = new Set(['bitcoincashii', 'bitcoincash'])
 
 const cashaddrVariantFor = async (address: string, coin: Coin) => {
   if (!coin.cryptoParams || !coin.cryptoParams.cashaddrPrefix || !preferCashaddrCoinIds.has(coin.id)) return null

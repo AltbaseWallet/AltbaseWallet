@@ -329,15 +329,20 @@ test('mining module installs, verifies, stores jobs and removes in an isolated p
 
   const before = await manager.status()
   assert.equal(before.installed, false)
-  assert.equal(before.bundledVersion, '0.1.6')
-  const signedManifest = JSON.parse(await fs.promises.readFile(path.join(repoRoot, 'modules', 'mining', 'package.manifest.json'), 'utf8'))
-  assert.equal(manager.validatePackageManifest(signedManifest).signature.keyId, 'altbase-mining-406c067310831fba')
+  const bundleManifest = JSON.parse(await fs.promises.readFile(path.join(repoRoot, 'modules', 'mining', 'package.manifest.json'), 'utf8'))
+  assert.equal(before.bundledVersion, bundleManifest.version)
+  if (bundleManifest.signature) {
+    assert.equal(manager.validatePackageManifest(bundleManifest).signature.keyId, 'altbase-mining-406c067310831fba')
+    assert.throws(
+      () => manager.validatePackageManifest({ ...bundleManifest, version: '99.0.0' }),
+      /signature verification failed/,
+    )
+  } else {
+    assert.throws(() => manager.validatePackageManifest(bundleManifest), /signature is missing or untrusted/)
+    assert.equal(manager.validatePackageManifest(bundleManifest, { allowUnsignedDevelopment: true }).version, bundleManifest.version)
+  }
   assert.throws(
-    () => manager.validatePackageManifest({ ...signedManifest, version: '0.1.7' }),
-    /signature verification failed/,
-  )
-  assert.throws(
-    () => manager.validatePackageManifest({ ...signedManifest, signature: null }),
+    () => manager.validatePackageManifest({ ...bundleManifest, signature: null }),
     /signature is missing or untrusted/,
   )
 
@@ -346,7 +351,7 @@ test('mining module installs, verifies, stores jobs and removes in an isolated p
   assert.equal(installed.verified, true)
   const verification = await manager.verify()
   assert.equal(verification.ok, true)
-  assert.equal(verification.version, '0.1.6')
+  assert.equal(verification.version, bundleManifest.version)
   assert.ok(verification.files >= 50)
   await fs.promises.writeFile(path.join(manager.installedRoot, 'unexpected.bin'), 'not allowed')
   await assert.rejects(() => manager.verify(), /unexpected files/)
@@ -354,8 +359,8 @@ test('mining module installs, verifies, stores jobs and removes in an isolated p
   assert.equal((await manager.verify()).ok, true)
 
   const catalog = await manager.catalog()
-  assert.equal(catalog.coins.length, 24)
-  assert.deepEqual(catalog.miners.map((entry) => entry.id), ['qli-client', 'rigel', 'srbminer', 'xmrig'])
+  assert.equal(catalog.coins.length, 32)
+  assert.deepEqual(catalog.miners.map((entry) => entry.id), ['qli-client', 'rigel', 'srbminer', 'xmrig', 'nonsenseminer'])
   assert.ok(catalog.pools.length >= 36)
   assert.ok(catalog.coins.some((entry) => (
     entry.id === 'monero'

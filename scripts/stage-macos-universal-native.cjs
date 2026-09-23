@@ -77,7 +77,7 @@ const stageArchitecture = (architecture) => {
     path.join(root, 'scripts', 'copy-native-core.cjs'),
     '--target=darwin',
     `--arch=${architecture}`,
-  ])
+  ], { env: { ...process.env, ...(process.env.ALTBASE_MACOS_NATIVE_BUILD_ROOT ? { ALTBASE_MACOS_NATIVE_BUILD_DIR: path.join(process.env.ALTBASE_MACOS_NATIVE_BUILD_ROOT, `macos-${architecture}-release`) } : {}) } })
   const destination = path.join(temporaryRoot, architecture)
   fs.cpSync(targetDir, destination, { recursive: true })
   return destination

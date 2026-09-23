@@ -1,3 +1,10 @@
+import bitcoincashLogo from '../../assets/coins/bitcoincash.svg'
+import digibyteLogo from '../../assets/coins/digibyte.svg'
+import peercoinLogo from '../../assets/coins/peercoin.svg'
+import zcashLogo from '../../assets/coins/zcash.svg'
+import mwcLogo from '../../assets/coins/mwc.svg'
+import xelisLogo from '../../assets/coins/xelis.svg'
+import nexaLogo from '../../assets/coins/nexa.svg'
 import { clsx } from 'clsx'
 
 // Static asset imports — Vite hashes & inlines these into the bundle.
@@ -30,6 +37,14 @@ import ckbLogo from '../../assets/coins/ckb.svg'
 
 /** Map ticker → bundled PNG. Lookup is case-insensitive. */
 const LOGO_MAP: Record<string, string> = {
+  BCH: bitcoincashLogo,
+  DGB: digibyteLogo,
+  PPC: peercoinLogo,
+  ZEC: zcashLogo,
+  MWC: mwcLogo,
+  XEL: xelisLogo,
+  NEXA: nexaLogo,
+
   BTC:   bitcoinLogo,
   BC2:   bitcoinIILogo,
   BCH2:  bch2Logo,

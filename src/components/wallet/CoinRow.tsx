@@ -46,7 +46,7 @@ export function CoinRow({ coin, compact, onFavorite, onHide, onSelect }: CoinRow
         <p className="shrink-0 text-xs text-slate-500">{hideBalances ? '••••' : display.unverified ? t('balanceNotCurrent') : formatUsd(coin.fiatValue)}</p>
       </div>
 
-      <CoinStatusBadge status={display.status} recoveryProgress={coin.recoveryProgress} className="hidden md:order-none md:inline-flex" />
+      <CoinStatusBadge status={display.status} recoveryProgress={coin.recoveryProgress} walletScanPercent={coin.walletScanPercent} className="hidden md:order-none md:inline-flex" />
 
       <div className="order-2 flex items-center gap-1 md:order-none">
         {onFavorite && (

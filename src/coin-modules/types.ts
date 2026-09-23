@@ -1,6 +1,6 @@
 import type { Coin } from '../types/coin'
 
-export type NativeCoinRoute = `${string}-wallet` | 'quai-js' | 'qubic-js' | 'kaspa-wasm' | 'nonsense-wasm' | 'ckb-lumos'
+export type NativeCoinRoute = `${string}-wallet` | `${string}-sdk` | 'quai-js' | 'qubic-js' | 'kaspa-wasm' | 'nonsense-wasm' | 'ckb-lumos'
 
 type RuntimeCoinFields = 'balance' | 'fiatValue' | 'address' | 'status' | 'enabled' | 'favorite'
 export type CoinDefinition = Omit<Coin, RuntimeCoinFields> & Partial<Pick<Coin, RuntimeCoinFields>>

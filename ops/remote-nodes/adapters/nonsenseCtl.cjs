@@ -162,27 +162,30 @@ const createNonsenseCtlAdapter = ({
     preserveAtomicBalances: true,
 
     async getNetwork() {
-      const [dag, info, peers] = await Promise.all([
+      const [dag, info] = await Promise.all([
         call('GetBlockDagInfo'),
-        call('GetInfo').catch(() => ({})),
-        call('GetConnectedPeerInfo').catch(() => ({ infos: [] })),
+        call('GetInfo'),
       ])
-      const blocks = Number(dag.blockCount ?? dag.virtualDaaScore ?? 0)
-      const headers = Number(dag.headerCount ?? blocks)
-      // A two-node bootstrap network can be fully converged while the upstream
-      // daemon keeps isSynced=false until a new virtual block is observed. Do
-      // not put the wallet into maintenance when the indexed node has a live
-      // peer and its complete local DAG is internally caught up.
-      const locallyReady = info.isUtxoIndexed === true
-        && Array.isArray(peers.infos)
-        && peers.infos.length > 0
-        && blocks > 0
-        && headers >= blocks
-      const synchronized = info.isSynced !== false || locallyReady
+      // DAG block/header counts describe stored data, not two comparable chain
+      // heights: pruning removes block bodies while retaining their headers.
+      // Expose the virtual DAA score in the wallet's generic height fields and
+      // retain the raw storage counters separately for diagnostics. GetInfo is
+      // authoritative for sync; peers alone do not prove that IBD is complete.
+      const height = Number(dag.virtualDaaScore)
+      if (dag.virtualDaaScore == null || !Number.isSafeInteger(height) || height < 0
+        || typeof info.isSynced !== 'boolean' || typeof info.isUtxoIndexed !== 'boolean') {
+        throw new RpcError('Nonsense RPC returned incomplete network status', { status: 502 })
+      }
+      const synchronized = info.isSynced && info.isUtxoIndexed
       return {
         chain: dag.networkName ?? 'nonsense-mainnet',
-        blocks,
-        headers,
+        blocks: height,
+        headers: height,
+        virtualDaaScore: height,
+        dagBlockCount: Number(dag.blockCount ?? 0),
+        dagHeaderCount: Number(dag.headerCount ?? 0),
+        isSynced: info.isSynced,
+        isUtxoIndexed: info.isUtxoIndexed,
         bestBlockHash: dag.virtualParentHashes?.[0] ?? dag.tipHashes?.[0],
         initialBlockDownload: !synchronized,
         verificationProgress: synchronized ? 1 : 0.5,

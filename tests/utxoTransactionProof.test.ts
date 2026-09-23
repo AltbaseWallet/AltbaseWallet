@@ -27,3 +27,16 @@ test('SegWit proof is checked against the txid with witnesses removed', () => {
   assert.equal(verifiedTransactionOutputs(witnessed, txid(raw))[0].satoshis, 100_000_000n)
   assert.throws(() => verifiedTransactionOutputs(witnessed, txid(witnessed)), /hash does not match/)
 })
+
+test('Peercoin v2 proofs retain nTime while v3 uses the standard header', () => {
+  for (const version of [2, 3]) {
+    const header = Buffer.alloc(version < 3 ? 8 : 4)
+    header.writeInt32LE(version)
+    if (version < 3) header.writeUInt32LE(1700000000, 4)
+    const body = Buffer.from('01' + '11'.repeat(32) + '0000000000ffffffff01e803000000000000015100000000', 'hex')
+    const raw = Buffer.concat([header, body])
+    const txid = Buffer.from(getBytes(sha256(sha256(raw)))).reverse().toString('hex')
+    const outputs = verifiedTransactionOutputs(raw.toString('hex'), txid, { peercoin: true })
+    assert.deepEqual(outputs, [{ satoshis: 1000n, script: '51' }])
+  }
+})

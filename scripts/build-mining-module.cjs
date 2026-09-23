@@ -19,6 +19,13 @@ const result = spawnSync(process.execPath, [tsc, '-p', path.join(moduleRoot, 'ts
 if (result.error) throw result.error
 if (result.status !== 0) process.exit(result.status || 1)
 
+const runtimeBuilder = path.join(moduleRoot, 'scripts', 'build-runtime.cjs')
+if (fs.existsSync(runtimeBuilder)) {
+  const bundled = spawnSync(process.execPath, [runtimeBuilder], { cwd: root, stdio: 'inherit', shell: false })
+  if (bundled.error) throw bundled.error
+  if (bundled.status !== 0) process.exit(bundled.status || 1)
+}
+
 const canonicalize = (value) => {
   if (value === null || typeof value !== 'object') return JSON.stringify(value)
   if (Array.isArray(value)) return `[${value.map(canonicalize).join(',')}]`

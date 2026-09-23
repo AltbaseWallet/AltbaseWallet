@@ -6,7 +6,7 @@ SOURCE_DIR="${ALTBASE_LINUX_SOURCE_DIR:-$ROOT_DIR/source}"
 DOCKER_DIR="$ROOT_DIR/docker"
 DOWNLOADS_DIR="${ALTBASE_DOWNLOADS_DIR:-/var/www/altbase.io/downloads}"
 DISTROS="${ALTBASE_LINUX_DISTROS:-debian ubuntu24 fedora}"
-BUILD_JOBS="${ALTBASE_BUILD_JOBS:-2}"
+BUILD_JOBS="${ALTBASE_BUILD_JOBS:-1}"
 CACHE_DIR="${ALTBASE_LINUX_CACHE_DIR:-$ROOT_DIR/cache/linux}"
 
 if ! [[ "$BUILD_JOBS" =~ ^[1-9][0-9]*$ ]]; then
@@ -105,10 +105,10 @@ build_privacy_native() {
     if [ "${ALTBASE_INCREMENTAL_BUILD:-0}" != "1" ]; then
       rm -rf "$epic_target" native/epic_core/target/release
     fi
-    cargo build --release --locked --manifest-path native/epic_transport/Cargo.toml --target-dir "$epic_target" -j "${ALTBASE_BUILD_JOBS:-2}"
+    cargo build --release --locked --manifest-path native/epic_transport/Cargo.toml --target-dir "$epic_target" -j "${ALTBASE_BUILD_JOBS:-1}"
     export ALTBASE_EPIC_TRANSPORT_LIB_DIR="$PWD/$epic_target/release"
-    cargo build --release --locked --manifest-path native/epic_state/Cargo.toml --target-dir "$epic_target" -j "${ALTBASE_BUILD_JOBS:-2}"
-    cargo build --release --locked --manifest-path native/epic_sender/Cargo.toml --target-dir "$epic_target" -j "${ALTBASE_BUILD_JOBS:-2}"
+    cargo build --release --locked --manifest-path native/epic_state/Cargo.toml --target-dir "$epic_target" -j "${ALTBASE_BUILD_JOBS:-1}"
+    cargo build --release --locked --manifest-path native/epic_sender/Cargo.toml --target-dir "$epic_target" -j "${ALTBASE_BUILD_JOBS:-1}"
     mkdir -p native/epic_core/target/release
     for module in state sender transport; do
       cp "$epic_target/release/libaltbase_epic_${module}.so" native/epic_core/target/release/
@@ -129,7 +129,7 @@ build_privacy_native() {
       -DBoost_NO_SYSTEM_PATHS=OFF \
       -DBoost_NO_WARN_NEW_VERSIONS=ON
     for target in common crypto currency_core rpc zlibstatic libminiupnpc-static wallet; do
-      cmake --build "$zano_build" --target "$target" --parallel "${ALTBASE_BUILD_JOBS:-2}"
+      cmake --build "$zano_build" --target "$target" --parallel "${ALTBASE_BUILD_JOBS:-1}"
     done
 SCRIPT
 }
@@ -183,19 +183,21 @@ build_in_container() {
 $(build_privacy_native)
     node scripts/build-monero-wallet-module.cjs --target=linux-x64
     cmake --preset linux-x64-release -S native/core
-    cmake --build native/core/build/linux-x64-release --parallel "${ALTBASE_BUILD_JOBS:-2}"
+    cmake --build native/core/build/linux-x64-release --parallel "${ALTBASE_BUILD_JOBS:-1}"
     ctest --test-dir native/core/build/linux-x64-release --output-on-failure
     node scripts/copy-native-core.cjs
     ALTBASE_STRIP_NATIVE=1 bash scripts/verify-linux-native.sh native-core "\$zano_build"
     npm test
+    node scripts/prepare-coin-runtimes.cjs --target=linux --arch=x64
+    node scripts/stage-coin-runtimes.cjs --target=linux --arch=x64
     npm run build
     npx electron-builder --linux AppImage --x64 --publish never
     appimage=\$(find release -maxdepth 1 -type f -name '*.AppImage' | head -n 1)
     test -n \"\$appimage\"
     install -m 0755 \"\$appimage\" \"/out/$appimage_name\"
     file native-core/altbase_core_bridge
-    test \"\$(find native-core -maxdepth 1 -type f \( -name 'altbase_*_wallet.so' -o -name 'libaltbase_*_wallet.so' \) | wc -l)\" -eq 20
-    test \"\$(find native-core -maxdepth 1 -type f -name 'altbase_*_node.so' | wc -l)\" -eq 24
+    test \"\$(find native-core -maxdepth 1 -type f \( -name 'altbase_*_wallet.so' -o -name 'libaltbase_*_wallet.so' \) | wc -l)\" -eq 23
+    test \"\$(find native-core -maxdepth 1 -type f -name 'altbase_*_node.so' | wc -l)\" -eq 29
   "
 }
 

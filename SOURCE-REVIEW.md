@@ -1,70 +1,28 @@
-# Source review and publication scope — 0.1.8
+# Source review — 0.1.9
 
-The reviewed local source is published through the existing per-module Git
-repositories. The main wallet uses pinned submodule commits from `.gitmodules`.
-The Nonsense module has its own repository; existing Monero, XGR, Mining and
-other module repositories retain their histories.
+Prepared from the verified Altbase source with populated directories for 40 separately maintained module/native repositories. Seven new coin modules remain separate Git submodules. Protected storage source and its copies were not inspected; existing remote Git object IDs are preserved. No credentials, user profiles, private keys or scan results are included.
 
-See [CHANGELOG.md](CHANGELOG.md) for changes from 0.1.7.
+## 0.1.9 — GrandPool coins and remote-node integration
 
-## Source verification
+- Add separate BCH, DGB, PPC, ZEC, NEXA, XEL and MWC wallet modules. Together with BTC and PRL, Altbase covers all nine coins listed by GrandPool on 2026-09-23. The wallet now has 33 coin modules.
+- Route public blockchain requests through the Altbase backend. Keys and signing stay in local wallet engines. Xelis and MWC use pinned official reference wallets and preserve encrypted local scan profiles.
+- Add BCH ForkID, DigiByte witness and Peercoin v3 transaction support; verify legacy Peercoin previous transactions with their timestamp field. Add Zcash v5/ZIP-244 transparent transactions and Nexa outpoint-aware planning with exact integer amounts.
+- Keep unfinished scans and failed balance reads unverified. Fix Electron compatibility for Xelis key derivation and MWC encrypted Owner API; both complete real read-only synchronization in the Linux GUI.
+- Improve Nexa large-UTXO reads with persistent Rostrum connections, bounded concurrency and shared caches. Never replace a failed authoritative balance with a spendable-only UTXO total that omits immature rewards.
+- Bundle signed Mining 0.1.13: GrandPool defaults, 54 pool/solo regional presets, Rigel XelisHash v3/NexaPow support and external ASIC setup. Existing saved job endpoints and Nonsense solo mining are preserved.
+- Ship Linux x86_64 AppImage, Windows x64 MSI inside ZIP and universal Intel/Apple Silicon macOS ZIP. Compilation was pinned to one CPU.
 
-The source cleanup on 2026-09-09 verified 6,202 ordinary source files against
-the manifest and found no unexpected differences from the intended working
-sources. Deliberate export changes included cleanup of local wallet diagnostics,
-corrected Git ignores, source documentation and the patched Zano HF6 trees.
-Git inclusion checks passed, and all tested documentation links resolved.
+### Verification and limits
 
-The owner subsequently provided `native/core/src/wallet_secret.cpp` for
-publication. It is handled by Git as an opaque file and its content was not
-inspected. The native SDK's previously published storage file is preserved by
-its existing Git blob reference. These files are outside the content scan;
-no replacement implementation was written. SOURCE-MANIFEST.json distinguishes
-reviewed file hashes from owner-provided or preserved protected Git objects.
+165 wallet/backend tests and 27 Mining runtime/update tests passed. Native fixture signatures were independently checked; official Zcash ZIP-244 vectors and Electron runtime fixtures passed. All seven added coins reached Active in an isolated Linux GUI, including complete Xelis/MWC scans. All nine GrandPool defaults passed an Electron GUI check. No real wallet transaction was signed or broadcast, and no pool share was submitted.
 
-Ordinary source was checked for known user recovery inputs, private-key blocks
-and credential-token patterns without printing secrets. No matches requiring
-removal remained. Public synthetic fixtures, dependency names and interface
-labels account for the retained scanner findings. Profiles, environment files,
-private signing keys, local wallet-operation logs and compiled outputs are not
-part of the source commits. The publication credential is kept in process memory
-and is not written into Git URLs, configuration, source files or reports.
+Zcash currently supports transparent t1/t3 addresses; shielded/unified sends are unavailable. Nexa token outputs and Xelis token/contract operations are not supported. MWC sends require an online compatible MQS recipient. The first privacy scan can take several minutes. Very large exchange/pool histories can exceed the upstream Electrum history limit and remain explicitly unavailable. A cold Nexa address with over 1,000 UTXOs took about 27 seconds; subsequent reads took less than a second.
 
-## Build and test evidence
+Windows MSI payload extraction passed. macOS architecture and ad-hoc code/resource signatures passed. Physical Windows/macOS runtime testing was unavailable; macOS is not Apple-notarized. Rigel GPU mining requires supported NVIDIA Windows/Linux hardware; ASIC mining requires an external device.
 
-An isolated copy passed these checks on 2026-09-09, with compilation pinned to
-CPU 0:
+Three of four known servers were reachable. Both Nonsense nodes were synchronized and indexed; the secondary node's repeated OOM restarts were corrected with a memory budget and swap. Server `188.137.235.140` remained unreachable over SSH and API from both the workstation and primary backend, so Neoxa, Terracoin, Raptoreum, Zano, EPIC and Junkcoin availability could not be confirmed. These failures are not zero balances.
 
-- `npm ci --ignore-scripts --prefer-offline --no-audit --no-fund`.
-- Detached WASM restoration with SHA-256 and exact file-list verification.
-- `npm run build:release`, including TypeScript and signed Mining verification.
-- `npm test`: 135 wallet tests and 11 Mining tests passed, with no failures or skips.
+See [detailed verification](docs/VERIFICATION-0.1.9.md). Earlier changes from 0.1.7 remain below in this changelog.
 
-The tested application source is unchanged by the publication layout and
-changelog updates. Vite's bundle-size warning and npm's transitive dependency
-deprecation warnings remain. This pass is not a dependency vulnerability audit
-or a new full native rebuild. macOS runtime testing and notarization were not
-performed. Publication does not access live wallets or perform transactions.
 
-## Detached WASM runtime
-
-The source-only export omits four compiled WASM/runtime files. The existing
-`Altbase-WASM-runtime-v0.1.7.zip` bundle remains compatible with wallet 0.1.8.
-Its SHA-256 is:
-
-`7a5fa2cd5e4be6d144125c4ac875fec712310f3a6bc5f6028117c1f7b4a8c6dc`
-
-Restore a verified bundle before dependency installation and frontend builds:
-
-```sh
-python3 scripts/restore-vendor-runtime.py /path/to/Altbase-WASM-runtime-v0.1.7.zip
-npm ci
-taskset -c 0 npm run build:release
-taskset -c 0 npm test
-```
-
-Native builds require their platform SDKs and protocol dependencies. See
-[native/ZANO-HF6-LINUX.md](native/ZANO-HF6-LINUX.md),
-[native/ZANO-HF6-WINDOWS.md](native/ZANO-HF6-WINDOWS.md),
-[native/ZANO-HF6-MACOS.md](native/ZANO-HF6-MACOS.md) and
-[modules/bitcoin2/README.md](modules/bitcoin2/README.md).
+The previous reviewed HF6 dependency snapshots and source-only exclusions are retained. Generated WASM and reference-wallet binaries are restored/built using the documented helpers; no WASM bundle is uploaded as a release asset. The source manifest records ordinary file hashes and module commits.

@@ -1,3 +1,10 @@
+import xelis from './xelis'
+import mwc from './mwc'
+import nexa from './nexa'
+import zcash from './zcash'
+import bitcoincash from './bitcoincash'
+import digibyte from './digibyte'
+import peercoin from './peercoin'
 import bitcoin from './bitcoin'
 import bitcoin2 from './bitcoin2'
 import bitcoincashii from './bitcoincashii'
@@ -28,6 +35,13 @@ import type { CoinModule } from './types'
 
 export const coinModules: readonly CoinModule[] = [
   bitcoin,
+  xelis,
+  mwc,
+  nexa,
+  zcash,
+  bitcoincash,
+  digibyte,
+  peercoin,
   bitcoin2,
   bitcoincashii,
   firo,

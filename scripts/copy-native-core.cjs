@@ -19,13 +19,16 @@ if (targetPlatform === 'darwin' && !['x64', 'arm64'].includes(targetArchitecture
 const macosBuildFolder = `macos-${targetArchitecture}-release`
 const exeName = targetPlatform === 'win32' ? 'altbase_core_bridge.exe' : 'altbase_core_bridge'
 const explicitBuildRoot = process.env.ALTBASE_NATIVE_BUILD_DIR
-  || (targetPlatform === 'linux' ? process.env.ALTBASE_LINUX_NATIVE_BUILD_DIR : '')
+  || ({ linux: process.env.ALTBASE_LINUX_NATIVE_BUILD_DIR, win32: process.env.ALTBASE_WINDOWS_NATIVE_BUILD_DIR, darwin: process.env.ALTBASE_MACOS_NATIVE_BUILD_DIR }[targetPlatform] || '')
 const platformCandidates = {
   win32: [
+    explicitBuildRoot ? path.join(path.resolve(explicitBuildRoot), 'bin', 'Release', exeName) : '',
+    explicitBuildRoot ? path.join(path.resolve(explicitBuildRoot), 'bin', exeName) : '',
     path.join(root, 'native', 'core', 'build', 'vs2022-x64-release', 'bin', 'Release', exeName),
     path.join(root, 'native', 'core', 'build', 'vs2022-x64-release', 'bin', exeName),
   ],
   darwin: [
+    explicitBuildRoot ? path.join(path.resolve(explicitBuildRoot), 'bin', exeName) : '',
     path.join(root, 'native', 'core', 'build', macosBuildFolder, 'bin', exeName),
     path.join(root, 'native', 'core', 'build', macosBuildFolder, 'bin', 'Release', exeName),
   ],
@@ -54,6 +57,10 @@ const utxoCoinIds = [
   'bitcoin',
   'bitcoin2',
   'bitcoincashii',
+  'bitcoincash',
+  'digibyte',
+  'peercoin',
+
   'firo',
   'btgs',
   'capstash',
@@ -69,7 +76,7 @@ const utxoCoinIds = [
   'raptoreum',
   'pearl',
 ]
-const nodeCoinIds = [...utxoCoinIds, 'zano', 'epic', 'quai', 'xgr', 'qubic', 'kaspa', 'nonsense', 'ckb']
+const nodeCoinIds = [...utxoCoinIds, 'nexa', 'zcash', 'zano', 'epic', 'quai', 'xgr', 'qubic', 'kaspa', 'nonsense', 'ckb']
 const nativeBuildFolder = {
   win32: 'vs2022-x64-release',
   darwin: macosBuildFolder,

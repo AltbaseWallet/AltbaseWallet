@@ -1,3 +1,7 @@
+import xelisEngine from '../../modules/xelis/frontend/engine'
+import mwcEngine from '../../modules/mwc/frontend/engine'
+import zcashEngine from '../../modules/zcash/frontend/engine'
+import nexaEngine from '../../modules/nexa/frontend/engine'
 import type { Coin } from '../types/coin'
 import { coinModuleRegistry } from '../coin-modules'
 import { quaiEngine } from './account/quaiEngine'
@@ -12,6 +16,10 @@ import { kaspaEngine } from './utxo/kaspaEngine'
 import { nonsenseEngine } from './utxo/nonsenseEngine'
 
 const engineForCoin = (coin?: Pick<Coin, 'walletEngine'> | null): WalletEngine => {
+  if (coin?.walletEngine === 'xelis-local') return xelisEngine
+  if (coin?.walletEngine === 'mwc-local') return mwcEngine
+  if (coin?.walletEngine === 'zcash-utxo') return zcashEngine
+  if (coin?.walletEngine === 'nexa-utxo') return nexaEngine
   if (coin?.walletEngine === 'quai-account') return quaiEngine
   if (coin?.walletEngine === 'xgr-account') return xgrEngine
   if (coin?.walletEngine === 'qubic-account') return qubicEngine

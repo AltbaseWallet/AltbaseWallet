@@ -16,6 +16,7 @@ const parseModule = (name: string) => ts.createSourceFile(
 
 const expectedCoinIds = [
   'bitcoin',
+  'xelis', 'mwc', 'nexa', 'zcash', 'bitcoincash', 'digibyte', 'peercoin',
   'bitcoin2',
   'bitcoincashii',
   'firo',
@@ -44,6 +45,7 @@ const expectedCoinIds = [
 ]
 
 const specialRoutes: Record<string, string> = {
+  xelis: 'xelis-sdk', mwc: 'mwc-sdk', nexa: 'nexa-sdk', zcash: 'zcash-sdk',
   zano: 'zano-wallet',
   epic: 'epic-wallet',
   monero: 'monero-wallet',
@@ -81,7 +83,15 @@ const registryModuleIds = () => {
 }
 
 const moduleDefinition = (coinId: string) => {
-  const source = parseModule(`${coinId}.ts`)
+  const shim = parseModule(`${coinId}.ts`)
+  const reexport = shim.statements.find(statement => ts.isExportDeclaration(statement) && statement.moduleSpecifier && ts.isStringLiteral(statement.moduleSpecifier))
+  const resolveModule = (specifier: string) => {
+    const filename = path.resolve(modulesDir, specifier)
+    return fs.existsSync(filename + '.ts') ? filename + '.ts' : path.join(filename, 'index.ts')
+  }
+  const source = reexport && ts.isExportDeclaration(reexport) && reexport.moduleSpecifier && ts.isStringLiteral(reexport.moduleSpecifier)
+    ? ts.createSourceFile(`${coinId}.ts`, fs.readFileSync(resolveModule(reexport.moduleSpecifier.text), 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TS)
+    : shim
   let definition: { id: string; nativeRoute: string } | undefined
   const visit = (node: ts.Node) => {
     if (
@@ -117,7 +127,7 @@ test('the modular wallet registry contains every supported coin exactly once', (
   const ids = registryModuleIds()
   assert.deepEqual(ids, expectedCoinIds)
   assert.equal(new Set(ids).size, expectedCoinIds.length)
-  assert.equal(ids.length, 26)
+  assert.equal(ids.length, 33)
 })
 
 test('every coin module owns its matching definition and native route', () => {

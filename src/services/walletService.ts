@@ -18,6 +18,8 @@ const pendingPublicAddressRequests = new Map<string, Promise<string | undefined>
 const STANDARD_ADDRESS_DERIVATION_TIMEOUT_MS = 20_000
 const STANDARD_ADDRESS_RETRY_DELAY_MS = 5_000
 const ALWAYS_REDERIVE_STANDARD_COIN_IDS = new Set([
+  'xelis',
+  'mwc',
   'bitcoin',
   'bitcoincashii',
   'firo',
