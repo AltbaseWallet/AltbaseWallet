@@ -26,3 +26,7 @@ See [detailed verification](docs/VERIFICATION-0.1.9.md). Earlier changes from 0.
 
 
 The previous reviewed HF6 dependency snapshots and source-only exclusions are retained. Generated WASM and reference-wallet binaries are restored/built using the documented helpers; no WASM bundle is uploaded as a release asset. The source manifest records ordinary file hashes and module commits.
+
+## Published verification
+
+The wallet release and all 40 separate module references are published. Public release digests and the original Wallet 0.1.8 signed Mining update path passed verification; see [final evidence](docs/VERIFICATION-0.1.9.md). Existing user wallets and scan databases were not changed.

@@ -11,12 +11,12 @@ The GrandPool public APIs listed BTC, BCH, DGB, PPC, ZEC, MWC, PRL, XEL and NEXA
 - `all-tests-final-fixes.txt`: 172 wallet/backend fixtures; `all-tests-final.txt`: 25 Mining fixtures, no failures. `mining-runtime-update-final.txt`: two additional warm-update/process-group checks. No real miner or transaction is required by these fixtures.
 - `native-signature-fixtures.json`: 18 independently verified BCH/DGB/PPC signatures with one and five inputs. `tests/fixtures/zcash-zip244-transparent.json`: 46 official ZIP-244 digest cases across NU6.2 and NU6.3. Exact atomic amounts, fee bounds, MAX planning, foreign/duplicate inputs and single-attempt broadcasts are covered by SDK fixtures.
 - `electron-runtime-final-fixes.txt`: 22 runtime fixtures inside Electron; pure JavaScript SHA3/secp256k1 avoids unsupported BoringSSL operations.
-- `gui-result.json`, completed 2026-09-23T22:26:29.750Z: all seven added coins Active in a fresh isolated Linux GUI. Xelis synchronized and MWC completed a full scan from height 1. Before completion the interface displayed an unverified balance. Only the random empty fixture was reported as verified zero.
+- `gui-result.json`, completed 2026-09-24T00:56:31.307Z: all seven added coins Active in a fresh isolated Linux GUI. Xelis synchronized and MWC completed a full scan from height 1. Before completion the interface displayed an unverified balance. Only the random empty fixture was reported as verified zero.
 - `mining-gui/results.json`, 2026-09-23T22:56:08.219Z: all nine selected GrandPool France regular by default. ASIC configuration stayed on the requested coin, with a synthetic payout identity. Local GPU setup was checked for PRL/XEL/NEXA.
 - `grandpool-tls-read.json`: certificate-verified TLS connections to all nine France pool endpoints. This does not establish share acceptance or mining payout.
 - `nexa-public-authoritative.json`: over 1,000 UTXOs on a public pool address; cold complete balance about 27 seconds, warm read below one second. Confirmed, spendable and immature amounts remain separate decimal strings. Failed reads cannot become partial or zero balances.
 - `peercoin-public-read.json`: funded public address, history and raw transaction proof returned successfully. `public-wallet-read.json`: public BCH/DGB/ZEC reads; upstream history-limit failures recorded separately.
-- Windows MSI: 336 payload files extracted and verified. macOS: 86 Mach-O files, 165,598 code pages and 506 resource hashes verified, with ad-hoc signatures. Linux package ran the read-only GUI check. Final asset hashes are provided with the release.
+- Windows MSI: all 336 extracted payload files matched SHA-256 against the packaged source tree. macOS: 86 Mach-O files, 165,598 code pages and 506 resource hashes verified, with ad-hoc signatures. Linux package ran the read-only GUI check. Final asset hashes are provided with the release.
 
 ## Server audit
 
@@ -50,4 +50,25 @@ At 2026-09-23T23:58:25.590Z, the TLS Electrum node reported height 3493963 and c
 
 Both public Peercoin Blockbook hostnames stalled at index height 892668 while their node had reached 892670. Backend fixtures now reject balances, spendable outputs and history from an unfinished Blockbook index. Peercoin was switched to the mainnet Electrum WebSocket servers listed in the official peercoin_flutter source; each connection checks the expected genesis. The primary endpoint returned height 892675, 46 UTXOs and correct mining maturity for public address `PRZsYNcwiBxi5ggNrh3wuBkXqLPrZcVEdM`: 1607.030000 PPC confirmed, 346.650000 spendable and 1260.380000 immature. History and raw v3 transaction decoding passed. The listed secondary endpoint refused connections; it is not claimed healthy. Evidence: `peercoin-electrum-final.json`, `peercoin-adapter-final.json`, `peercoin-production-final.json`.
 
-A first MWC start exceeded the former 15-second allowance during a congested GUI run. The startup budget is now 90 seconds; reopening after failed initialization or scanning preserves the encrypted profile. A fixture verifies failure followed by successful reopening creates the profile only once. A later GUI scan was interrupted by the backend deployment restart and stayed explicitly unverified. Final GUI verification is performed after deployment with no concurrent API restarts.
+A first MWC start exceeded the former 15-second allowance during a congested GUI run. The startup budget is now 90 seconds; reopening after failed initialization or scanning preserves the encrypted profile. A fixture verifies failure followed by successful reopening creates the profile only once. A later GUI scan was interrupted by the backend deployment restart and stayed explicitly unverified. At 2026-09-24T00:56:31.307Z, the final isolated GUI check completed with all seven added coins Active after a full MWC scan and Xelis synchronization. The harness sends ordinary activity events while waiting so the wallet’s normal five-minute auto-lock does not terminate the test session.
+
+At 2026-09-24 00:58 UTC both Nonsense nodes again reported synchronized, UTXO-indexed and `NRestarts=0`. At 00:59 UTC the original Wallet 0.1.8 Mining host also upgraded 0.1.12 to 0.1.13 successfully on the workstation, verifying all 87 files and preserving the PRL job endpoint. Earlier workstation connection timeouts were transient during saturated uploads. The final clean-source SDK rebuild produced identical code for all four bundles, excluding build-directory region comments.
+
+## Publication and public update verification
+
+Wallet [0.1.9](https://github.com/AltbaseWallet/AltbaseWallet/releases/tag/v0.1.9) and Mining [0.1.13](https://github.com/AltbaseWallet/module-mining/releases/tag/v0.1.13) are public. Release code commit: `ca95d2880b498fcc0828304c30342b216dd05c0e`; Mining commit: `a6444c657d980bacfaab756b1b63d4528ee73bfa`. All 40 submodule branch heads were verified. Protected source Git object IDs were retained without reading their contents.
+
+At 2026-09-23T23:38:36.609Z, the original Wallet 0.1.8 Mining host installed signed Mining 0.1.13 from anonymous public GitHub downloads over an existing 0.1.12 installation in an isolated profile on the primary server. All 87 files verified. The existing PRL job retained `stratum+ssl://eu.rplant.xyz:17168`. No HTTP mocks, miner starts or wallet transactions were used. The workstation also passed the same public update check at 2026-09-24T00:59:19.490Z after upload congestion cleared.
+
+At 2026-09-24T01:00:30.172230+00:00, the production backend advertised 0.1.9 to 0.1.8 clients and correctly reported no update to 0.1.9 clients. Its file URLs point to the verified public release.
+
+Every uploaded asset matched the SHA-256 computed locally and independently by GitHub. Anonymous public download access and byte ranges were checked at 2026-09-24T01:01:09.739285+00:00. Windows is distributed as a ZIP containing the MSI. No WASM runtime was added to the release.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Altbase-Wallet-Linux-x86_64-v0.1.9.AppImage | `e2cf7a0e5315ecddb5a4ceafca280693dc2d80901c80918e54c2c92f1dba4244` |
+| Altbase-Wallet-Windows-x64-v0.1.9.zip | `d72c9a8fe0d3e688ee3a6d03cb04a9f0fe414dd8c8afb7a6341b68b269a2e78e` |
+| Altbase-Wallet-macOS-universal-v0.1.9.zip | `990d5e083a75938a7d0816501e92130a8f78816cf10c486fcca0d3a1f28cce58` |
+| SHA256SUMS-v0.1.9.txt | `6468598a6153f9bbc2e6106216ed2c3cc0efc3208fb00d276e03c53de62753fe` |
+
+The unavailable server, physical desktop and mining workload checks listed above remain unavailable; publication does not change those conclusions.

@@ -1,5 +1,5 @@
 {
-  "preparedAt": "2026-09-24T00:55:09.537370+00:00",
+  "preparedAt": "2026-09-24T01:01:37.381087+00:00",
   "sourceRoot": "Altbase",
   "restrictedSourceOmitted": false,
   "gitHistoryIncluded": false,
@@ -268,8 +268,8 @@
     },
     {
       "path": "SOURCE-REVIEW.md",
-      "bytes": 3970,
-      "sha256": "232bc2557c96597c4583f693b1e2d1c13af84194457ad605c70fd18c2d83617a"
+      "bytes": 4279,
+      "sha256": "f29034eaf144589090241849b5710cefe5df751fca7d4b806062b2143e0a3ec1"
     },
     {
       "path": "build-all.sh",
@@ -303,8 +303,8 @@
     },
     {
       "path": "docs/VERIFICATION-0.1.9.md",
-      "bytes": 8379,
-      "sha256": "f3974760c6723ad7128dccdb54d274ce50e147aa2e3e15d40c66a676eec5c9f4"
+      "bytes": 11185,
+      "sha256": "95e11c61cc2c84292454c5cf8148d95aef9f180bb01671d8a3302ede96845030"
     },
     {
       "path": "docs/api-transparency.html",
@@ -32147,7 +32147,7 @@
       "url": "https://github.com/AltbaseWallet/module-mining.git",
       "branch": "main",
       "commit": "a6444c657d980bacfaab756b1b63d4528ee73bfa",
-      "commitRole": "Prepared Mining v0.1.13 source",
+      "commitRole": "Published Mining v0.1.13 source",
       "preparedVersion": "0.1.13"
     },
     {
@@ -32235,7 +32235,7 @@
     }
   ],
   "miningModuleVersion": "0.1.13",
-  "pendingPublication": true,
+  "pendingPublication": false,
   "reviewUpdateScope": [
     "wallet 0.1.9",
     "seven separate GrandPool coin modules",
@@ -32244,9 +32244,118 @@
     "release verification"
   ],
   "miningRelease": {
-    "tag": "v0.1.13",
+    "at": "2026-09-23T23:25:32.863130+00:00",
     "url": "https://github.com/AltbaseWallet/module-mining/releases/tag/v0.1.13",
+    "id": 395137837,
     "commit": "a6444c657d980bacfaab756b1b63d4528ee73bfa",
-    "status": "prepared"
+    "tag": "v0.1.13",
+    "assets": [
+      {
+        "name": "SHA256SUMS",
+        "bytes": 663,
+        "sha256": "28638e1c6c7dcd6314a9b99c2030e55df582f3938acd1cc86c87ef5c500033f8",
+        "url": "https://github.com/AltbaseWallet/module-mining/releases/download/v0.1.13/SHA256SUMS",
+        "id": 584754718
+      },
+      {
+        "name": "altbase-mining-module-0.1.13-linux-x64.tar.gz",
+        "bytes": 1321777,
+        "sha256": "6c346c0997f5bea01bf8e532f1e491fd1116e0906ceb5b7cad0c4ceb0a5e89de",
+        "url": "https://github.com/AltbaseWallet/module-mining/releases/download/v0.1.13/altbase-mining-module-0.1.13-linux-x64.tar.gz",
+        "id": 584754722
+      },
+      {
+        "name": "altbase-mining-module-0.1.13-macos-arm64.tar.gz",
+        "bytes": 1321777,
+        "sha256": "6c346c0997f5bea01bf8e532f1e491fd1116e0906ceb5b7cad0c4ceb0a5e89de",
+        "url": "https://github.com/AltbaseWallet/module-mining/releases/download/v0.1.13/altbase-mining-module-0.1.13-macos-arm64.tar.gz",
+        "id": 584754725
+      },
+      {
+        "name": "altbase-mining-module-0.1.13-macos-x64.tar.gz",
+        "bytes": 1321777,
+        "sha256": "6c346c0997f5bea01bf8e532f1e491fd1116e0906ceb5b7cad0c4ceb0a5e89de",
+        "url": "https://github.com/AltbaseWallet/module-mining/releases/download/v0.1.13/altbase-mining-module-0.1.13-macos-x64.tar.gz",
+        "id": 584754761
+      },
+      {
+        "name": "altbase-mining-module-0.1.13-windows-x64.tar.gz",
+        "bytes": 1321777,
+        "sha256": "6c346c0997f5bea01bf8e532f1e491fd1116e0906ceb5b7cad0c4ceb0a5e89de",
+        "url": "https://github.com/AltbaseWallet/module-mining/releases/download/v0.1.13/altbase-mining-module-0.1.13-windows-x64.tar.gz",
+        "id": 584754822
+      },
+      {
+        "name": "altbase-mining-module-0.1.13.manifest.json",
+        "bytes": 14599,
+        "sha256": "fe74c9faba430969e444c98b493f2590561f0f4f3a8479dff286b154bd5b8fcb",
+        "url": "https://github.com/AltbaseWallet/module-mining/releases/download/v0.1.13/altbase-mining-module-0.1.13.manifest.json",
+        "id": 584754893
+      },
+      {
+        "name": "altbase-mining-module-0.1.13.tar.gz",
+        "bytes": 1321777,
+        "sha256": "6c346c0997f5bea01bf8e532f1e491fd1116e0906ceb5b7cad0c4ceb0a5e89de",
+        "url": "https://github.com/AltbaseWallet/module-mining/releases/download/v0.1.13/altbase-mining-module-0.1.13.tar.gz",
+        "id": 584754910
+      }
+    ],
+    "public": true
+  },
+  "sourcePublication": {
+    "at": "2026-09-24T00:55:22.301808+00:00",
+    "commit": "ca95d2880b498fcc0828304c30342b216dd05c0e",
+    "submodulesVerified": 40,
+    "updatedRepositories": 10,
+    "url": "https://github.com/AltbaseWallet/AltbaseWallet",
+    "forcePushUsed": false,
+    "protectedContentRead": false,
+    "nu63Correction": {
+      "moduleCommit": "57fa484b5d48f0eb2bfd7959c769a96d0e033af9",
+      "previousCodeCommit": "aada471836d87f86c64865f4d0332e75de3b7c42",
+      "fixtures": 46
+    },
+    "finalCorrections": {
+      "modules/mwc": "908d44e70a074b9b98ec529ea172b40c3a290af0",
+      "modules/peercoin": "8b0c1c44d65821dbe14eeef694c4b1d4ad7c8c58"
+    }
+  },
+  "walletRelease": {
+    "at": "2026-09-24T00:58:51.552976+00:00",
+    "url": "https://github.com/AltbaseWallet/AltbaseWallet/releases/tag/v0.1.9",
+    "id": 395158983,
+    "commit": "ca95d2880b498fcc0828304c30342b216dd05c0e",
+    "tag": "v0.1.9",
+    "assets": [
+      {
+        "name": "Altbase-Wallet-Linux-x86_64-v0.1.9.AppImage",
+        "bytes": 216096850,
+        "sha256": "e2cf7a0e5315ecddb5a4ceafca280693dc2d80901c80918e54c2c92f1dba4244",
+        "url": "https://github.com/AltbaseWallet/AltbaseWallet/releases/download/v0.1.9/Altbase-Wallet-Linux-x86_64-v0.1.9.AppImage",
+        "id": 584885639
+      },
+      {
+        "name": "Altbase-Wallet-Windows-x64-v0.1.9.zip",
+        "bytes": 237907640,
+        "sha256": "d72c9a8fe0d3e688ee3a6d03cb04a9f0fe414dd8c8afb7a6341b68b269a2e78e",
+        "url": "https://github.com/AltbaseWallet/AltbaseWallet/releases/download/v0.1.9/Altbase-Wallet-Windows-x64-v0.1.9.zip",
+        "id": 584885671
+      },
+      {
+        "name": "Altbase-Wallet-macOS-universal-v0.1.9.zip",
+        "bytes": 343817604,
+        "sha256": "990d5e083a75938a7d0816501e92130a8f78816cf10c486fcca0d3a1f28cce58",
+        "url": "https://github.com/AltbaseWallet/AltbaseWallet/releases/download/v0.1.9/Altbase-Wallet-macOS-universal-v0.1.9.zip",
+        "id": 584885676
+      },
+      {
+        "name": "SHA256SUMS-v0.1.9.txt",
+        "bytes": 322,
+        "sha256": "6468598a6153f9bbc2e6106216ed2c3cc0efc3208fb00d276e03c53de62753fe",
+        "url": "https://github.com/AltbaseWallet/AltbaseWallet/releases/download/v0.1.9/SHA256SUMS-v0.1.9.txt",
+        "id": 584885834
+      }
+    ],
+    "public": true
   }
 }
