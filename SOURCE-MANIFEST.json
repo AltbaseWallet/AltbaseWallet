@@ -1,5 +1,5 @@
 {
-  "preparedAt": "2026-09-24T01:04:34.987664+00:00",
+  "preparedAt": "2026-09-24T08:10:37.363324+00:00",
   "sourceRoot": "Altbase",
   "restrictedSourceOmitted": false,
   "gitHistoryIncluded": false,
@@ -297,14 +297,19 @@
       "sha256": "c3760b75359ad01e8f5e40ec93d899a0a52c3575f3084ea4bdfc3e0efb55af5f"
     },
     {
+      "path": "docs/MAINTENANCE-2026-09-24.md",
+      "bytes": 13927,
+      "sha256": "43b3a7ec31530c84a1d077b86abe757fcd8e6bbd981a3bc0974c8fd3e80959e4"
+    },
+    {
       "path": "docs/REFERENCE-WALLETS.md",
       "bytes": 1663,
       "sha256": "6702bf28926b8ca151eecc52f8dd1cc2ef8eab6fb6d23daa4aea456716b10668"
     },
     {
       "path": "docs/VERIFICATION-0.1.9.md",
-      "bytes": 12442,
-      "sha256": "05581444d04eb019e6ce670bb6ce93012dc870468bec0c9f88116e66f6db22e1"
+      "bytes": 13155,
+      "sha256": "1cc8321d135db237336a4d8d570058fec2d3b403b473172d8b2860163bf36f1e"
     },
     {
       "path": "docs/api-transparency.html",
@@ -30167,6 +30172,11 @@
       "sha256": "8efe01a67bcc5aa5bf57dca3b08a42ff657044bb1766a76893a5825e42dba9a0"
     },
     {
+      "path": "ops/remote-nodes/README.md",
+      "bytes": 3844,
+      "sha256": "1d0f7e8afdbd1f25e042910d43eb47e9be3a8bbd32c5c31f9a49aed2b2721ee2"
+    },
+    {
       "path": "ops/remote-nodes/adapters/bitcoinFork.cjs",
       "bytes": 79802,
       "sha256": "fdbc7229757c4a1e941d7ee1ac89a1e0ac44e459531da6f7762315271602b7a1"
@@ -30185,6 +30195,16 @@
       "path": "ops/remote-nodes/adapters/ckbRpc.cjs",
       "bytes": 16705,
       "sha256": "70e2691eb7bc36e9e6b889d29e47db66775536aab98f3f598e880cd597628ffe"
+    },
+    {
+      "path": "ops/remote-nodes/adapters/epicNode.node2.cjs",
+      "bytes": 3851,
+      "sha256": "b3774e36ae4a521219f7751c0b7723f356b72c13a0e77858f30641a70a5d4e61"
+    },
+    {
+      "path": "ops/remote-nodes/adapters/junkcoinUtxo.cjs",
+      "bytes": 8379,
+      "sha256": "c514026f4f1d55c76fa80b44c31eb3b09530a72aa569ec5df70dc412e2c2e2f9"
     },
     {
       "path": "ops/remote-nodes/adapters/kaspaRest.cjs",
@@ -30227,6 +30247,11 @@
       "sha256": "1a21ee93b54e15a1c3839d47c337257157017a16573678fca4122be5be9c2b88"
     },
     {
+      "path": "ops/remote-nodes/epic-sync-status-patch.cjs",
+      "bytes": 798,
+      "sha256": "bad6e9555538c5c9cab7c418c5090160218eacd2063ba8b4956b494347b9c429"
+    },
+    {
       "path": "ops/remote-nodes/grandpool-bundle-entry.cjs",
       "bytes": 103,
       "sha256": "7f34e0a862d483ad02cb7c9fa85cdd6f5786210325339d61a7962b04195233c4"
@@ -30245,6 +30270,11 @@
       "path": "ops/remote-nodes/integrate-gateway.cjs",
       "bytes": 1964,
       "sha256": "de8bb2f02a7b65aa8d677d1c3481d9d56239cace1875d7a37004c96cfb3af342"
+    },
+    {
+      "path": "ops/remote-nodes/junkcoin-read-patch.cjs",
+      "bytes": 1994,
+      "sha256": "1e70a9eb006067d8a31b2cd0f251d98fece8d5a61983ca754b8c06ffe6f99e85"
     },
     {
       "path": "ops/remote-nodes/lib/electrumClient.cjs",
@@ -30280,6 +30310,11 @@
       "path": "ops/remote-nodes/nginx-privacy-cache.patch",
       "bytes": 197,
       "sha256": "f872ba720e7b998c1de8447247cbf5f19ef866a00a28b168addd0c89f067b594"
+    },
+    {
+      "path": "ops/remote-nodes/node2-health.sh",
+      "bytes": 4667,
+      "sha256": "ab513d8e141ed335e99d3ae661f81a831e42d37e36966cef10b0f13f7fe72f59"
     },
     {
       "path": "ops/remote-nodes/stage-server.cjs",
@@ -31617,6 +31652,11 @@
       "sha256": "d598039fddc012b4f6657229dc6a5f1e656f19995f77a606e3583871ea7bec31"
     },
     {
+      "path": "tests/epicNodeSync.test.cjs",
+      "bytes": 1860,
+      "sha256": "d01914b47805b5d6ce0f8849dcf1b8aaa7e928a1f277017189583e41e6b98e51"
+    },
+    {
       "path": "tests/fixtures/generate-zcash-zip244.py",
       "bytes": 1576,
       "sha256": "17ecad24e0862639d513d5da2ef96ec550e741bc7a92d97019f9396f6c4ee3f4"
@@ -31715,6 +31755,11 @@
       "path": "tests/historyPagination.test.ts",
       "bytes": 454,
       "sha256": "9aafce7c7e2ebf6c6f716f483fcc1a849dbe6e1565b1841d73a5689a26d59276"
+    },
+    {
+      "path": "tests/junkcoinUtxo.test.cjs",
+      "bytes": 6598,
+      "sha256": "14fd2efc8fe6fe00a31526c8c768d8120dac3b05809c6ae3213eceac08b627c7"
     },
     {
       "path": "tests/kaspaHistoryConfirmations.test.cjs",
@@ -32366,5 +32411,26 @@
     "publicAssetsVerified": 11,
     "sharedFolderDelivery": false,
     "physicalWindowsMacTests": false
+  },
+  "serverSourceUpdate": {
+    "date": "2026-09-24",
+    "scope": [
+      "ops/remote-nodes/README.md",
+      "ops/remote-nodes/epic-sync-status-patch.cjs",
+      "ops/remote-nodes/adapters/epicNode.node2.cjs",
+      "ops/remote-nodes/adapters/junkcoinUtxo.cjs",
+      "ops/remote-nodes/junkcoin-read-patch.cjs",
+      "ops/remote-nodes/node2-health.sh",
+      "tests/epicNodeSync.test.cjs",
+      "tests/junkcoinUtxo.test.cjs",
+      "docs/MAINTENANCE-2026-09-24.md",
+      "docs/VERIFICATION-0.1.9.md"
+    ],
+    "parentCommit": "22fa531cdf706c00fae25e50e2ce2d3523671a7c",
+    "junkcoinFixtureCases": 17,
+    "epicFixtureScenarios": 5,
+    "walletModulesChanged": false,
+    "releaseAssetsChanged": false,
+    "protectedContentRead": false
   }
 }

@@ -80,3 +80,7 @@ At 2026-09-24T01:01:38Z the production gateway returned successful network statu
 At 01:03 UTC the Windows relay closed before its SSH banner and the direct alternate route timed out. The VirtualBox `re` mount was listed but its path returned `ENOENT`; the final Windows ZIP could not be delivered through the shared folder. The verified ZIP is available in local `artifacts/` and the public release. This does not constitute a Windows installation/runtime test.
 
 All 11 public release assets passed anonymous download checks at 01:01:09 UTC. Release metadata and the backend use final `v0.1.9` asset URLs; draft-only URLs were replaced before the successful public-download verification. Old task-created drafts and 797,822,094 bytes of temporary server upload files were removed after hash verification. Wallet profiles and scan results were preserved.
+
+## Service recovery follow-up — 2026-09-24
+
+The previously unreachable Altbase node2 host recovered after the hosting renewal. Its daemon audit, startup fixes, Junkcoin upgrade and complete-balance correction, EPIC readiness correction, website update and local artifact cleanup are documented in [MAINTENANCE-2026-09-24.md](MAINTENANCE-2026-09-24.md). This follow-up supersedes the earlier host-unreachable limitation according to the timestamps in that report. No GitHub publication or wallet transaction occurred during the maintenance window ending at 04:27 UTC. Server source publication was authorized separately afterward; integration details are in [the backend README](../ops/remote-nodes/README.md).
