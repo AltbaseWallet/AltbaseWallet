@@ -72,3 +72,11 @@ Every uploaded asset matched the SHA-256 computed locally and independently by G
 | SHA256SUMS-v0.1.9.txt | `6468598a6153f9bbc2e6106216ed2c3cc0efc3208fb00d276e03c53de62753fe` |
 
 The unavailable server, physical desktop and mining workload checks listed above remain unavailable; publication does not change those conclusions.
+
+## Final external access and cleanup
+
+At 2026-09-24T01:01:38Z the production gateway returned successful network status for 27 of 33 coins, with none of those 27 reporting initial synchronization. All seven new adapters were healthy. The six unavailable coins still depended on unreachable host `188.137.235.140`. The final Nonsense reads at 00:58:52–53 UTC showed both nodes at virtual DAA 1,134,762, synchronized and indexed, with no service restart since the recorded changes.
+
+At 01:03 UTC the Windows relay closed before its SSH banner and the direct alternate route timed out. The VirtualBox `re` mount was listed but its path returned `ENOENT`; the final Windows ZIP could not be delivered through the shared folder. The verified ZIP is available in local `artifacts/` and the public release. This does not constitute a Windows installation/runtime test.
+
+All 11 public release assets passed anonymous download checks at 01:01:09 UTC. Release metadata and the backend use final `v0.1.9` asset URLs; draft-only URLs were replaced before the successful public-download verification. Old task-created drafts and 797,822,094 bytes of temporary server upload files were removed after hash verification. Wallet profiles and scan results were preserved.

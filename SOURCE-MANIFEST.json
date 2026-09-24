@@ -1,5 +1,5 @@
 {
-  "preparedAt": "2026-09-24T01:01:37.381087+00:00",
+  "preparedAt": "2026-09-24T01:04:34.987664+00:00",
   "sourceRoot": "Altbase",
   "restrictedSourceOmitted": false,
   "gitHistoryIncluded": false,
@@ -253,13 +253,13 @@
     },
     {
       "path": "CHANGELOG.md",
-      "bytes": 11350,
-      "sha256": "14120af76e43398c600d1985137c75cca142dcb19e459142b60761dcfe8b24a9"
+      "bytes": 11527,
+      "sha256": "0f7df63d7b66a49338d9877f3ca192dc1e9391091fdd0af689eb27d00d673384"
     },
     {
       "path": "README.md",
-      "bytes": 5470,
-      "sha256": "d9d11f5104be4eb2106f129a9a379203c6c68c3816fe1577018a520ac258ba3e"
+      "bytes": 5476,
+      "sha256": "f2696e21658825c2608bf04db237f418e336ed1547903dcabd9892d2352c7c36"
     },
     {
       "path": "RELEASE-NOTES-0.1.9.md",
@@ -268,8 +268,8 @@
     },
     {
       "path": "SOURCE-REVIEW.md",
-      "bytes": 4279,
-      "sha256": "f29034eaf144589090241849b5710cefe5df751fca7d4b806062b2143e0a3ec1"
+      "bytes": 4455,
+      "sha256": "d4feb0e63cd845c045d8e328355fff38022e6f05154afeeed3355995c5bbe3bf"
     },
     {
       "path": "build-all.sh",
@@ -303,8 +303,8 @@
     },
     {
       "path": "docs/VERIFICATION-0.1.9.md",
-      "bytes": 11185,
-      "sha256": "95e11c61cc2c84292454c5cf8148d95aef9f180bb01671d8a3302ede96845030"
+      "bytes": 12442,
+      "sha256": "05581444d04eb019e6ce670bb6ce93012dc870468bec0c9f88116e66f6db22e1"
     },
     {
       "path": "docs/api-transparency.html",
@@ -32357,5 +32357,14 @@
       }
     ],
     "public": true
+  },
+  "finalVerification": {
+    "guiAt": "2026-09-24T00:56:31.307Z",
+    "walletBackendTests": 172,
+    "miningTests": 27,
+    "electronRuntimeTests": 22,
+    "publicAssetsVerified": 11,
+    "sharedFolderDelivery": false,
+    "physicalWindowsMacTests": false
   }
 }

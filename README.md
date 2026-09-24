@@ -64,7 +64,7 @@ npm ci
 
 The unchanged dependency bundle keeps its `v0.1.7` filename; the application
 version is `0.1.9`. The restore script verifies its SHA-256 and exact file list.
-See [the source review](SOURCE-REVIEW.md) for the bundle checksum and validation.
+See [the source manifest](SOURCE-MANIFEST.json) for the bundle checksum and validation.
 
 ## Build and test the frontend
 
