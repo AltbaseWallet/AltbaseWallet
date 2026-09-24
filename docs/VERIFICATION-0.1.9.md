@@ -8,9 +8,9 @@ The GrandPool public APIs listed BTC, BCH, DGB, PPC, ZEC, MWC, PRL, XEL and NEXA
 
 ## Passing checks
 
-- `all-tests-final.txt`: 165 wallet/backend fixtures and 25 Mining fixtures, no failures. `mining-runtime-update-final.txt`: two additional warm-update/process-group checks. No real miner or transaction is required by these fixtures.
-- `native-signature-fixtures.json`: 18 independently verified BCH/DGB/PPC signatures with one and five inputs. `tests/fixtures/zcash-zip244-transparent.json`: 23 official ZIP-244 digest cases. Exact atomic amounts, fee bounds, MAX planning, foreign/duplicate inputs and single-attempt broadcasts are covered by SDK fixtures.
-- `electron-runtime-fixtures.txt`: 17 runtime fixtures inside Electron; pure JavaScript SHA3/secp256k1 avoids unsupported BoringSSL operations.
+- `all-tests-nu63.txt`: 169 wallet/backend fixtures and 25 Mining fixtures, no failures. `mining-runtime-update-final.txt`: two additional warm-update/process-group checks. No real miner or transaction is required by these fixtures.
+- `native-signature-fixtures.json`: 18 independently verified BCH/DGB/PPC signatures with one and five inputs. `tests/fixtures/zcash-zip244-transparent.json`: 46 official ZIP-244 digest cases across NU6.2 and NU6.3. Exact atomic amounts, fee bounds, MAX planning, foreign/duplicate inputs and single-attempt broadcasts are covered by SDK fixtures.
+- `electron-runtime-nu63.txt`: 21 runtime fixtures inside Electron; pure JavaScript SHA3/secp256k1 avoids unsupported BoringSSL operations.
 - `gui-result.json`, completed 2026-09-23T22:26:29.750Z: all seven added coins Active in a fresh isolated Linux GUI. Xelis synchronized and MWC completed a full scan from height 1. Before completion the interface displayed an unverified balance. Only the random empty fixture was reported as verified zero.
 - `mining-gui/results.json`, 2026-09-23T22:56:08.219Z: all nine selected GrandPool France regular by default. ASIC configuration stayed on the requested coin, with a synthetic payout identity. Local GPU setup was checked for PRL/XEL/NEXA.
 - `grandpool-tls-read.json`: certificate-verified TLS connections to all nine France pool endpoints. This does not establish share acceptance or mining payout.
@@ -41,3 +41,7 @@ The exported source also passed a fresh frontend/SDK release build in an isolate
 Use one CPU for builds: `taskset -c 0 npm test`. Run `node --test modules/mining/tests/runtime-update.test.cjs` for warm-update checks. `xvfb-run -a node_modules/.bin/electron --no-sandbox tests/gui/grandpool-mining.cjs` uses synthetic host responses and refuses miner-start/install requests. Reference executable pins and build prerequisites are documented in `REFERENCE-WALLETS.md`.
 
 `wallet_secret.cpp` and its copies were not read. Existing protected Git objects are retained without content inspection. Credentials, recovery phrases, private keys, wallet profiles and scan databases are excluded from the source export and reports.
+
+## Zcash NU6.3 release gate
+
+At 2026-09-23T23:58:25.590Z, the TLS Electrum node reported height 3493963 and coinbase `c911fa646b76631947b743c95aaa96f3f5e76ecf6e08b94212ffc961427e8c46` (version 6, branch `0x37a5165b`). Its verbose inputs and outputs were compatible with the backend maturity/history parser. The initially staged wallet still selected NU6.2; publication was stopped before the wallet became public. The final signer uses NU6.3 with v5 transparent transactions, which remain valid under [ZIP-229](https://zips.z.cash/zip-0229) and [ZIP-258](https://zips.z.cash/zip-0258). Activation-height and expiry bounds, exact txids and local fixture signatures pass. All three embedded SDKs and Electron ASAR integrity records were updated; every other packed file was checked unchanged.

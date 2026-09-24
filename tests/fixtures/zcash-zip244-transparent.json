@@ -1,6 +1,6 @@
 {
   "source": "https://github.com/zcash/zcash-test-vectors",
-  "generator": "zip_0244.signature_digest (SIGHASH_ALL), NU6.2 transparent fixtures",
+  "generator": "zip_0244.signature_digest (SIGHASH_ALL), NU6.2 and NU6.3 transparent fixtures",
   "vectors": [
     {
       "inputCount": 1,
@@ -47,6 +47,53 @@
         "1398922732e465b8124e2e41a84ce8b775c9ab301f0453bfd81256643af0ee7e",
         "699b44cf59e470ba64383b7000465ee4c9bd7d5db1b6f6840e37d7286acd6fd3",
         "31ca7ef8089f883097b2168075a2221a181572436384ad46fcb4cd54a1e71f7f"
+      ]
+    },
+    {
+      "inputCount": 1,
+      "height": 3493840,
+      "branch": 933566043,
+      "txid": "f69ed12bd3e47238b61062c90f33a5d6856f13e6e84527aa17e5d77438b702de",
+      "digests": [
+        "cdcae8a4a6a4914eb5fd4ab736d41d85c68b8bf665e41bd8ea42919ece12e12f"
+      ]
+    },
+    {
+      "inputCount": 2,
+      "height": 3493840,
+      "branch": 933566043,
+      "txid": "8d0b47903d4ec282186849cbf22b1cefb4d7a01521bec2e7bc77af22ab459010",
+      "digests": [
+        "c920be9830fe7247a66e98446b683f6182d7c78ba2fbbb7dd5cc338f92874ed7",
+        "78003a5bfbbc7dd03fe071677fb8c0de44c75fcd00aebacf7ddf819b88d9cabb"
+      ]
+    },
+    {
+      "inputCount": 20,
+      "height": 3493840,
+      "branch": 933566043,
+      "txid": "0c2440cfb834af88e3b58f1feba7c0f000023a95274f7a11bb715e18269b8e65",
+      "digests": [
+        "9400c3e9d8d79f8815db093044b34ad595d31f798f647066dbd4a674a26ff281",
+        "69cac877e08229a748fc9a11c42f297dc1441c25b5f104fc87b65d3eb5190458",
+        "5d545debf6c4ed472566c9a41269f729e3cc8c499a872f649705259d9b2c5552",
+        "a3d0a868d7cca68bbd032f96c2f78ace3cda78712917f2978f232f7e7f61d87d",
+        "fcd6edf764b6110ec83f235a3451de0670eb67ec5cf70b683284ebe2ec4c437e",
+        "0c780e9521329c30a172a5ebed761ee1695ecb3d2f8ead787cf8826c8a25e9e2",
+        "9d7899fabba2dfbb1d6bd334e15689ad3526017fca1b92e72f1dc84f9d4073e0",
+        "5470270c38d472a2462dc54ad97dc7b01a39763968365fd02b3684e9a50974cd",
+        "a5256682694e44bbac6b24b7fa4cd218875f9c5f329d77f522ae4a5cba8fa2fe",
+        "fadffe9223d21c40b4641b5bdfa3eb00039d1878cc649b5afb982078dd961612",
+        "dc962af7013debab7e4d0db2e975226815ea1a3a36f72bcebeb01433aa2f856c",
+        "11c0ad3688463cb602370136c4560eec0e1ccc158f7c77c4d01640046c4cf405",
+        "e95c48725d10790904a6e4cd905836808703bafbd3dfc11331cfc026c68b83fd",
+        "730e3a6612f54363a9c3073149f53414b70ca38fced377711f9de4c84a41ac85",
+        "7c527dee5101b9f9eb120270be2219661d33d19cab4b99a3c5c64673e6837259",
+        "6628c96383d25650154046a26dccb863340a0d198fff6d944a874aeaa00e2674",
+        "a1ac526c60d52aa9f5ec610fc7326fefa18da51a282467e02cd93736cbdc33c8",
+        "28977447d6cea760794793fec881c147e93618294c11a9a55fb1c94aa84f2876",
+        "117c64066017fae0f16f88d1d6adcbcd6f540da994af139b9460ea15d6542c7d",
+        "a0cc052049668371fcc43ad4d06619e80ca2466a6d9bd3f41dfac7292981ce2d"
       ]
     }
   ]

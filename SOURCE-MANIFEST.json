@@ -1,5 +1,5 @@
 {
-  "preparedAt": "2026-09-23T23:02:33.902466+00:00",
+  "preparedAt": "2026-09-24T00:01:04.338271+00:00",
   "sourceRoot": "Altbase",
   "restrictedSourceOmitted": false,
   "gitHistoryIncluded": false,
@@ -263,8 +263,8 @@
     },
     {
       "path": "RELEASE-NOTES-0.1.9.md",
-      "bytes": 3301,
-      "sha256": "c7a37e5ed18259c2828f17592b9f57177dee7dd1f9ccc450fa093afadfa0c774"
+      "bytes": 3307,
+      "sha256": "b002054e862607260538540120a5b03fc715797dd2bd4d78b1e76e6f498b47a7"
     },
     {
       "path": "SOURCE-REVIEW.md",
@@ -303,8 +303,8 @@
     },
     {
       "path": "docs/VERIFICATION-0.1.9.md",
-      "bytes": 6188,
-      "sha256": "b1d3f31db526f6bc5598b4b00ff6a16eede201333223af6b03962ef5418a014d"
+      "bytes": 6998,
+      "sha256": "4cda33f43071f2639e1d22e0e9fc71294c392d81d8934cbe4f33a15a696eb169"
     },
     {
       "path": "docs/api-transparency.html",
@@ -18593,8 +18593,8 @@
     },
     {
       "path": "modules/zcash/README.md",
-      "bytes": 851,
-      "sha256": "330ef9382b600f22611c9d4f415552a658bd45a0a765b5b27746bad2ba1bcc5e"
+      "bytes": 1258,
+      "sha256": "dac248472b93f80f992e521ff53399fed3e1e00b9da08d0db124b43d200818ff"
     },
     {
       "path": "modules/zcash/frontend/engine.ts",
@@ -18613,8 +18613,8 @@
     },
     {
       "path": "modules/zcash/runtime/index.cjs",
-      "bytes": 3598,
-      "sha256": "a26947a98b05431415100520b49ce2378ddd3fb515894343c99c7ae87e7a3712"
+      "bytes": 3799,
+      "sha256": "572c09003c0b58485f71a0978e4a470c59628fe2e970cf8481af47d57ac58aa2"
     },
     {
       "path": "modules/zcash/runtime/zip244.cjs",
@@ -31617,14 +31617,19 @@
       "sha256": "d598039fddc012b4f6657229dc6a5f1e656f19995f77a606e3583871ea7bec31"
     },
     {
+      "path": "tests/fixtures/generate-zcash-zip244.py",
+      "bytes": 1576,
+      "sha256": "17ecad24e0862639d513d5da2ef96ec550e741bc7a92d97019f9396f6c4ee3f4"
+    },
+    {
       "path": "tests/fixtures/zano-hf6-public.json",
       "bytes": 25239,
       "sha256": "e25fdfcb077ed61d8b2fc3fe7bcb9410e0c18d5c25d709a4bb8b12975fde69c5"
     },
     {
       "path": "tests/fixtures/zcash-zip244-transparent.json",
-      "bytes": 2507,
-      "sha256": "89e1f0c87be3bc74d13964cea4e2c4d81ce3fc2787427e88175728c49a57274f"
+      "bytes": 4854,
+      "sha256": "a55e027e2af9298b585030990b58a58141d3ba331882b7f3d76075693f8ab7ed"
     },
     {
       "path": "tests/formatAmount.test.ts",
@@ -31648,8 +31653,8 @@
     },
     {
       "path": "tests/grandpool-wallet-sdks.test.cjs",
-      "bytes": 4514,
-      "sha256": "3dbb269daee16e85ab8054da42e207e96d2019173a3ce45bd38c621fb9ea3c92"
+      "bytes": 5283,
+      "sha256": "c678c9c63dd6e4ae89a6e1092537917b1923cfa9a7fb5800ec726568fc5eeba9"
     },
     {
       "path": "tests/grandpoolNativeModules.py",
@@ -32188,7 +32193,7 @@
       "path": "modules/zcash",
       "url": "https://github.com/AltbaseWallet/module-zcash.git",
       "branch": "main",
-      "commit": "8eea0ea2a37217bd2c85e32d1a602ca24e03569f",
+      "commit": "57fa484b5d48f0eb2bfd7959c769a96d0e033af9",
       "preparedVersion": "0.1.9"
     },
     {
