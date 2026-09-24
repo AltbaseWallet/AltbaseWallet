@@ -37,7 +37,7 @@ test('Xelis: WebSocket proxy preserves text frames and subscription replies',asy
 })
 test('Xelis: separate seeds derive separate valid recoverable addresses',()=>{
  const a=keys.derive(generateMnemonic(wordlist)),b=keys.derive(generateMnemonic(wordlist))
- try{assert.ok(keys.validate(a.address));assert.ok(keys.validate(b.address));assert.notEqual(a.address,b.address);assert.equal(a.nativeMnemonic.split(' ').length,25);assert.equal(keys.validate(a.address.slice(0,-1)+'q'),false)}finally{a.key.fill(0);b.key.fill(0)}
+ try{assert.ok(keys.validate(a.address));assert.ok(keys.validate(b.address));assert.notEqual(a.address,b.address);assert.equal(a.nativeMnemonic.split(' ').length,25);assert.equal(keys.validate(a.address.slice(0,-1)+(a.address.endsWith('q')?'p':'q')),false)}finally{a.key.fill(0);b.key.fill(0)}
 })
 test('Xelis: incoming, outgoing and mining history conserve atomic values',()=>{
  const rows=[{hash:'a',topoheight:10,timestamp:100000,incoming:{from:'sender',transfers:[{asset:'0'.repeat(64),amount:123456789}]}},{hash:'b',topoheight:11,timestamp:110000,outgoing:{fee:25000,transfers:[{asset:'0'.repeat(64),amount:100000000,destination:'recipient'}]}},{hash:'c',topoheight:12,timestamp:120000,coinbase:{reward:500000000}}]

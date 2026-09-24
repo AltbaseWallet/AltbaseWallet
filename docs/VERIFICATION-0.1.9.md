@@ -2,15 +2,15 @@
 
 ## Scope and evidence
 
-Checks performed on 2026-09-23 UTC (2026-09-24 in Europe/Zurich). Evidence is retained locally under `local-checks/grandpool-0.1.9/`; fixture profiles and completed scan data are preserved and excluded from published source. Production reads use public addresses, not recovery phrases. No transaction broadcast, user-wallet signing, transfer confirmation or pool-share submission occurred.
+Checks performed on 2026-09-23–24 UTC (2026-09-24 in Europe/Zurich). Evidence is retained locally under `local-checks/grandpool-0.1.9/`; fixture profiles and completed scan data are preserved and excluded from published source. Production reads use public addresses, not recovery phrases. No transaction broadcast, user-wallet signing, transfer confirmation or pool-share submission occurred.
 
 The GrandPool public APIs listed BTC, BCH, DGB, PPC, ZEC, MWC, PRL, XEL and NEXA. BCH, DGB, PPC, ZEC, MWC, XEL and NEXA have separate new module repositories. BTC/PRL retain their existing modules. Prices use verified provider identifiers, including `__XEL` for Xelis rather than the unrelated Elastic/XellyCoin symbols.
 
 ## Passing checks
 
-- `all-tests-nu63.txt`: 169 wallet/backend fixtures and 25 Mining fixtures, no failures. `mining-runtime-update-final.txt`: two additional warm-update/process-group checks. No real miner or transaction is required by these fixtures.
+- `all-tests-final-fixes.txt`: 172 wallet/backend fixtures; `all-tests-final.txt`: 25 Mining fixtures, no failures. `mining-runtime-update-final.txt`: two additional warm-update/process-group checks. No real miner or transaction is required by these fixtures.
 - `native-signature-fixtures.json`: 18 independently verified BCH/DGB/PPC signatures with one and five inputs. `tests/fixtures/zcash-zip244-transparent.json`: 46 official ZIP-244 digest cases across NU6.2 and NU6.3. Exact atomic amounts, fee bounds, MAX planning, foreign/duplicate inputs and single-attempt broadcasts are covered by SDK fixtures.
-- `electron-runtime-nu63.txt`: 21 runtime fixtures inside Electron; pure JavaScript SHA3/secp256k1 avoids unsupported BoringSSL operations.
+- `electron-runtime-final-fixes.txt`: 22 runtime fixtures inside Electron; pure JavaScript SHA3/secp256k1 avoids unsupported BoringSSL operations.
 - `gui-result.json`, completed 2026-09-23T22:26:29.750Z: all seven added coins Active in a fresh isolated Linux GUI. Xelis synchronized and MWC completed a full scan from height 1. Before completion the interface displayed an unverified balance. Only the random empty fixture was reported as verified zero.
 - `mining-gui/results.json`, 2026-09-23T22:56:08.219Z: all nine selected GrandPool France regular by default. ASIC configuration stayed on the requested coin, with a synthetic payout identity. Local GPU setup was checked for PRL/XEL/NEXA.
 - `grandpool-tls-read.json`: certificate-verified TLS connections to all nine France pool endpoints. This does not establish share acceptance or mining payout.
@@ -34,7 +34,7 @@ The primary backend answered network requests for 27 of 33 coins. Seven new adap
 - No supported NVIDIA GPU or external ASIC was available for a real mining workload. GrandPool presets/handshakes and miner commands are verified; shares and payouts are not.
 - ZEC supports transparent t1/t3 only; no shielded/unified sends. Nexa tokens and Xelis tokens/contracts are outside this release. MWC uses interactive MQS and needs an online recipient. Remote UTXO servers may reject very large histories; history errors remain explicit while independent balances can remain available.
 
-The exported source also passed a fresh frontend/SDK release build in an isolated directory using restored verified WASM inputs and the public signed Mining manifest, without a private signing key. The scan of 6,345 ordinary files found no credential patterns or newly introduced nonstandard mnemonic literals; existing public test vectors remain unchanged.
+The exported source also passed a fresh frontend/SDK release build in an isolated directory using restored verified WASM inputs and the public signed Mining manifest, without a private signing key. The scan of 6,346 ordinary files found no credential patterns or newly introduced nonstandard mnemonic literals; existing public test vectors remain unchanged.
 
 ## Reproduction
 
@@ -45,3 +45,9 @@ Use one CPU for builds: `taskset -c 0 npm test`. Run `node --test modules/mining
 ## Zcash NU6.3 release gate
 
 At 2026-09-23T23:58:25.590Z, the TLS Electrum node reported height 3493963 and coinbase `c911fa646b76631947b743c95aaa96f3f5e76ecf6e08b94212ffc961427e8c46` (version 6, branch `0x37a5165b`). Its verbose inputs and outputs were compatible with the backend maturity/history parser. The initially staged wallet still selected NU6.2; publication was stopped before the wallet became public. The final signer uses NU6.3 with v5 transparent transactions, which remain valid under [ZIP-229](https://zips.z.cash/zip-0229) and [ZIP-258](https://zips.z.cash/zip-0258). Activation-height and expiry bounds, exact txids and local fixture signatures pass. All three embedded SDKs and Electron ASAR integrity records were updated; every other packed file was checked unchanged.
+
+## Final node and startup corrections
+
+Both public Peercoin Blockbook hostnames stalled at index height 892668 while their node had reached 892670. Backend fixtures now reject balances, spendable outputs and history from an unfinished Blockbook index. Peercoin was switched to the mainnet Electrum WebSocket servers listed in the official peercoin_flutter source; each connection checks the expected genesis. The primary endpoint returned height 892675, 46 UTXOs and correct mining maturity for public address `PRZsYNcwiBxi5ggNrh3wuBkXqLPrZcVEdM`: 1607.030000 PPC confirmed, 346.650000 spendable and 1260.380000 immature. History and raw v3 transaction decoding passed. The listed secondary endpoint refused connections; it is not claimed healthy. Evidence: `peercoin-electrum-final.json`, `peercoin-adapter-final.json`, `peercoin-production-final.json`.
+
+A first MWC start exceeded the former 15-second allowance during a congested GUI run. The startup budget is now 90 seconds; reopening after failed initialization or scanning preserves the encrypted profile. A fixture verifies failure followed by successful reopening creates the profile only once. A later GUI scan was interrupted by the backend deployment restart and stayed explicitly unverified. Final GUI verification is performed after deployment with no concurrent API restarts.

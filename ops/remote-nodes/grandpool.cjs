@@ -9,7 +9,9 @@ const createGrandpoolAdapters=()=>[
   createRemoteUtxoAdapter({coin:'digibyte',network:bitcoinLike(30,63,128,'dgb'),minimumFee:0.00001,maturity:100,
     endpoints:[{host:'dgb.electrum1.cipig.net',port:20059},{host:'dgb.electrum2.cipig.net',port:20059}]}),
   createRemoteUtxoAdapter({coin:'peercoin',network:bitcoinLike(55,117,183,'pc'),decimals:6,minimumFee:0.01,maturity:500,
-    baseUrls:['https://explorer.peercoin.net/api/v2','https://blockbook.peercoin.net/api/v2']}),
+    // Official peercoin_flutter mainnet servers; Blockbook can lag behind its node.
+    genesisHash:'0000000032fe677166d54963b62a4677d8957e87c508eaa4fd7eb1c880cd27e3',
+    endpoints:[{url:'wss://electrum.peercoinexplorer.net:50004'},{url:'wss://allingas.peercoinexplorer.net:50004'}]}),
   createRemoteUtxoAdapter({coin:'zcash',network:networks.zcash,minimumFee:0.0001,maturity:100,
     endpoints:[{host:'zec.electrum1.cipig.net',port:20058},{host:'zec.electrum2.cipig.net',port:20058}]}),
   createNexaRemoteAdapter(),

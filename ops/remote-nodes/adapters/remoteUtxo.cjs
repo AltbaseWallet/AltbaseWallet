@@ -2,7 +2,8 @@
 const crypto = require('node:crypto')
 const {mapConcurrent}=require('../lib/mapConcurrent.cjs')
 const utxo = require('@bitgo/utxo-lib')
-const { createElectrumClient } = require('../lib/electrumClient.cjs')
+const { createElectrumClient, requestEndpoint } = require('../lib/electrumClient.cjs')
+const { createRostrumClient } = require('../lib/rostrumClient.cjs')
 
 const sha256 = bytes => crypto.createHash('sha256').update(bytes).digest()
 const atoms = value => {
@@ -39,8 +40,14 @@ const codec = (network, cashaddr = false) => ({
     return cashaddr ? utxo.addressFormat.toOutputScriptTryFormats(address, network) : utxo.address.toOutputScript(address, network)
   },
 })
-const createElectrumProvider = ({ endpoints, codec: addressCodec }) => {
-  const call = createElectrumClient(endpoints)
+const createElectrumProvider = ({ endpoints, codec: addressCodec, genesisHash }) => {
+  const websockets = new Map(endpoints.filter(e => e.url).map(e => [e.url, createRostrumClient(e.url)]))
+  const request = async (endpoint, method, params) => {
+    const rpc = (m, p = []) => endpoint.url ? websockets.get(endpoint.url)(m, p) : requestEndpoint(endpoint, m, p)
+    if (genesisHash && (await rpc('server.features')).genesis_hash !== genesisHash) throw new Error('Remote node genesis does not match this coin')
+    return rpc(method, params)
+  }
+  const call = createElectrumClient(endpoints, request)
   const scriptHash = address => sha256(addressCodec.script(address)).reverse().toString('hex')
   return {
     async network() {
@@ -78,10 +85,10 @@ const createBlockbookProvider = ({ baseUrls, decimals }) => {
   return {
     async network() {
       const result = await read('')
-      if (!result.blockbook || !result.backend || !Number.isSafeInteger(result.blockbook.bestHeight)) throw new Error('Incomplete Blockbook network status')
+      if (!result.blockbook || !result.backend || !Number.isSafeInteger(result.blockbook.bestHeight) || !Number.isSafeInteger(result.backend.blocks)) throw new Error('Incomplete Blockbook network status')
       if (result.blockbook.decimals !== decimals) throw new Error('Node decimal precision does not match this coin')
       return { blocks: result.blockbook.bestHeight, headers: result.backend.blocks,
-        initialBlockDownload: result.blockbook.initialSync === true || result.blockbook.inSync !== true,
+        initialBlockDownload: result.blockbook.initialSync === true || result.blockbook.inSync !== true || result.blockbook.bestHeight < result.backend.blocks,
         verificationProgress: result.blockbook.inSync === true ? 1 : 0,
         bestBlockHash: result.backend.bestBlockHash, version: result.backend.version }
     },
@@ -105,9 +112,9 @@ const createBlockbookProvider = ({ baseUrls, decimals }) => {
     blockbook: true,
   }
 }
-const createRemoteUtxoAdapter = ({ coin, network, decimals = 8, cashaddr = false, endpoints, baseUrls, minimumFee, maturity = 100, provider: injectedProvider }) => {
+const createRemoteUtxoAdapter = ({ coin, network, decimals = 8, cashaddr = false, endpoints, baseUrls, genesisHash, minimumFee, maturity = 100, provider: injectedProvider }) => {
   const addressCodec = codec(network, cashaddr)
-  const provider = injectedProvider || (baseUrls ? createBlockbookProvider({ baseUrls, decimals }) : createElectrumProvider({ endpoints, codec: addressCodec }))
+  const provider = injectedProvider || (baseUrls ? createBlockbookProvider({ baseUrls, decimals }) : createElectrumProvider({ endpoints, codec: addressCodec, genesisHash }))
   const transactionCache = new Map(), transactionPending = new Map()
   const transaction = async txid => {
     if (!validTxid(txid)) throw new Error('Invalid transaction id')
@@ -125,11 +132,18 @@ const createRemoteUtxoAdapter = ({ coin, network, decimals = 8, cashaddr = false
     try{return await operation}finally{transactionPending.delete(txid)}
   }
   const validated = address => { addressCodec.script(address); return address }
+  const verifiedIndex = async () => {
+    if (!provider.blockbook) return null
+    const tip = await provider.network()
+    if (tip.initialBlockDownload === true) throw new Error('Remote address index is still synchronizing; current balance is not verified')
+    return tip
+  }
   const readUtxos = async address => {
+    const indexedTip = await verifiedIndex()
     const rows = await provider.utxos(validated(address))
     if (!Array.isArray(rows)) throw new Error('Node omitted UTXO list')
     const script = addressCodec.script(address).toString('hex')
-    const tip = rows.some(row => row.confirmations === undefined) ? await provider.network() : null
+    const tip = rows.some(row => row.confirmations === undefined) ? indexedTip || await provider.network() : null
     return mapConcurrent(rows,4,async row => {
       if (!validTxid(row.tx_hash) || !Number.isSafeInteger(row.tx_pos) || row.tx_pos < 0) throw new Error('Node returned invalid UTXO outpoint')
       const value = atoms(row.value)
@@ -175,6 +189,7 @@ const createRemoteUtxoAdapter = ({ coin, network, decimals = 8, cashaddr = false
     },
     async getHistory(address, { limit = 25, offset = 0 } = {}) {
       validated(address)
+      await verifiedIndex()
       const history = await provider.history(address, limit, offset)
       if (!Array.isArray(history)) throw new Error('Node omitted transaction history')
       const rows = provider.blockbook ? history : history.slice().reverse().slice(offset, offset+limit)

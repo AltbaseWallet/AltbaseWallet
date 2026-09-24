@@ -1,5 +1,5 @@
 {
-  "preparedAt": "2026-09-24T00:01:04.338271+00:00",
+  "preparedAt": "2026-09-24T00:55:09.537370+00:00",
   "sourceRoot": "Altbase",
   "restrictedSourceOmitted": false,
   "gitHistoryIncluded": false,
@@ -263,8 +263,8 @@
     },
     {
       "path": "RELEASE-NOTES-0.1.9.md",
-      "bytes": 3307,
-      "sha256": "b002054e862607260538540120a5b03fc715797dd2bd4d78b1e76e6f498b47a7"
+      "bytes": 3482,
+      "sha256": "bd62f11585ca6f0de527efdc1f2ad3b2ec3ee2a2e3a4db3850d1dd19a2310611"
     },
     {
       "path": "SOURCE-REVIEW.md",
@@ -303,8 +303,8 @@
     },
     {
       "path": "docs/VERIFICATION-0.1.9.md",
-      "bytes": 6998,
-      "sha256": "4cda33f43071f2639e1d22e0e9fc71294c392d81d8934cbe4f33a15a696eb169"
+      "bytes": 8379,
+      "sha256": "f3974760c6723ad7128dccdb54d274ce50e147aa2e3e15d40c66a676eec5c9f4"
     },
     {
       "path": "docs/api-transparency.html",
@@ -3518,8 +3518,8 @@
     },
     {
       "path": "modules/mwc/README.md",
-      "bytes": 1684,
-      "sha256": "7c84c1afecad9734032ac8bfc80847c0ac0349851199e4da2d50b35e04dff622"
+      "bytes": 1906,
+      "sha256": "20e32260e3af3bae591b36c3af555a6a782afef911a70668abb969841fa0ec8b"
     },
     {
       "path": "modules/mwc/frontend/engine.ts",
@@ -3548,8 +3548,8 @@
     },
     {
       "path": "modules/mwc/runtime/index.cjs",
-      "bytes": 13127,
-      "sha256": "b1af574c9e032bcbc4c9ec1e2990d430c10fbd699e0d96da61f2d66f684f9194"
+      "bytes": 13310,
+      "sha256": "6d65f99d699c67475b1f7e284d120a5a6cca99defc042e64f7a3e8c47312a388"
     },
     {
       "path": "modules/mwc/runtime/owner-rpc.cjs",
@@ -9923,8 +9923,8 @@
     },
     {
       "path": "modules/peercoin/README.md",
-      "bytes": 247,
-      "sha256": "22495c5f91ef0a7ff401dfd18a68357ef3e8e51463ed5607dc377f8de1e83ce7"
+      "bytes": 645,
+      "sha256": "e8df8cf5c574a6fc5de325afbc04ee549df4fa733a308f366a8eb7ec2a159d76"
     },
     {
       "path": "modules/peercoin/frontend/index.ts",
@@ -30213,8 +30213,8 @@
     },
     {
       "path": "ops/remote-nodes/adapters/remoteUtxo.cjs",
-      "bytes": 13785,
-      "sha256": "aab923f27eac4cb1f1267f7c2171aaa39c952235a4c73376913f66a6fdb536f8"
+      "bytes": 14845,
+      "sha256": "936d96f831dbd1294de0d8abc1a97d9b3090db6d069aa653dcbd42bb697cdcc5"
     },
     {
       "path": "ops/remote-nodes/adapters/xgrRpc.cjs",
@@ -30233,8 +30233,8 @@
     },
     {
       "path": "ops/remote-nodes/grandpool.cjs",
-      "bytes": 1292,
-      "sha256": "4e8634884f6545ace974382e0d507951f0fbe9678e12eb85fa5f43dd8d6253aa"
+      "bytes": 1483,
+      "sha256": "ebde9407bdb1a2193c23523111607495e4cc144d4be53f5362af7b42f091d388"
     },
     {
       "path": "ops/remote-nodes/indexerWorker-backpressure.patch",
@@ -31638,18 +31638,18 @@
     },
     {
       "path": "tests/grandpool-backend.test.cjs",
-      "bytes": 6480,
-      "sha256": "b7f0377f9deb2e04e0ad8d8c9641195f38f3192362baa2bb4878a8567a0b95fb"
+      "bytes": 8315,
+      "sha256": "2cfe2fc5b4c0829de0c3f7d0a5f71968516740cd5b78366d0051cd6d4215a5c8"
     },
     {
       "path": "tests/grandpool-local-wallets.test.cjs",
-      "bytes": 6654,
-      "sha256": "05e622a0ac827d86d4632b67c4602443aaa70c42a60272108cd99e84afa8b0cc"
+      "bytes": 8356,
+      "sha256": "b1c3071d96eaf8c63f1c2cf3e2dc1e146130494f639ca539be69e847b3d7d334"
     },
     {
       "path": "tests/grandpool-private.test.cjs",
-      "bytes": 5248,
-      "sha256": "5c9bff7977bce5a9b04501c7a62dbbe09d4320ce67b58e17b9396b8ecf94b03e"
+      "bytes": 5278,
+      "sha256": "5761310d0d778b51edb86ca6b7a399bc0f140114bfe41ce97a24cc1dfe4d799f"
     },
     {
       "path": "tests/grandpool-wallet-sdks.test.cjs",
@@ -32186,7 +32186,7 @@
       "path": "modules/peercoin",
       "url": "https://github.com/AltbaseWallet/module-peercoin.git",
       "branch": "main",
-      "commit": "fef16e161b8dff148b7e93723bfd63297d723c12",
+      "commit": "8b0c1c44d65821dbe14eeef694c4b1d4ad7c8c58",
       "preparedVersion": "0.1.9"
     },
     {
@@ -32214,7 +32214,7 @@
       "path": "modules/mwc",
       "url": "https://github.com/AltbaseWallet/module-mwc.git",
       "branch": "main",
-      "commit": "4bbd1477adec2da343e3f12ff86b0f70b8d4d8a4",
+      "commit": "908d44e70a074b9b98ec529ea172b40c3a290af0",
       "preparedVersion": "0.1.9"
     }
   ],

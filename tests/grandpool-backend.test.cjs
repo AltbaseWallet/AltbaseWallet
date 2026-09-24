@@ -81,3 +81,25 @@ test('Rostrum: many reads share one socket and an uncertain broadcast is never r
  await assert.rejects(rpc('blockchain.transaction.broadcast',['fixture']),/disconnected/)
  assert.equal(broadcasts,1);assert.equal(sockets,1)
 })
+test('Blockbook: an unfinished index cannot produce a verified zero or stale spendable outputs',async()=>{
+ let syncing=true
+ const a=adapter(provider({blockbook:true,network:async()=>({blocks:1000,headers:1002,initialBlockDownload:syncing}),balance:async()=>({confirmed:'0',unconfirmed:'0'}),history:async()=>[],utxos:async()=>[]}))
+ for(const read of [()=>a.getBalance(address),()=>a.getUtxos(address),()=>a.getHistory(address)])await assert.rejects(read(),/index is still synchronizing/)
+ syncing=false
+ assert.equal((await a.getBalance(address)).balance,'0')
+ assert.deepEqual((await a.getUtxos(address)).utxos,[])
+})
+test('Electrum: a wrong-chain server cannot answer wallet balance requests',async t=>{
+ const {createElectrumProvider}=require('../ops/remote-nodes/adapters/remoteUtxo.cjs');let genesis='wrong',balanceCalls=0
+ const server=net.createServer(socket=>{let text='';socket.on('data',bytes=>{text+=bytes;while(text.includes('\n')){const end=text.indexOf('\n'),m=JSON.parse(text.slice(0,end));text=text.slice(end+1);let result
+  if(m.method==='server.version')result=['fixture','1.4']
+  else if(m.method==='server.features')result={genesis_hash:genesis}
+  else if(m.method==='blockchain.scripthash.get_balance'){balanceCalls++;result={confirmed:7,unconfirmed:0}}
+  else throw Error('Unexpected fixture RPC '+m.method)
+  socket.write(JSON.stringify({id:m.id,result})+'\n')
+ }})})
+ await new Promise(r=>server.listen(0,'127.0.0.1',r));t.after(()=>server.close())
+ const p=createElectrumProvider({endpoints:[{host:'127.0.0.1',port:server.address().port,tls:false}],codec:{script:()=>Buffer.from('51','hex')},genesisHash:'expected'})
+ await assert.rejects(p.balance('fixture'),/genesis/);assert.equal(balanceCalls,0)
+ genesis='expected';assert.equal((await p.balance('fixture')).confirmed,7);assert.equal(balanceCalls,1)
+})

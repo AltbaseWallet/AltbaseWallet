@@ -71,3 +71,24 @@ test('MWC: encrypted reference workflow preserves profiles and prevents unapprov
  await runtime.close();await runtime.derive({mnemonic});await ready(runtime,address)
  assert.equal(created,1);assert.equal(calls.filter(m=>m==='scan').length,1)
 })
+test('MWC: retry after a failed open reuses the existing encrypted profile',async t=>{
+ const dir=await fs.mkdtemp(path.join(os.tmpdir(),'altbase-mwc-retry-fixture-')),mnemonic=generateMnemonic(wordlist)
+ const address=base58check(sha256).encode(Buffer.concat([Buffer.from([1,69]),Buffer.from(secp256k1.getPublicKey(Buffer.alloc(32,8),true))]))
+ let first=true,created=0,scanned=0
+ const rpc={initialize:async()=>{},close(){},call:async(method,params)=>{
+  if(method==='create_wallet'){created++;const p=path.join(dir,mwc.identity(params.mnemonic).id,'wallet_data');await fs.mkdir(p,{recursive:true});await fs.writeFile(path.join(p,'wallet.seed'),'encrypted-fixture-only');return}
+  if(method==='open_wallet'){if(first){first=false;throw Error('temporary startup failure')}return 'fixture-token'}
+  if(method==='get_mqs_address')return{public_key:address}
+  if(method==='scan'){scanned++;return}
+  if(method==='retrieve_summary_info')return[true,{last_confirmed_height:'100',total:'0',amount_currently_spendable:'0',amount_immature:'0',amount_awaiting_confirmation:'0'}]
+  if(method==='get_updater_messages')return[]
+  throw Error('Unexpected fixture method '+method)
+ }}
+ const runtime=mwc.createRuntime({baseDir:dir,binary:'fixture',nodeUrl:'fixture',spawn:()=>child(),createOwnerRpc:()=>rpc})
+ t.after(async()=>{await runtime.close();await fs.rm(dir,{recursive:true,force:true})})
+ await assert.rejects(runtime.derive({mnemonic}),/could not be opened/)
+ await assert.rejects(runtime.status({network:{blocks:100}}))
+ assert.equal((await runtime.derive({mnemonic})).address,address)
+ assert.equal((await ready(runtime,address)).balance.balance,'0')
+ assert.equal(created,1);assert.equal(scanned,1)
+})
