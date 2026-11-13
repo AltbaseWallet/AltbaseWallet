@@ -1,8 +1,6 @@
 {
-  "at": "2026-11-13T00:21:14.138926+00:00",
   "version": "0.1.13",
   "protectedSourceIncluded": false,
-  "credentialScanPassed": true,
   "files": [
     {
       "file": "SOURCE-REVIEW.md",
@@ -2895,6 +2893,11 @@
       "sha256": "e019add233fbcf5bcde66eeb39c2507f2627964cd281f77e90dc000fe560a589"
     },
     {
+      "file": "ops/release/assemble_transport.py",
+      "size": 4716,
+      "sha256": "8011bbc5449a57352fd82f0250d5e6d1d87a9fb8986e816c8386484fab91d379"
+    },
+    {
       "file": "tests/backend-blockbook-broadcast.test.cjs",
       "size": 3902,
       "sha256": "f5d2d17e7d590b3d855017298fad613e5eb7561210a1dbea48b39a389bcf3c45"
@@ -4043,6 +4046,11 @@
       "file": "vendor/nonsense-wasm-v0.1.7/nonsense_bg.base64.js",
       "size": 432434,
       "sha256": "ffe718091ba4c17b472d8d671c60ca78130a60fca359ac6f68e50babd6eeebec"
+    },
+    {
+      "file": ".github/workflows/assemble-release.yml",
+      "size": 928,
+      "sha256": "9c7309ba5638d4eda48543e5fa4a8df03959ae110ca1ffe90a7e90335a959335"
     },
     {
       "file": "native-plugin-host/RELEASE-NOTES-0.1.13.md",

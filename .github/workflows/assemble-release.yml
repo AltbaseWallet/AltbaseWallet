@@ -1,0 +1,24 @@
+name: Assemble verified release transport
+on:
+  workflow_dispatch:
+    inputs:
+      release_id:
+        description: Draft release containing compiled artifact transport parts
+        required: true
+        default: '443666223'
+permissions:
+  contents: write
+jobs:
+  assemble:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Reassemble existing binaries without compilation or source checkout
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_ID: ${{ inputs.release_id }}
+          SCRIPT_COMMIT: ${{ github.sha }}
+        run: |
+          curl --fail --silent --show-error "https://raw.githubusercontent.com/AltbaseWallet/AltbaseWallet/${SCRIPT_COMMIT}/ops/release/assemble_transport.py" -o "$RUNNER_TEMP/assemble_transport.py"
+          CPU=$(python3 -c 'import os;print(min(os.sched_getaffinity(0)))')
+          taskset -c "$CPU" python3 "$RUNNER_TEMP/assemble_transport.py"
