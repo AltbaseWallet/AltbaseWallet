@@ -1,0 +1,25 @@
+Altbase Wallet Linux sandbox and portable launch
+
+Run ./altcoinwallet from this directory. Keep the entire directory together.
+The launcher preserves Chromium sandboxing and does not add --no-sandbox.
+
+An installed root-owned SUID Chromium helper is reused automatically when one
+exists. No root-owned file, system policy or kernel setting is changed. A link
+named chrome-sandbox is created in this writable application directory on launch.
+An explicitly configured CHROME_DEVEL_SANDBOX is also accepted after checking
+root ownership, executable permissions and safe SUID mode.
+
+Without such a helper the launcher uses Chromium's user-namespace sandbox,
+disabling only its unavailable SUID helper. Linux installations that restrict
+unprivileged namespaces need an administrator to configure a sandbox first.
+This is a host restriction, not a reason to disable all renderer sandboxing.
+
+Administrator setup for a trusted, verified wallet distribution:
+  sudo install -o root -g root -m 4755 chrome-sandbox.bundled /usr/local/lib/altbase-chrome-sandbox
+  CHROME_DEVEL_SANDBOX=/usr/local/lib/altbase-chrome-sandbox ./altcoinwallet
+
+The destination's parent directory must already exist and be root-owned and
+not writable by unprivileged users. This setup is optional when a suitable system
+Chromium helper or unprivileged user namespaces are already available. Never
+make the wallet executable itself SUID. The application does not request this
+administrator setup automatically or disable AppArmor globally.

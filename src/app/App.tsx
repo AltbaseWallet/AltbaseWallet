@@ -4,6 +4,7 @@ import { Providers } from './providers'
 import { AppRouter } from './router'
 import { GlobalToast } from '../components/wallet/GlobalToast'
 import { AppUpdateNotice } from '../components/wallet/AppUpdateNotice'
+import { AutoModuleUpdates } from '../components/wallet/AutoModuleUpdates'
 import { useAuthStore } from '../store/authStore'
 import { useCoinStore } from '../store/coinStore'
 import { useTransactionStore } from '../store/transactionStore'
@@ -48,6 +49,26 @@ function AutoRefresh() {
   useEffect(() => {
     routeRef.current = location.pathname
   }, [location.pathname])
+
+  useEffect(() => {
+    if (!isUnlocked) return undefined
+
+    // Quotes do not wait for coin scans, history, or the send form's balance
+    // guard. Plugin-only wallets need this global feed as well.
+    let pricesInFlight = false
+    const refreshPrices = () => {
+      if (pricesInFlight) return
+      pricesInFlight = true
+      void useCoinStore.getState().refreshPrices().catch(() => {}).finally(() => { pricesInFlight = false })
+    }
+    refreshPrices()
+    const pricesInterval = window.setInterval(refreshPrices, 60_000)
+    window.addEventListener('focus', refreshPrices)
+    return () => {
+      window.clearInterval(pricesInterval)
+      window.removeEventListener('focus', refreshPrices)
+    }
+  }, [isUnlocked])
 
   useEffect(() => {
     if (!isUnlocked) return undefined
@@ -187,6 +208,7 @@ export default function App() {
       <HashRouter>
         <AutoLock />
         <AutoRefresh />
+        <AutoModuleUpdates />
         <GlobalToast />
         <AppUpdateNotice />
         <AppRouter />

@@ -17,6 +17,10 @@ export const SUPPORTED_LANGUAGES: { code: Language; native: string; english: str
 /* ───── dictionary type ───── */
 
 const en = {
+  delistingNotice: 'Hypercoin (HRC), Mydogecoin (MYDOGE), Nonsense (NNN) and Bitcoin Gold (BTGS) have been delisted from this version. If you need these coins, use an older version of the wallet.',
+  delistingNoticeTitle: 'Coin delisting notice',
+  pauseNotice: 'Pause scrolling',
+  resumeNotice: 'Resume scrolling',
   maxCalculating: 'Calculating MAX and checking network data…',
   balanceNotCurrent: 'Current balance not verified',
   maxPartialNotice: 'This amount fits in one transaction. Remaining balance: {amount} {ticker}.',
@@ -285,6 +289,7 @@ const en = {
   passwordTooShort: 'Password does not meet requirements',
   passwordsMustMatch: 'New passwords must match',
   passwordChanged: 'Password changed',
+  passwordChangeFailed: 'Could not change password. Try again.',
   autoLock: 'Auto-lock',
   oneMinute: '1 minute',
   fiveMinutes: '5 minutes',
@@ -395,6 +400,10 @@ export type TranslationKey = keyof typeof en
 /* ───── translations for other languages ───── */
 
 const de: Partial<Record<TranslationKey, string>> = {
+  delistingNotice: 'Hypercoin (HRC), Mydogecoin (MYDOGE), Nonsense (NNN) und Bitcoin Gold (BTGS) wurden aus dieser Version entfernt. Wenn Sie diese Coins benötigen, verwenden Sie eine ältere Version der Wallet.',
+  delistingNoticeTitle: 'Hinweis zu entfernten Coins',
+  pauseNotice: 'Laufschrift anhalten',
+  resumeNotice: 'Laufschrift fortsetzen',
   cancel: 'Abbrechen', confirm: 'Bestätigen', continue: 'Weiter', save: 'Speichern',
   back: 'Zurück', next: 'Weiter', copy: 'Kopieren', close: 'Schließen',
   hide: 'Verbergen', show: 'Anzeigen', search: 'Suchen', loading: 'Lädt…',
@@ -542,6 +551,7 @@ const de: Partial<Record<TranslationKey, string>> = {
   currentPasswordWrong: 'Aktuelles Passwort ist falsch',
   passwordTooShort: 'Passwort erfüllt die Anforderungen nicht',
   passwordsMustMatch: 'Neue Passwörter müssen übereinstimmen', passwordChanged: 'Passwort geändert',
+  passwordChangeFailed: 'Passwort konnte nicht geändert werden. Bitte erneut versuchen.',
   autoLock: 'Automatisch sperren', oneMinute: '1 Minute', fiveMinutes: '5 Minuten',
   fifteenMinutes: '15 Minuten', oneHour: '1 Stunde', never: 'nie',
   hideBalanceCheckbox: 'Saldo verbergen', clearLocalData: 'Lokale Daten löschen',
@@ -591,6 +601,10 @@ ariaAddFavorite: 'Zu Favoriten',
 }
 
 const fr: Partial<Record<TranslationKey, string>> = {
+  delistingNotice: 'Hypercoin (HRC), Mydogecoin (MYDOGE), Nonsense (NNN) et Bitcoin Gold (BTGS) ont été retirés de cette version. Si vous avez besoin de ces monnaies, utilisez une ancienne version du portefeuille.',
+  delistingNoticeTitle: 'Avis de retrait de monnaies',
+  pauseNotice: 'Suspendre le défilement',
+  resumeNotice: 'Reprendre le défilement',
   cancel: 'Annuler', confirm: 'Confirmer', continue: 'Continuer', save: 'Enregistrer',
   back: 'Retour', next: 'Suivant', copy: 'Copier', close: 'Fermer',
   hide: 'Masquer', show: 'Afficher', search: 'Rechercher', loading: 'Chargement…',
@@ -737,6 +751,7 @@ const fr: Partial<Record<TranslationKey, string>> = {
   passwordTooShort: 'Le mot de passe ne respecte pas les critères',
   passwordsMustMatch: 'Les nouveaux mots de passe doivent correspondre',
   passwordChanged: 'Mot de passe changé',
+  passwordChangeFailed: 'Impossible de changer le mot de passe. Réessayez.',
   autoLock: 'Verrouillage auto', oneMinute: '1 minute', fiveMinutes: '5 minutes',
   fifteenMinutes: '15 minutes', oneHour: '1 heure', never: 'jamais',
   hideBalanceCheckbox: 'Masquer le solde', clearLocalData: 'Effacer les données locales',
@@ -780,6 +795,10 @@ ariaAddFavorite: 'Ajouter aux favoris',
 }
 
 const zh: Partial<Record<TranslationKey, string>> = {
+  delistingNotice: 'Hypercoin (HRC)、Mydogecoin (MYDOGE)、Nonsense (NNN) 和 Bitcoin Gold (BTGS) 已从此版本下架。如需使用这些币种，请使用旧版本钱包。',
+  delistingNoticeTitle: '币种下架通知',
+  pauseNotice: '暂停滚动',
+  resumeNotice: '继续滚动',
   cancel: '取消', confirm: '确认', continue: '继续', save: '保存',
   back: '返回', next: '下一步', copy: '复制', close: '关闭',
   hide: '隐藏', show: '显示', search: '搜索', loading: '加载中…',
@@ -919,6 +938,7 @@ const zh: Partial<Record<TranslationKey, string>> = {
   repeatNewPassword: '重复新密码', changePassword: '修改密码',
   currentPasswordWrong: '当前密码错误', passwordTooShort: '密码不符合要求',
   passwordsMustMatch: '两次新密码必须一致', passwordChanged: '密码已修改',
+  passwordChangeFailed: '无法更改密码，请重试。',
   autoLock: '自动锁定', oneMinute: '1 分钟', fiveMinutes: '5 分钟',
   fifteenMinutes: '15 分钟', oneHour: '1 小时', never: '从不',
   hideBalanceCheckbox: '隐藏余额', clearLocalData: '清除本地数据',
@@ -958,6 +978,10 @@ ariaAddFavorite: '加入收藏', ariaHideCoin: '隐藏币种',
 }
 
 const ja: Partial<Record<TranslationKey, string>> = {
+  delistingNotice: 'Hypercoin (HRC)、Mydogecoin (MYDOGE)、Nonsense (NNN)、Bitcoin Gold (BTGS) はこのバージョンから削除されました。これらの通貨が必要な場合は、旧バージョンのウォレットをご利用ください。',
+  delistingNoticeTitle: '通貨の取り扱い終了のお知らせ',
+  pauseNotice: 'スクロールを一時停止',
+  resumeNotice: 'スクロールを再開',
   cancel: 'キャンセル', confirm: '確認', continue: '続行', save: '保存',
   back: '戻る', next: '次へ', copy: 'コピー', close: '閉じる',
   hide: '非表示', show: '表示', search: '検索', loading: '読み込み中…',
@@ -1101,6 +1125,7 @@ const ja: Partial<Record<TranslationKey, string>> = {
   passwordTooShort: 'パスワードが要件を満たしていません',
   passwordsMustMatch: '新しいパスワードが一致する必要があります',
   passwordChanged: 'パスワードを変更しました',
+  passwordChangeFailed: 'パスワードを変更できませんでした。もう一度お試しください。',
   autoLock: '自動ロック', oneMinute: '1 分', fiveMinutes: '5 分',
   fifteenMinutes: '15 分', oneHour: '1 時間', never: 'なし',
   hideBalanceCheckbox: '残高を隠す', clearLocalData: 'ローカルデータを消去',
@@ -1143,6 +1168,10 @@ ariaAddFavorite: 'お気に入りに追加',
 }
 
 const ru: Partial<Record<TranslationKey, string>> = {
+  delistingNotice: 'Произведён делистинг Hypercoin (HRC), Mydogecoin (MYDOGE), Nonsense (NNN) и Bitcoin Gold (BTGS). Если вам нужны эти монеты, пользуйтесь старой версией кошелька.',
+  delistingNoticeTitle: 'Делистинг монет',
+  pauseNotice: 'Приостановить бегущую строку',
+  resumeNotice: 'Продолжить бегущую строку',
   maxCalculating: 'Рассчитываем MAX и проверяем данные сети…',
   balanceNotCurrent: 'Актуальный баланс не проверен',
   maxPartialNotice: 'Эта сумма помещается в одну транзакцию. Остаток: {amount} {ticker}.',
@@ -1313,6 +1342,7 @@ const ru: Partial<Record<TranslationKey, string>> = {
   currentPasswordWrong: 'Текущий пароль неверный',
   passwordTooShort: 'Пароль не подходит',
   passwordsMustMatch: 'Новые пароли должны совпадать', passwordChanged: 'Пароль изменен',
+  passwordChangeFailed: 'Не удалось изменить пароль. Попробуйте снова.',
   autoLock: 'Автоблокировка', oneMinute: '1 минута', fiveMinutes: '5 минут',
   fifteenMinutes: '15 минут', oneHour: '1 час', never: 'никогда',
   hideBalanceCheckbox: 'Скрыть баланс', clearLocalData: 'Очистить локальные данные',
@@ -1367,6 +1397,10 @@ const ru: Partial<Record<TranslationKey, string>> = {
 }
 
 const uk: Partial<Record<TranslationKey, string>> = {
+  delistingNotice: 'Hypercoin (HRC), Mydogecoin (MYDOGE), Nonsense (NNN) і Bitcoin Gold (BTGS) було вилучено з цієї версії. Якщо вам потрібні ці монети, користуйтеся старою версією гаманця.',
+  delistingNoticeTitle: 'Делістинг монет',
+  pauseNotice: 'Призупинити рухомий рядок',
+  resumeNotice: 'Продовжити рухомий рядок',
   cancel: 'Скасувати', confirm: 'Підтвердити', continue: 'Продовжити', save: 'Зберегти',
   back: 'Назад', next: 'Далі', copy: 'Скопіювати', close: 'Закрити',
   hide: 'Приховати', show: 'Показати', search: 'Пошук', loading: 'Завантаження…',
@@ -1512,6 +1546,7 @@ const uk: Partial<Record<TranslationKey, string>> = {
   currentPasswordWrong: 'Поточний пароль невірний',
   passwordTooShort: 'Пароль не відповідає вимогам',
   passwordsMustMatch: 'Нові паролі мають збігатися', passwordChanged: 'Пароль змінено',
+  passwordChangeFailed: 'Не вдалося змінити пароль. Спробуйте ще раз.',
   autoLock: 'Автоблокування', oneMinute: '1 хвилина', fiveMinutes: '5 хвилин',
   fifteenMinutes: '15 хвилин', oneHour: '1 година', never: 'ніколи',
   hideBalanceCheckbox: 'Приховати баланс', clearLocalData: 'Очистити локальні дані',

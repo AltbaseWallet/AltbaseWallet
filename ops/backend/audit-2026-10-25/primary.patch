@@ -1,0 +1,161 @@
+--- a/gateway.cjs
++++ b/gateway.cjs
+@@ -1351,11 +1351,13 @@
+   const force = body.force === true
+   const balances = {}
+   const errors = {}
++  let firstError
+   await Promise.all(
+     addresses.map(async (address) => {
+       try {
+         balances[address] = await readBalanceWithUtxoFallback(adapter, address, { force })
+       } catch (error) {
++        firstError ??= error
+         balances[address] = null
+         errors[address] = error?.message || String(error)
+       }
+@@ -1370,6 +1372,7 @@
+     }
+   }
+   if (!result && Object.keys(errors).length > 0) {
++    if (firstError instanceof RpcError) throw firstError
+     throw new RpcError(Object.values(errors)[0], { status: 504 })
+   }
+   ok(response, {
+@@ -1412,15 +1415,27 @@
+   const inputAddresses = parseAddressList(Array.isArray(body.addresses) ? body.addresses : [body.address])
+   if (inputAddresses.length === 0) throw new RpcError('address is required', { status: 400 })
+   const addresses = expandWalletAddresses(adapter.coin, inputAddresses)
+-  const limit = Number(body.limit ?? 25)
++  const limit = snapshotSafeLimit(body.limit)
+   const offset = snapshotSafeOffset(body.offset)
++  const errors = {}
+   const histories = await Promise.all(addresses.map((address) =>
+-    readHistory(adapter, address, { limit, offset, utxoOverlay: body.utxoOverlay === true }).catch(() => null),
++    readHistory(adapter, address, { limit, offset, utxoOverlay: body.utxoOverlay === true }).catch((error) => {
++      errors[address] = error
++      return null
++    }),
+   ))
++  // An unavailable history must not look like a successful empty wallet.
++  if (histories.every((history) => history == null) && Object.keys(errors).length) {
++    throw Object.values(errors)[0]
++  }
+   const result = mergeHistories(inputAddresses[0], histories, snapshotSafeLimit(limit))
+   ok(response, {
+     ...result,
+     addresses,
++    ...(Object.keys(errors).length ? {
++      partial: true,
++      errors: Object.fromEntries(Object.entries(errors).map(([address, error]) => [address, error?.message || String(error)])),
++    } : {}),
+   })
+ })
+ 
+--- a/lib/cache.cjs
++++ b/lib/cache.cjs
+@@ -75,7 +75,7 @@
+         throw error
+       }
+     })().finally(() => {
+-      this.inflight.delete(key)
++      if (this.inflight.get(key) === request) this.inflight.delete(key)
+     })
+ 
+     this.inflight.set(key, request)
+--- a/lib/priceFeed.cjs
++++ b/lib/priceFeed.cjs
+@@ -122,7 +122,7 @@
+     try {
+       const data = await requestSinglePrice(keys[i], code)
+       const rate = data?.rate
+-      return typeof rate === 'number' && Number.isFinite(rate) ? rate : null
++      return typeof rate === 'number' && Number.isFinite(rate) && rate > 0 ? rate : null
+     } catch (err) {
+       if (err.status === 429 && i < keys.length - 1) continue   // try next key
+       // Non-rate-limit error → coin probably isn't listed, log once and move on
+@@ -140,7 +140,7 @@
+     if (!r.ok) throw new Error(`nonkyc http ${r.status}`)
+     const data = await r.json()
+     const price = parseFloat(data?.last_price)
+-    return Number.isFinite(price) ? price : null
++    return Number.isFinite(price) && price > 0 ? price : null
+   } catch (err) {
+     logger.warn('priceFeed.nonkycFailed', { pair, error: err.message })
+     return null
+@@ -245,17 +245,23 @@
+ }
+ 
+ /** Fetch a USD price from CoinGecko simple price API. */
+-const fetchFromCoingecko = async (id) => {
+-  try {
+-    const url = `https://api.coingecko.com/api/v3/simple/price?ids=${encodeURIComponent(id)}&vs_currencies=usd`
++const fetchFromCoingecko = async (ids) => {
++  try {
++    // A single batch avoids a burst of requests against the same rate limit.
++    const unique = [...new Set(ids)]
++    const url = `https://api.coingecko.com/api/v3/simple/price?ids=${encodeURIComponent(unique.join(','))}&vs_currencies=usd`
+     const r = await fetchWithTimeout(url)
+     if (!r.ok) throw new Error(`coingecko http ${r.status}`)
+     const data = await r.json()
+-    const price = Number(data?.[id]?.usd)
+-    return Number.isFinite(price) && price > 0 ? price : null
+-  } catch (err) {
+-    logger.warn('priceFeed.coingeckoFailed', { id, error: err.message })
+-    return null
++    const prices = {}
++    for (const id of unique) {
++      const price = Number(data?.[id]?.usd)
++      if (Number.isFinite(price) && price > 0) prices[id] = price
++    }
++    return prices
++  } catch (err) {
++    logger.warn('priceFeed.coingeckoFailed', { error: err.message })
++    return {}
+   }
+ }
+ 
+@@ -335,15 +341,11 @@
+           }
+         }),
+       )
+-      // CoinGecko fallback coins fetched in parallel.
+-      await Promise.all(
+-        Object.entries(COINGECKO_IDS).map(async ([coinId, id]) => {
+-          const rate = await fetchFromCoingecko(id)
+-          if (rate !== null) {
+-            cache.set(coinId, { usd: rate, updatedAt: Date.now() })
+-          }
+-        }),
+-      )
++      // The existing CoinGecko fallback uses one request for every ID.
++      const fallback = await fetchFromCoingecko(Object.values(COINGECKO_IDS))
++      for (const [coinId, id] of Object.entries(COINGECKO_IDS)) {
++        if (fallback[id] !== undefined) cache.set(coinId, { usd: fallback[id], updatedAt: Date.now() })
++      }
+       lastRefreshAt = Date.now()
+       logger.info('priceFeed.refreshed', { coins: cache.size })
+     } finally {
+@@ -361,10 +363,19 @@
+   return {
+     snapshot: () => {
+       const prices = {}
+-      for (const [coinId, entry] of cache) prices[coinId] = entry.usd
++      const priceUpdatedAt = {}
++      for (const [coinId, entry] of cache) {
++        // Failed refreshes may preserve a short-lived quote, never indefinitely.
++        if (Date.now() - entry.updatedAt > 30 * 60_000 || Date.now() < entry.updatedAt) continue
++        prices[coinId] = entry.usd
++        priceUpdatedAt[coinId] = entry.updatedAt
++      }
+       // Arbitrum gas is ETH, never the ARB governance token.
+-      if (prices.ethereum !== undefined) prices.arbitrum = prices.ethereum
+-      return { prices, updatedAt: lastRefreshAt || null }
++      if (prices.ethereum !== undefined) {
++        prices.arbitrum = prices.ethereum
++        priceUpdatedAt.arbitrum = priceUpdatedAt.ethereum
++      }
++      return { prices, updatedAt: lastRefreshAt || null, priceUpdatedAt }
+     },
+   }
+ }

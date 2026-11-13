@@ -1,3 +1,4 @@
+const vault = require('./vault.cjs')
 const { app, BrowserWindow, Menu, ipcMain, Notification, powerMonitor, protocol, safeStorage, screen, shell } = require('electron')
 const fs = require('node:fs')
 const path = require('node:path')
@@ -8,8 +9,10 @@ const { MiningModuleManager } = require('./mining-module-manager.cjs')
 
 const APP_ID = 'com.altbase.wallet'
 const APP_NAME = 'Altbase Wallet'
-const APP_DATA_DIR_NAME = 'Altbase'
+// Use the released wallet profile paths. Previous working-copy data remains
+// available explicitly; never merge two populated wallet profiles blindly.
 const LEGACY_APP_DATA_DIRS = ['altcoinwallet', 'AltcoinWallet', 'Altcoin Wallet', 'Altbase Wallet']
+const previousProfileStorage = process.argv.includes('--altbase-storage=fullnode')
 const profileArgument = process.argv.find((argument) => argument.startsWith('--altbase-profile='))
 const profileFromArgument = profileArgument?.slice('--altbase-profile='.length) ?? ''
 const profileFromExecutable = path.basename(process.execPath).match(/^Altbase Wallet Profile-([a-z0-9_-]+)\.exe$/i)?.[1] ?? ''
@@ -17,6 +20,7 @@ const isolatedProfile = /^[a-z0-9_-]{1,32}$/i.test(profileFromArgument || profil
   ? (profileFromArgument || profileFromExecutable).toLowerCase()
   : ''
 let nativeCore = null
+let vaultCore = null
 let mainWindow = null
 let allowQuitAfterEpicSend = false
 let epicSendQuitWait = null
@@ -91,7 +95,7 @@ const CORE_METHODS = new Set([
   'signTransaction',
 ])
 
-protocol.registerSchemesAsPrivileged([{
+protocol.registerSchemesAsPrivileged([{ scheme: 'altbase-coin', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true } }, {
   scheme: 'altbase-module',
   privileges: {
     standard: true,
@@ -100,21 +104,22 @@ protocol.registerSchemesAsPrivileged([{
   },
 }])
 
-const isTrustedIpcEvent = (event) => Boolean(
-  mainWindow
-  && !mainWindow.isDestroyed()
-  && event.sender === mainWindow.webContents,
-)
+const isTrustedIpcEvent = (event) => require('./trusted-frame.cjs')(event, mainWindow)
 
 const getNativeCore = () => {
-  nativeCore ??= new NativeCoreClient(app, 'general')
+  nativeCore ??= new NativeCoreClient(app, 'general', { modulesDirectory: commonModulesDirectory })
   return nativeCore
+}
+const getVaultCore = () => {
+  vaultCore ??= new NativeCoreClient(app, 'vault', { modulesDirectory: commonModulesDirectory,
+    executableName: 'altbase_vault_bridge' + (process.platform === 'win32' ? '.exe' : '') })
+  return vaultCore
 }
 
 const getPrivacyNativeCore = (coin = 'privacy') => {
   const key = String(coin || 'privacy').toLowerCase()
   if (!privacyNativeCores.has(key)) {
-    privacyNativeCores.set(key, new NativeCoreClient(app, `privacy:${key}`))
+    privacyNativeCores.set(key, new NativeCoreClient(app, `privacy:${key}`, { modulesDirectory: commonModulesDirectory }))
   }
   return privacyNativeCores.get(key)
 }
@@ -127,7 +132,7 @@ const getNodeNativeCore = (coin = 'node') => {
   }
   const key = `pool-${hash % NODE_NATIVE_CORE_POOL_SIZE}`
   if (!nodeNativeCores.has(key)) {
-    nodeNativeCores.set(key, new NativeCoreClient(app, `node:${key}`))
+    nodeNativeCores.set(key, new NativeCoreClient(app, `node:${key}`, { modulesDirectory: commonModulesDirectory }))
   }
   return nodeNativeCores.get(key)
 }
@@ -141,12 +146,13 @@ const getPriorityNodeNativeCore = (coin = 'node', requestPath = '') => {
   // background polling still uses the established pool above.
   const key = priorityNodePoolKey(normalizedCoin, requestPath, PRIORITY_NODE_NATIVE_CORE_POOL_SIZE)
   if (!priorityNodeNativeCores.has(key)) {
-    priorityNodeNativeCores.set(key, new NativeCoreClient(app, `priority-node:${key}`))
+    priorityNodeNativeCores.set(key, new NativeCoreClient(app, `priority-node:${key}`, { modulesDirectory: commonModulesDirectory }))
   }
   return priorityNodeNativeCores.get(key)
 }
 
 const nativeCoreForRequest = (method, params = {}) => {
+  if (method === 'privacyScope' && ['zano', 'epic'].includes(params.coin)) return getVaultCore()
   if (method === 'privacyLightWallet' || method === 'privacyScope') return getPrivacyNativeCore(params.coin)
   if (method === 'coinNodeRequest') {
     return params.priority === true || params.priority === 'true'
@@ -159,6 +165,7 @@ const nativeCoreForRequest = (method, params = {}) => {
 const closingNativeCores = new Set()
 const activeNativeClients = () => [
   nativeCore,
+  vaultCore,
   ...closingNativeCores,
   ...privacyNativeCores.values(),
   ...nodeNativeCores.values(),
@@ -168,6 +175,8 @@ const activeNativeClients = () => [
 const resetNativeCoreClients = () => {
   nativeCore?.stop()
   nativeCore = null
+  vaultCore?.stop()
+  vaultCore = null
   for (const client of privacyNativeCores.values()) client.stop()
   privacyNativeCores.clear()
   for (const client of nodeNativeCores.values()) client.stop()
@@ -207,15 +216,16 @@ const migrateUserDataDirectory = () => {
   const appData = app.getPath('appData')
   app.setName(APP_NAME)
   if (isolatedProfile) {
-    app.setPath('userData', path.join(appData, `${APP_DATA_DIR_NAME} Profiles`, isolatedProfile))
+    app.setPath('userData', require('./profile-layout.cjs').profileLayout(appData, isolatedProfile, previousProfileStorage).userData)
     return
   }
 
-  const target = path.join(appData, APP_DATA_DIR_NAME)
+  const target = require('./profile-layout.cjs').profileLayout(appData, '', previousProfileStorage).userData
   app.setPath('userData', target)
 
-  if (directoryHasFiles(target)) return
+  if (require('./profile-layout.cjs').hasProfileStorage(target)) return
 
+  if (previousProfileStorage) return
   for (const name of LEGACY_APP_DATA_DIRS) {
     const source = path.join(appData, name)
     if (source === target || !directoryHasFiles(source)) continue
@@ -410,6 +420,8 @@ const getMiningManager = () => {
   miningManager ??= new MiningModuleManager(app, safeStorage, (payload) => {
     safeSend(mainWindow?.webContents, 'mining:event', payload)
   }, {
+    modulesRoot: require('./profile-layout.cjs').profileLayout(app.getPath('appData')).modules,
+    bundledModuleRoot: path.join(require('./profile-layout.cjs').profileLayout(app.getPath('appData')).modules, 'installers', 'mining'),
     isOnBatteryPower: () => powerMonitor.isOnBatteryPower(),
     getSystemIdleTime: () => powerMonitor.getSystemIdleTime(),
   })
@@ -434,16 +446,53 @@ const appendDebugLogLine = (coin, line) => {
   return current
 }
 
+const { PluginManager } = require('./plugins/manager.cjs')
+const commonModulesDirectory = require('./profile-layout.cjs').profileLayout(app.getPath('appData')).modules
+let moduleFingerprints = null
+let pluginManager = null
+const getPluginManager = () => {
+  if (pluginManager) return pluginManager
+  const root = app.isPackaged ? process.resourcesPath : path.resolve(__dirname, '..')
+  pluginManager = new PluginManager({
+    bundledRoot: commonModulesDirectory,
+    installedRoots: [],
+    bundledFingerprints: moduleFingerprints,
+    managedRoot: path.join(commonModulesDirectory, 'downloaded'),
+    hostPath: path.join(root, 'native-plugin-host', 'bin', `${process.platform}-${process.arch}`, process.platform === 'win32' ? 'altbase_plugin_host.exe' : 'altbase_plugin_host'),
+    dataRoot: path.join(app.getPath('userData'), 'coin-plugin-data'),
+  })
+  return pluginManager
+}
+let moduleUpdater = null
+const getModuleUpdater = () => {
+  if (moduleUpdater) return moduleUpdater
+  // Owner-supplied URL and pinned public key. No private catalog key belongs
+  // in the wallet, renderer, module archive or a real wallet profile.
+  const configPath = path.join(commonModulesDirectory, 'module-catalog.json')
+  const previousConfig = path.join(app.getPath('userData'), 'module-catalog.json')
+  if (!fs.existsSync(configPath) && fs.existsSync(previousConfig)) {
+    try { fs.copyFileSync(previousConfig, configPath, fs.constants.COPYFILE_EXCL) }
+    catch (error) { if (error.code !== 'EEXIST') throw error }
+  }
+  const config = fs.existsSync(configPath) ? require('./plugins/package-format.cjs').readJson(configPath) : null
+  moduleUpdater = new (require('./plugins/updater.cjs').ModuleUpdater)({ manager: getPluginManager(),
+    root: path.join(commonModulesDirectory, 'downloaded'), config, walletVersion: app.getVersion() })
+  return moduleUpdater
+}
+require('./plugins/ipc.cjs').registerPluginIpc({ ipcMain, getPluginManager, getModuleUpdater, isTrustedIpcEvent, shell })
+
 ipcMain.handle('coin-sdk:request', async (event, request) => {
   try {
     if (!isTrustedIpcEvent(event)) throw new Error('Untrusted IPC sender')
     const { requestCoinSdk } = require('./coin-sdk.cjs')
-    return { ok: true, result: await requestCoinSdk(request, {userData:app.getPath('userData'),resources:app.isPackaged?process.resourcesPath:path.resolve(__dirname,'..')}) }
+    return { ok: true, result: await requestCoinSdk(request, {userData:app.getPath('userData'),resources:app.isPackaged?process.resourcesPath:path.resolve(__dirname,'..'),modulesDirectory:commonModulesDirectory}) }
   } catch (error) {
     // SDK errors may include input values. Do not expose mnemonic-bearing errors.
     const message = error instanceof Error ? error.message : 'Local wallet module failed'
     const secret = request?.params?.mnemonic
-    return { ok: false, error: secret ? 'Local wallet could not open or derive this recovery phrase' : message }
+    return { ok: false, error: secret ? 'Local wallet could not open or derive this recovery phrase' : message,
+      ...(!secret && /^[0-9a-f]{64}$/i.test(error?.txid || '') && typeof error?.uncertain === 'boolean'
+        ? { txid: error.txid, uncertain: error.uncertain } : {}) }
   }
 })
 
@@ -456,6 +505,9 @@ ipcMain.handle('core:request', async (event, request = {}) => {
     if (!request.params || typeof request.params !== 'object' || Array.isArray(request.params)) {
       throw new Error('Invalid native core parameters')
     }
+    if (vault.supports(method)) return { ok: true, result: await require('./profile-vault.cjs').requestProfileVault(
+      method, request.params, (operation, params) => getVaultCore().request(operation, params),
+    ) }
     const result = await nativeCoreForRequest(method, request.params || {}).request(
       method,
       request.params || {},
@@ -470,6 +522,7 @@ ipcMain.handle('core:request', async (event, request = {}) => {
 ipcMain.handle('core:reset-session', async (event) => {
   try {
     if (!isTrustedIpcEvent(event)) throw new Error('Untrusted IPC sender')
+    pluginManager?.closeSessions()
     await require('./coin-sdk.cjs').closeCoinSdks()
     for (const client of activeNativeClients()) {
       if (closingNativeCores.has(client)) continue
@@ -477,6 +530,7 @@ ipcMain.handle('core:reset-session', async (event) => {
       client.closeSession(() => closingNativeCores.delete(client))
     }
     nativeCore = null
+    vaultCore = null
     privacyNativeCores.clear()
     nodeNativeCores.clear()
     priorityNodeNativeCores.clear()
@@ -710,8 +764,29 @@ app.on('second-instance', () => {
 
 app.whenReady().then(async () => {
   if (!gotSingleInstanceLock) return
+  const shipped = app.isPackaged ? path.join(process.resourcesPath, 'coin-plugins')
+    : path.resolve(__dirname, '../local-checks/coin-binaries', `${process.platform}-${process.arch}`)
+  const prepared = await require('./plugins/module-directory.cjs').prepareModuleDirectory(shipped, commonModulesDirectory,
+    () => getMiningManager().cacheBundledPackage(path.join(app.isPackaged ? process.resourcesPath : path.resolve(__dirname, '..'), 'modules', 'mining')))
+  moduleFingerprints = prepared.fingerprints
+  await getPluginManager().discover()
   ensureWindowsToastRegistration()
   trimExistingDebugLogs()
+  protocol.handle('altbase-coin', async request => {
+    try {
+      const url = new URL(request.url)
+      const segments = url.pathname.slice(1).split('/').map(decodeURIComponent)
+      if (url.hostname === 'runtime' && request.method === 'GET' && segments.length === 2) {
+        const resource = getPluginManager().runtimeAsset(segments[0], segments[1])
+        if (!resource) return new Response('Not found', { status: 404 })
+        return new Response(await fs.promises.readFile(resource), { headers: { 'Content-Type': 'application/wasm', 'Access-Control-Allow-Origin': '*', 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'no-store' } })
+      }
+      const icon = url.hostname === 'icons' && segments.length === 1 ? getPluginManager().icon(segments[0])
+        : url.hostname === 'tokens' && segments.length === 2 ? getPluginManager().tokenIcon(segments[0], segments[1]) : null
+      if (request.method !== 'GET' || !icon) return new Response('Not found', { status: 404 })
+      return new Response(await fs.promises.readFile(icon.file), { headers: { 'Content-Type': icon.mime, 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'no-store', 'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'" } })
+    } catch { return new Response('Not found', { status: 404 }) }
+  })
   protocol.handle('altbase-module', async (request) => {
     try {
       const url = new URL(request.url)
@@ -784,6 +859,7 @@ app.on('before-quit', (event) => {
       })
     return
   }
+  pluginManager?.closeSessions()
   void require('./coin-sdk.cjs').closeCoinSdks()
   resetNativeCoreClients()
 })

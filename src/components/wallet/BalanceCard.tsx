@@ -6,13 +6,16 @@ import { useCoinStore } from '../../store/coinStore'
 import { useSettingsStore } from '../../store/settingsStore'
 import { formatUsd } from '../../utils/formatAmount'
 import { useT } from '../../utils/i18n'
+import { portfolioValuation } from '../../utils/portfolioValuation'
+import { isAccountModule } from '../../services/accountAssetsService'
+import { useAccountLabels } from './accountLabels'
 
 export function BalanceCard() {
   const t = useT()
   const coins = useCoinStore((state) => state.coins)
   const { settings, updateSettings } = useSettingsStore()
   const hideBalances = settings.hideBalances
-  const total = coins.filter((coin) => coin.enabled).reduce((sum, coin) => sum + (coin.fiatValue ?? 0), 0)
+  const { total, unpriced } = portfolioValuation(coins), labels = useAccountLabels()
 
   return (
     <Card className="overflow-hidden">
@@ -31,7 +34,8 @@ export function BalanceCard() {
               {hideBalances ? <Eye size={16} /> : <EyeOff size={16} />}
             </Button>
           </div>
-          <p className="mt-2 break-words text-3xl font-bold text-white sm:text-4xl md:text-5xl">{hideBalances ? '••••••' : formatUsd(total)}</p>
+          <p className="mt-2 break-words text-3xl font-bold text-white sm:text-4xl md:text-5xl">{hideBalances ? '••••••' : unpriced && total === 0 ? '—' : formatUsd(total)}</p>
+          {!hideBalances && (unpriced || coins.some(c => c.enabled && isAccountModule(c.id))) && <p className="mt-2 text-xs text-slate-400">{labels.valuation}</p>}
         </div>
         <div className="grid grid-cols-3 gap-2">
           <Link to="/app/receive">

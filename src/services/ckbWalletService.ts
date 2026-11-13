@@ -13,6 +13,7 @@ import {
 import { HDNodeWallet } from 'ethers'
 import { coinApiService, type Utxo } from './coinApiService'
 import { assertApprovedSpend } from '../utils/sendFeePolicy'
+import { submitIdentifiedTransaction } from '../utils/broadcastOutcome'
 import { assertProvenCkbCell } from '../utils/ckbTransactionProof'
 
 const SHANNONS_PER_CKB = 100_000_000n
@@ -223,6 +224,7 @@ export const ckbWalletService = {
     amountCoin: string
     sendMax?: boolean
     maxFeeCoin?: string
+    onPrepared?: (prepared: { txid: string; amountCoin: string; feeCoin: string }) => void | Promise<void>
   }) {
     const derived = await this.deriveAddress(params.mnemonic)
     if (derived !== params.fromAddress) throw new Error('CKB address does not match this wallet')
@@ -256,7 +258,9 @@ export const ckbWalletService = {
       amount: built.sentAmount.toString(),
       fee: built.fee.toString(),
     })
-    const txid = await coinApiService.broadcast(params.coinId, envelope, signed.hash())
-    return { txid, amountCoin: shannonsText(built.sentAmount), feeCoin: shannonsText(built.fee) }
+    const prepared = { txid: signed.hash(), amountCoin: shannonsText(built.sentAmount), feeCoin: shannonsText(built.fee) }
+    await params.onPrepared?.(prepared)
+    await submitIdentifiedTransaction(prepared.txid, () => coinApiService.broadcast(params.coinId, envelope, prepared.txid))
+    return prepared
   },
 }

@@ -4,26 +4,27 @@ import { storageService } from './storageService'
 import { getWalletStorageScope } from './walletScopeService'
 import type { WalletAddresses } from './walletService'
 import { applyCachedCoinRuntime, toCachedCoinRuntime, type CachedCoinRuntime } from './coinRuntimeCache'
+import { marketPriceService } from './marketPriceService'
 
 const COINS_KEY = 'coins'
 const WALLET_ADDRESSES_KEY = 'wallet-addresses'
-const CATALOG: Coin[] = coinModules.map((module) => module.coin)
+const catalog = (): Coin[] => coinModules.map((module) => module.coin)
 
 const coinsKey = () => `${COINS_KEY}:${getWalletStorageScope()}`
 
 /** Return the immutable crypto parameters owned by a coin module. */
 export const cryptoParamsFor = (coinId: string) =>
-  CATALOG.find((coin) => coin.id === coinId)?.cryptoParams
+  catalog().find((coin) => coin.id === coinId)?.cryptoParams
 
 /** All registered coin modules as detached runtime coin values. */
-export const allCoins = (): Coin[] => CATALOG.map((coin) => ({ ...coin }))
+export const allCoins = (): Coin[] => catalog().map((coin) => ({ ...coin }))
 
 const loadCoins = (): Coin[] => {
   const addresses = storageService.get<WalletAddresses>(WALLET_ADDRESSES_KEY, {})
   const persisted = storageService.get<CachedCoinRuntime[]>(coinsKey(), [])
   const persistedById = new Map(persisted.map((coin) => [coin.id, coin]))
 
-  return CATALOG.map((base) => {
+  return catalog().map((base) => {
     const stored = persistedById.get(base.id)
     return {
       ...applyCachedCoinRuntime(base, stored),
@@ -39,7 +40,10 @@ const loadCoins = (): Coin[] => {
 
 const saveCoins = (coins: Coin[]) => {
   const slim = coins.map(toCachedCoinRuntime)
-  storageService.set(coinsKey(), slim)
+  const existing = storageService.get<CachedCoinRuntime[]>(coinsKey(), [])
+  const merged = new Map(existing.map(item => [item.id, item]))
+  for (const item of slim) merged.set(item.id, item)
+  storageService.set(coinsKey(), [...merged.values()])
 }
 
 export const coinService = {
@@ -74,7 +78,7 @@ export const coinService = {
       favorite: coin.favorite,
     }]))
     const merged = coins.map((coin) => ({
-      ...coin,
+      ...marketPriceService.apply(coin),
       enabled: currentPrefs.get(coin.id)?.enabled ?? coin.enabled,
       favorite: currentPrefs.get(coin.id)?.favorite ?? coin.favorite,
     }))

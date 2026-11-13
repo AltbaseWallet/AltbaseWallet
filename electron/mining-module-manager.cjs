@@ -1,4 +1,4 @@
-const { createHash, createHmac, createPublicKey, randomBytes, randomUUID, timingSafeEqual, verify } = require('node:crypto')
+const { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } = require('node:crypto')
 const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
@@ -8,8 +8,6 @@ const { pathToFileURL } = require('node:url')
 const {
   MINING_MODULE_API_VERSION,
   MINING_MODULE_ID: MODULE_ID,
-  MINING_MODULE_KEY_ID,
-  MINING_MODULE_PUBLIC_KEY,
   MINING_MODULE_REPOSITORY,
   miningModuleArchiveAssetName,
   miningModuleManifestAssetName,
@@ -31,6 +29,22 @@ const UPSTREAM_UPDATE_CACHE_MS = 15 * 60_000
 const MODULE_UPDATE_CACHE_MS = 15 * 60_000
 const MAX_UPSTREAM_ARTIFACT_BYTES = 2_000_000_000
 const MAX_MODULE_MANIFEST_BYTES = 2 * 1024 * 1024
+async function timedDownload(options, operation) {
+  const timeoutMs = options.timeoutMs ?? 600000, idleTimeoutMs = options.idleTimeoutMs ?? 30000
+  if (![timeoutMs, idleTimeoutMs].every(value => Number.isSafeInteger(value) && value > 0 && value <= 600000)) throw Error('Invalid download deadline')
+  const controller = new AbortController()
+  const signal = options.signal ? AbortSignal.any([controller.signal, options.signal]) : controller.signal
+  const deadline = setTimeout(() => controller.abort(Error('Mining download exceeded its time limit')), timeoutMs)
+  let idle
+  const arm = () => { clearTimeout(idle); idle = setTimeout(() => controller.abort(Error('Mining download stalled; try again to resume it')), idleTimeoutMs) }
+  arm()
+  try {
+    return await operation({ ...options, signal, onProgress: progress => { arm(); options.onProgress?.(progress) } })
+  } catch (error) {
+    if (controller.signal.aborted) throw controller.signal.reason
+    throw error
+  } finally { clearTimeout(deadline); clearTimeout(idle) }
+}
 const SEMVER_PATTERN = /^\d+\.\d+\.\d+(?:[-+][A-Za-z0-9.-]+)?$/
 const CUSTOM_POOL_MODES = new Set(['pps', 'pplns', 'prop', 'solo', 'other'])
 const CUSTOM_POOL_PROTOCOLS = new Set(['stratum+tcp:', 'stratum+ssl:', 'wss:'])
@@ -663,7 +677,7 @@ class MiningModuleManager {
     this.safeStorage = safeStorage
     this.emit = emit
     this.runtimeEnvironment = runtimeEnvironment
-    this.installedRoot = path.join(app.getPath('userData'), 'modules', MODULE_ID)
+    this.installedRoot = path.join(runtimeEnvironment.modulesRoot || path.join(app.getPath('userData'), 'modules'), MODULE_ID)
     this.dataRoot = path.join(app.getPath('userData'), 'mining')
     this.running = new Map()
     this.downloads = new Map()
@@ -679,12 +693,38 @@ class MiningModuleManager {
   }
 
   bundledRoot() {
+    if (this.runtimeEnvironment.bundledModuleRoot) return this.runtimeEnvironment.bundledModuleRoot
     return this.app.isPackaged
       ? path.join(process.resourcesPath, 'modules', MODULE_ID)
       : path.join(this.app.getAppPath(), 'modules', MODULE_ID)
   }
 
-  validatePackageManifest(manifest, { allowUnsignedDevelopment = false } = {}) {
+  async cacheBundledPackage(source) {
+    const destination = this.bundledRoot()
+    const manifest = await this.verifyPackage(source, null, !this.app.isPackaged)
+    try {
+      const current = await this.verifyPackage(destination)
+      if (compareModuleReleases(current, manifest) >= 0) return current
+    } catch { /* Populate or repair only the installer copy, never active jobs. */ }
+    const parent = path.dirname(destination), temporary = path.join(parent, '.mining-stock-' + randomUUID())
+    const backup = temporary + '-previous'
+    await fs.promises.mkdir(temporary, { recursive: true, mode: 0o700 })
+    try {
+      for (const relative of [...manifest.files.map(file => safeRelative(file.path)), 'package.manifest.json']) {
+        const target = resolveInside(temporary, relative)
+        await fs.promises.mkdir(path.dirname(target), { recursive: true, mode: 0o700 })
+        await fs.promises.copyFile(resolveInside(source, relative), target, fs.constants.COPYFILE_EXCL)
+      }
+      await this.verifyPackage(temporary, manifest)
+      if (fs.existsSync(destination)) await fs.promises.rename(destination, backup)
+      try { await fs.promises.rename(temporary, destination) }
+      catch (error) { if (fs.existsSync(backup)) await fs.promises.rename(backup, destination); throw error }
+      await fs.promises.rm(backup, { recursive: true, force: true })
+      return manifest
+    } finally { await fs.promises.rm(temporary, { recursive: true, force: true }) }
+  }
+
+  validatePackageManifest(manifest) {
     if (manifest?.schemaVersion !== 2 || manifest?.id !== MODULE_ID || !SEMVER_PATTERN.test(String(manifest.version || ''))) {
       throw new Error('Mining module package manifest is invalid')
     }
@@ -703,31 +743,19 @@ class MiningModuleManager {
     }
     const paths = manifest.files.map((file) => safeRelative(file.path, 'package file'))
     if (new Set(paths).size !== paths.length || paths.includes('package.manifest.json')) throw new Error('Mining module package file list contains duplicates or reserved paths')
-    const signature = manifest.signature
-    if (signature === null && allowUnsignedDevelopment) return manifest
-    if (signature?.algorithm !== 'ed25519' || signature?.keyId !== MINING_MODULE_KEY_ID || typeof signature?.value !== 'string') {
-      throw new Error('Mining module release signature is missing or untrusted')
-    }
-    const signatureBytes = Buffer.from(signature.value, 'base64')
-    if (signatureBytes.length !== 64 || signatureBytes.toString('base64') !== signature.value) throw new Error('Mining module release signature is invalid')
-    const payload = { ...manifest }
-    delete payload.signature
-    if (!verify(null, Buffer.from(canonicalize(payload), 'utf8'), createPublicKey(MINING_MODULE_PUBLIC_KEY), signatureBytes)) {
-      throw new Error('Mining module release signature verification failed')
-    }
+    // Package signatures are deliberately optional. File hashes, API compatibility
+    // and archive boundaries are enforced equally for local and packaged wallets.
     return manifest
   }
 
-  async readPackageManifest(root, options = {}) {
+  async readPackageManifest(root) {
     const manifest = await readJson(path.join(root, 'package.manifest.json'))
-    return this.validatePackageManifest(manifest, {
-      allowUnsignedDevelopment: options.allowUnsignedDevelopment ?? !this.app.isPackaged,
-    })
+    return this.validatePackageManifest(manifest)
   }
 
-  async verifyPackage(root, expectedManifest = null, allowUnexpectedFiles = false, options = {}) {
-    const manifest = await this.readPackageManifest(root, options)
-    if (expectedManifest && !manifestsMatch(manifest, expectedManifest)) throw new Error('Mining module manifest does not match the signed release manifest')
+  async verifyPackage(root, expectedManifest = null, allowUnexpectedFiles = false) {
+    const manifest = await this.readPackageManifest(root)
+    if (expectedManifest && !manifestsMatch(manifest, expectedManifest)) throw new Error('Mining module manifest does not match the release manifest')
     const expectedFiles = [...manifest.files.map((file) => safeRelative(file.path, 'package file')), 'package.manifest.json'].sort()
     const actualFiles = await packageFiles(root)
     const missingFiles = expectedFiles.filter((file) => !actualFiles.includes(file))
@@ -748,13 +776,14 @@ class MiningModuleManager {
       || moduleReleaseEpoch(descriptor) !== moduleReleaseEpoch(manifest)
       || descriptor?.walletApi?.min !== manifest.walletApi.min
       || descriptor?.walletApi?.maxExclusive !== manifest.walletApi.maxExclusive
-      || descriptor?.updates?.repository !== MINING_MODULE_REPOSITORY) {
-      throw new Error('Mining module descriptor does not match its signed manifest')
+      || descriptor?.updates?.provider !== 'github-release'
+      || !/^[A-Za-z0-9][A-Za-z0-9_.-]*\/[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(String(descriptor?.updates?.repository || ''))) {
+      throw new Error('Mining module descriptor does not match its package manifest')
     }
     safeRelative(descriptor.entry, 'module entry')
     safeRelative(descriptor.frontend, 'module frontend')
     if (!expectedFiles.includes(descriptor.entry) || !expectedFiles.includes(descriptor.frontend)) {
-      throw new Error('Mining module entry points are not covered by the signed manifest')
+      throw new Error('Mining module entry points are not covered by the package manifest')
     }
     return manifest
   }
@@ -789,8 +818,8 @@ class MiningModuleManager {
       bundledVersion: bundled.version,
       updateAvailable: Boolean(installedManifest && compareModuleReleases(bundled, installedManifest) > 0),
       walletApiVersion: MINING_MODULE_API_VERSION,
-      releaseKeyId: MINING_MODULE_KEY_ID,
-      updateRepository: MINING_MODULE_REPOSITORY,
+      signatureRequired: false,
+      updateRepository: await this.updateRepository(installedManifest ? this.installedRoot : this.bundledRoot()),
       platform: hostPlatform(),
       runningJobs: [...this.running.keys()],
       dataBytes: await directoryBytes(this.dataRoot),
@@ -854,7 +883,7 @@ class MiningModuleManager {
   async verify() {
     if (!await this.isInstalled()) throw new Error('Mining module is not installed')
     const manifest = await this.verifyPackage(this.installedRoot)
-    return { ok: true, version: manifest.version, files: manifest.files.length, keyId: manifest.signature?.keyId || 'development' }
+    return { ok: true, version: manifest.version, files: manifest.files.length, signatureRequired: false }
   }
 
   async manifest() {
@@ -862,7 +891,7 @@ class MiningModuleManager {
       try {
         return await this.readPackageManifest(this.installedRoot)
       } catch {
-        // Fall back to the signed copy bundled with the wallet.
+        // Fall back to the copy bundled with the wallet.
       }
     }
     return this.readPackageManifest(this.bundledRoot())
@@ -930,7 +959,7 @@ class MiningModuleManager {
         const descriptor = await readJson(path.join(root, 'module.json'))
         const frontend = safeRelative(descriptor.frontend, 'module frontend')
         if (!manifest.files.some((file) => file.path === frontend)) {
-          throw new Error('Mining module frontend is not covered by the signed manifest')
+          throw new Error('Mining module frontend is not covered by the package manifest')
         }
         return { root, manifest, frontend }
       })().catch((error) => {
@@ -952,7 +981,7 @@ class MiningModuleManager {
     const frontendDirectory = path.posix.dirname(selected.frontend)
     const relative = safeRelative(path.posix.join(frontendDirectory, relativeResource), 'module frontend resource')
     if (!selected.manifest.files.some((file) => file.path === relative)) {
-      throw new Error('Mining module frontend resource is not covered by the signed manifest')
+      throw new Error('Mining module frontend resource is not covered by the package manifest')
     }
     return resolveInside(selected.root, relative, 'module frontend resource')
   }
@@ -1293,10 +1322,19 @@ class MiningModuleManager {
       try {
         return await this.verifyPackage(this.installedRoot)
       } catch {
-        // An invalid installation cannot outrank the signed bundled fallback.
+        // An invalid installation cannot outrank the bundled fallback.
       }
     }
     return this.verifyPackage(this.bundledRoot(), null, !this.app.isPackaged)
+  }
+
+  async updateRepository(root) {
+    const descriptor = await readJson(path.join(root, 'module.json'))
+    const repository = descriptor?.updates?.repository || MINING_MODULE_REPOSITORY
+    if (!/^[A-Za-z0-9][A-Za-z0-9_.-]*\/[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(repository)) {
+      throw new Error('Mining module update repository is invalid')
+    }
+    return repository
   }
 
   async checkModuleUpdates({ force = false } = {}) {
@@ -1309,13 +1347,14 @@ class MiningModuleManager {
       try {
         installed = await this.verifyPackage(this.installedRoot)
       } catch {
-        // A corrupt local module is replaceable by a signed GitHub release.
+        // A corrupt local module is replaceable by a GitHub release.
       }
     }
     const current = installed || await this.verifyPackage(this.bundledRoot(), null, !this.app.isPackaged)
     let value
     try {
-      const release = await githubJson(`/repos/${MINING_MODULE_REPOSITORY}/releases/latest`)
+      const repository = await this.updateRepository(installed ? this.installedRoot : this.bundledRoot())
+      const release = await githubJson(`/repos/${repository}/releases/latest`)
       if (release.draft || release.prerelease) throw new Error('GitHub latest Mining module release is not stable')
       const latestVersion = normalizeVersion(release.tag_name)
       const manifestArtifact = trustedGitHubReleaseAsset(
@@ -1323,11 +1362,8 @@ class MiningModuleManager {
         miningModuleManifestAssetName(latestVersion),
         MAX_MODULE_MANIFEST_BYTES,
       )
-      const manifest = this.validatePackageManifest(
-        await fetchVerifiedGithubJsonAsset(manifestArtifact),
-        { allowUnsignedDevelopment: false },
-      )
-      if (manifest.version !== latestVersion) throw new Error('Mining module release tag and signed manifest version differ')
+      const manifest = this.validatePackageManifest(await fetchVerifiedGithubJsonAsset(manifestArtifact))
+      if (manifest.version !== latestVersion) throw new Error('Mining module release tag and manifest version differ')
       const archive = trustedGitHubReleaseAsset(release, miningModuleArchiveAssetName(latestVersion))
       const sourceUrl = new URL(String(release.html_url || ''))
       if (sourceUrl.protocol !== 'https:' || sourceUrl.hostname !== 'github.com') throw new Error('Mining module release source URL is invalid')
@@ -1365,9 +1401,18 @@ class MiningModuleManager {
 
   async installModuleUpdate(version) {
     if (this.moduleDownload) throw new Error('Mining module update is already downloading')
+    const controller = new AbortController()
+    let finishDownload
+    const downloadState = { controller, done: new Promise(resolve => { finishDownload = resolve }) }
+    this.moduleDownload = downloadState
+    try { return await this.installModuleUpdateNow(version, controller) }
+    finally { if (this.moduleDownload === downloadState) this.moduleDownload = null; finishDownload() }
+  }
+
+  async installModuleUpdateNow(version, controller) {
     const update = await this.checkModuleUpdates({ force: true })
     if (update.error || !update.latestVersion || !update.manifest || !update.artifact) {
-      throw new Error(update.error || 'No signed Mining module update is available')
+      throw new Error(update.error || 'No Mining module update is available')
     }
     if (version && normalizeVersion(version) !== update.latestVersion) throw new Error('The requested Mining module update is no longer latest')
     let installed = null
@@ -1382,13 +1427,6 @@ class MiningModuleManager {
     const comparison = compareModuleReleases(update.manifest, current)
     if ((installed && comparison <= 0) || (!installed && comparison < 0)) return this.status()
 
-    const controller = new AbortController()
-    let finishDownload
-    const downloadState = {
-      controller,
-      done: new Promise((resolve) => { finishDownload = resolve }),
-    }
-    this.moduleDownload = downloadState
     const runtime = await this.bundledRuntime()
     const downloadRoot = path.join(this.dataRoot, 'downloads')
     const archive = path.join(downloadRoot, `${MODULE_ID}-${update.latestVersion}.tar.gz`)
@@ -1396,18 +1434,20 @@ class MiningModuleManager {
     const temporary = path.join(parent, `${MODULE_ID}.install-${randomUUID()}`)
     const backup = path.join(parent, `${MODULE_ID}.previous-${randomUUID()}`)
     try {
-      await runtime.downloadVerifiedArtifact(update.artifact, archive, {
+      await timedDownload({
         signal: controller.signal,
         onProgress: (progress) => this.emit({
           type: 'module-download-progress',
           version: update.latestVersion,
           ...progress,
         }),
-      })
+      }, options => runtime.downloadVerifiedArtifact(update.artifact, archive, options))
+      controller.signal.throwIfAborted()
       await fs.promises.rm(temporary, { recursive: true, force: true })
       await runtime.extractMinerArchive(archive, temporary, update.artifact.archive)
-      await this.verifyPackage(temporary, update.manifest, false, { allowUnsignedDevelopment: false })
+      await this.verifyPackage(temporary, update.manifest)
       await this.stopAll()
+      controller.signal.throwIfAborted()
       await fs.promises.mkdir(parent, { recursive: true, mode: 0o700 })
       if (fs.existsSync(this.installedRoot)) await fs.promises.rename(this.installedRoot, backup)
       await fs.promises.rename(temporary, this.installedRoot)
@@ -1422,9 +1462,6 @@ class MiningModuleManager {
       await fs.promises.rm(temporary, { recursive: true, force: true })
       if (!fs.existsSync(this.installedRoot) && fs.existsSync(backup)) await fs.promises.rename(backup, this.installedRoot)
       throw error
-    } finally {
-      if (this.moduleDownload === downloadState) this.moduleDownload = null
-      finishDownload()
     }
   }
 
@@ -1475,6 +1512,10 @@ class MiningModuleManager {
   }
 
   async downloadMinerArtifact(artifact, destination, options = {}) {
+    return timedDownload(options, bounded => this.downloadMinerArtifactNow(artifact, destination, bounded))
+  }
+
+  async downloadMinerArtifactNow(artifact, destination, options) {
     const source = new URL(artifact.url)
     if (source.protocol !== 'https:' || source.username || source.password) throw new Error('Miner download URL must use HTTPS without credentials')
     await fs.promises.mkdir(path.dirname(destination), { recursive: true, mode: 0o700 })
@@ -1531,6 +1572,7 @@ class MiningModuleManager {
     })
     await pipeline(body, fs.createWriteStream(partial, { flags: offset > 0 ? 'a' : 'w', mode: 0o600 }))
     const metadata = await fs.promises.lstat(partial)
+    if (total > 0 && received !== total) throw Error('Miner download ended before the declared size was received')
     if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.size < 1 || metadata.size > MAX_UPSTREAM_ARTIFACT_BYTES) {
       throw new Error('Miner download is not a valid local file')
     }
@@ -1543,6 +1585,16 @@ class MiningModuleManager {
   async installResolvedMiner(miner, release, source = {}) {
     const id = safeId(miner.id, 'miner identifier')
     if (this.downloads.has(id)) throw new Error('This miner is already downloading')
+    const controller = new AbortController()
+    let finishDownload
+    const downloadState = { controller, done: new Promise(resolve => { finishDownload = resolve }) }
+    this.downloads.set(id, downloadState)
+    try { return await this.installResolvedMinerNow(miner, release, source, controller) }
+    finally { if (this.downloads.get(id) === downloadState) this.downloads.delete(id); finishDownload() }
+  }
+
+  async installResolvedMinerNow(miner, release, source, controller) {
+    const id = safeId(miner.id, 'miner identifier')
     let artifact = release.artifacts.find((entry) => entry.platform === hostPlatform())
     if (!artifact) throw new Error('No miner artifact is available for this platform')
     const runtime = await this.runtime()
@@ -1551,13 +1603,6 @@ class MiningModuleManager {
     const executable = adapter.platforms[hostPlatform()]?.executable
     if (!executable) throw new Error('Miner adapter does not support this platform')
 
-    const controller = new AbortController()
-    let finishDownload
-    const downloadState = {
-      controller,
-      done: new Promise((resolve) => { finishDownload = resolve }),
-    }
-    this.downloads.set(id, downloadState)
     const downloadRoot = path.join(this.dataRoot, 'downloads')
     const extension = artifact.archive === 'zip' ? '.zip' : '.tar.gz'
     const archive = path.join(downloadRoot, `${id}-${release.version}${extension}`)
@@ -1567,6 +1612,7 @@ class MiningModuleManager {
     try {
       const onProgress = (progress) => this.emit({ type: 'miner-download-progress', minerId: id, version: release.version, ...progress })
       artifact = await this.downloadMinerArtifact(artifact, archive, { signal: controller.signal, onProgress })
+      controller.signal.throwIfAborted()
       await fs.promises.rm(temporary, { recursive: true, force: true })
       await runtime.extractMinerArchive(archive, temporary, artifact.archive)
       const executablePath = resolveInside(temporary, executable, 'miner executable')
@@ -1574,6 +1620,7 @@ class MiningModuleManager {
       if (!executableMetadata.isFile() || executableMetadata.isSymbolicLink()) throw new Error('Downloaded archive does not contain the expected miner executable')
       const executableSha256 = await sha256File(executablePath)
       const files = await minerFileRecords(temporary)
+      controller.signal.throwIfAborted()
       await fs.promises.mkdir(minerRoot, { recursive: true, mode: 0o700 })
       await fs.promises.rm(destination, { recursive: true, force: true })
       const installMetadata = {
@@ -1606,12 +1653,7 @@ class MiningModuleManager {
       this.emit({ type: 'miner-installed', minerId: id, version: release.version })
       return { ok: true, id, version: release.version, files: files.length }
     } finally {
-      try {
-        await fs.promises.rm(temporary, { recursive: true, force: true })
-      } finally {
-        if (this.downloads.get(id) === downloadState) this.downloads.delete(id)
-        finishDownload()
-      }
+      await fs.promises.rm(temporary, { recursive: true, force: true })
     }
   }
 

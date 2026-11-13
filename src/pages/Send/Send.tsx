@@ -1,3 +1,7 @@
+import { usePrivacyBalanceDisplay } from '../../hooks/usePrivacyBalanceDisplay'
+import { coinModuleRegistry } from '../../coin-modules'
+import { isAccountModule } from '../../services/accountAssetsService'
+import AccountSend from './AccountSend'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
@@ -14,7 +18,7 @@ import { SeedPhraseWarning } from '../../components/wallet/SeedPhraseWarning'
 import { useAuthStore } from '../../store/authStore'
 import { useCoinStore } from '../../store/coinStore'
 import { useSettingsStore } from '../../store/settingsStore'
-import { useTransactionStore } from '../../store/transactionStore'
+import { activeSpentOutpointsForCoin, pendingOutgoingBlocksSend, useTransactionStore } from '../../store/transactionStore'
 import { formatAmount, formatUsd } from '../../utils/formatAmount'
 import { formatAddress } from '../../utils/formatAddress'
 import { addAmounts, compareAmounts, fromBaseUnits, toBaseUnits } from '../../utils/decimalAmount'
@@ -57,7 +61,6 @@ type ConfirmingData = SendForm & {
 }
 type FeeEstimate = { satoshis: number; coin: string; exact?: boolean }
 
-const PENDING_OUTGOING_UI_LOCK_MS = 10 * 60_000
 // Coin nodes are sometimes slow to answer cold UTXO/fee requests, especially
 // on poor connections. The native request has its own deadline; keep the form
 // alive long enough to receive that real result instead of manufacturing a
@@ -99,6 +102,13 @@ const subtractAmounts = (amount: string, fee: string, decimals = 8) => {
 }
 
 export default function Send() {
+  const [query] = useSearchParams()
+  const selected = useCoinStore(s => s.selectedCoinId)
+  const id = query.get('coin') || selected || ''
+  return isAccountModule(id) ? <AccountSend key={`${id}:${query.get('asset') || ''}`} coinId={id} /> : <LegacySend />
+}
+
+function LegacySend() {
   const t = useT()
   const language = useSettingsStore((s) => s.settings.language)
   const navigate = useNavigate()
@@ -184,30 +194,17 @@ export default function Send() {
   }
 
 
-  const enabledCoins = useMemo(() => coins.filter((c) => c.enabled), [coins])
+  const enabledCoins = useMemo(() => coins.filter((c) => c.enabled && (c.walletEngine !== 'plugin' || coinModuleRegistry.descriptor(c.id)?.capabilities.includes('send'))), [coins])
   const pendingOutgoingCoins = useMemo(() => {
     const locked = new Set<string>()
     for (const tx of transactions) {
-      if (tx.type !== 'outgoing' || tx.status !== 'pending') continue
-      const createdAtMs = Date.parse(tx.createdAt)
-      if (
-        pendingOutgoingNow > 0
-        && Number.isFinite(createdAtMs)
-        && pendingOutgoingNow - createdAtMs > PENDING_OUTGOING_UI_LOCK_MS
-      ) continue
-      // Snapshot-derived privacy pending rows can be stale after a restore, but
-      // locally-created privacy sends carry a balance reservation and must lock
-      // the form until the local/native spend state catches up.
-      if (
-        isPrivacyCoin(coins.find((c) => c.id === tx.coinId))
-        && !tx.balanceBefore
-        && !tx.expectedBalanceAfter
-      ) continue
-      locked.add(tx.coinId)
+      const coin = coins.find(c => c.id === tx.coinId)
+      if (pendingOutgoingBlocksSend(tx, coin, pendingOutgoingNow)) locked.add(tx.coinId)
     }
     return locked
   }, [transactions, coins, pendingOutgoingNow])
   const liveCoin = enabledCoins.find((c) => c.id === liveCoinId) ?? enabledCoins[0]
+  const liveCoinDisplay = usePrivacyBalanceDisplay(liveCoin)
   const liveCoinRef = useRef(liveCoin)
   const liveCoinAddress = liveCoin?.address
   const liveCoinLocked = Boolean(liveCoin && pendingOutgoingCoins.has(liveCoin.id))
@@ -251,11 +248,16 @@ export default function Send() {
     ? SAMPLE_RECIPIENT_ADDRESSES[liveCoin.id] ?? `${liveCoin.ticker} recipient address`
     : t('recipientAddress')
   const amountLooksValid = /^\d+(\.\d+)?$/.test(amount.trim()) && Number(amount) > 0
+  const liveReservedOutpoints = useMemo(
+    () => activeSpentOutpointsForCoin(liveCoinId ?? '', transactions),
+    [liveCoinId, transactions],
+  )
   const liveFeeContext = useMemo(() => ({
     fromAddress: liveCoinAddress,
     toAddress: recipientAddress.trim() || undefined,
     amountCoin: amountLooksValid ? amount.trim() : undefined,
-  }), [amount, amountLooksValid, liveCoinAddress, recipientAddress])
+    excludeOutpoints: liveReservedOutpoints,
+  }), [amount, amountLooksValid, liveCoinAddress, recipientAddress, liveReservedOutpoints])
   const waitingForAutoFee = feeMode === 'auto'
     && !liveCoinPrivacy
     && Boolean(liveCoinEngine)
@@ -275,6 +277,7 @@ export default function Send() {
     || feeLoading
     || maxLoading
     || liveCoin?.status !== 'active'
+    || liveCoinDisplay.unverified
     || liveCoinLocked
     || waitingForAutoFee
 
@@ -418,6 +421,7 @@ export default function Send() {
   }, [amount, amountLooksValid, feeMode, liveCoinAddress, liveCoinEngineKind, liveCoinFeeId, liveCoinPrivacy, liveCoinSatsPerCoin, liveFeeContext, privacyAutoFee, recipientAddress, t])
 
   const selectCoin = (coinId: string) => {
+    if (isAccountModule(coinId)) { rememberCoin(coinId); navigate(`/app/send?coin=${coinId}`); return }
     const changedCoin = coinId !== liveCoinId
     rememberCoin(coinId)
     setValue('coinId', coinId, { shouldDirty: true, shouldValidate: true })
@@ -522,6 +526,7 @@ export default function Send() {
         fromAddress: coin.address,
         toAddress: recipientAddress.trim() || undefined,
         amountCoin: amountLooksValid ? amount.trim() : undefined,
+        excludeOutpoints: activeSpentOutpointsForCoin(coin.id, transactions),
       }), 'Fee request')
       if (!est) return null
       setFeeEstimate(est)
@@ -633,6 +638,7 @@ export default function Send() {
           feeMode === 'manual' ? feeText : undefined,
           recipientAddress.trim(),
           sessionMnemonic ?? undefined,
+          { excludeOutpoints: liveReservedOutpoints },
         ), 'MAX calculation', liveCoin.id === 'ckb' ? 180_000 : FORM_PREFLIGHT_TIMEOUT_MS)
         if (!isCurrent()) return
         setMaxNotice(result.remainingInputCount ? t('maxPartialNotice', { amount: result.remainingAmountCoin ?? '0', ticker: liveCoin.ticker }) : '')
@@ -733,6 +739,7 @@ export default function Send() {
         const fresh = await withPreflightTimeout(coinEngine.estimateMaxSend(
           coin, coin.address, feeMode === 'manual' ? manualFee.trim() : undefined,
           to, sessionMnemonic ?? undefined,
+          { excludeOutpoints: activeSpentOutpointsForCoin(coin.id, transactions) },
         ), 'MAX calculation', coin.id === 'ckb' ? 180_000 : FORM_PREFLIGHT_TIMEOUT_MS)
         if (requestSeq !== maxRequestSeqRef.current) return
         const changed = compareAmounts(fresh.amountCoin, values.amount, decimals) !== 0
@@ -900,7 +907,7 @@ export default function Send() {
                 onClick={() => selectCoin(coin.id)}
               >
                 <div className="flex min-w-0 items-center gap-3">
-                  <CoinIcon ticker={coin.ticker} />
+                  <CoinIcon coinId={coin.id} ticker={coin.ticker} />
                   <div className="min-w-0">
                     <p className="truncate font-semibold text-white">{coin.name}</p>
                     <p className="text-sm text-slate-500">
@@ -930,7 +937,7 @@ export default function Send() {
         <Card>
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div className="flex min-w-0 items-center gap-3">
-              {liveCoin && <CoinIcon ticker={liveCoin.ticker} className="h-12 w-12" />}
+              {liveCoin && <CoinIcon coinId={liveCoin.id} ticker={liveCoin.ticker} className="h-12 w-12" />}
               <div className="min-w-0">
                 <h2 className="truncate text-xl font-bold text-white">
                   {liveCoin?.name ?? t('selectCoinFirst')}
@@ -990,7 +997,7 @@ export default function Send() {
                 <button
                   type="button"
                   onClick={handleMax}
-                  disabled={!liveCoin || liveCoin.status !== 'active' || liveCoinLocked || maxNeedsAutoFee || maxLoading}
+                  disabled={!liveCoin || liveCoin.status !== 'active' || liveCoinDisplay.unverified || liveCoinLocked || maxNeedsAutoFee || maxLoading}
                   className="absolute right-2 top-1/2 inline-flex h-8 min-w-[64px] -translate-y-1/2 items-center justify-center rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/12 px-3 text-[11px] font-bold uppercase tracking-wide text-[var(--accent)] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:bg-[var(--accent)]/20 hover:text-white disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/6 disabled:text-slate-500"
                   title="MAX"
                 >

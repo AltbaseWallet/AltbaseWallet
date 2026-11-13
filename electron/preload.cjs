@@ -19,6 +19,12 @@ window.addEventListener(
 )
 
 contextBridge.exposeInMainWorld('altbaseWallet', {
+  plugins: {
+    updates: () => ipcRenderer.invoke('plugins:updates'),
+    catalog: (refresh = false) => ipcRenderer.invoke('plugins:catalog', refresh),
+    request: (request) => ipcRenderer.invoke('plugins:request', request),
+    openDirectory: () => ipcRenderer.invoke('plugins:open-directory'),
+  },
   openExternal: (url) => ipcRenderer.invoke('app:open-external', url),
   notify: (payload) => ipcRenderer.invoke('app:notify', payload),
   debugLog: (payload) => ipcRenderer.invoke('app:debug-log', payload),

@@ -1,0 +1,12 @@
+{
+  "fixture": "Public BIP39 zero-entropy vector; never a user wallet",
+  "entropyHex": "00000000000000000000000000000000",
+  "password": "Public-Offline-Compatibility-1!",
+  "sealed": {
+    "cipherText": "J4lKFnRH535qwr6XPdiJ3jYuNgKb1VagjGEykgWoJKAav7olqjl34p75DNidrcwAiNhV4pLogqsErME1QTqLOGPaCKYdR8YhF26YS+P/Z6HLPVCf6dqbKjdQGn1J9GsNxeFOQhkEdkDzDBHxrw==",
+    "iv": "H/5tuULm+47ZshS0",
+    "salt": "mfpQS8vIxwBAXJDU/zb7dA==",
+    "verifyHash": "ZyGQUaZEtbvGXqNy8/BSzwKLspxnaYJLhDCKGqaqSw4=",
+    "verifySalt": "HiKZhVl93O6HgEjJnPKIeA=="
+  }
+}

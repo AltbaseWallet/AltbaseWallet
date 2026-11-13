@@ -15,22 +15,19 @@ type KaspaPendingTransaction = {
 }
 type KaspaTransactionPlan = { transactions: KaspaPendingTransaction[] }
 let sdkPromise: Promise<KaspaSdk> | null = null
-let wasmBytes: Uint8Array<ArrayBuffer> | null = null
-
-const embeddedWasmBytes = (kaspaWasmBase64: string) => {
-  if (wasmBytes) return wasmBytes
-  const binary = atob(kaspaWasmBase64)
-  wasmBytes = Uint8Array.from(binary, (character) => character.charCodeAt(0))
-  return wasmBytes
-}
-
 const kaspaSdk = () => {
   sdkPromise ??= Promise.all([
     import('kaspa-wasm'),
-    import('kaspa-wasm/kaspa_bg.base64.js'),
-  ]).then(async ([sdk, embedded]) => {
-    await sdk.default({ module_or_path: embeddedWasmBytes(embedded.default) })
+    fetch('altbase-coin://runtime/kaspa/kaspa_bg.wasm').then(async response => {
+      if (!response.ok) throw new Error('Kaspa module binary is unavailable')
+      return response.arrayBuffer()
+    }),
+  ]).then(async ([sdk, binary]) => {
+    await sdk.default({ module_or_path: binary })
     return sdk
+  }).catch(error => {
+    sdkPromise = null
+    throw error
   })
   return sdkPromise
 }

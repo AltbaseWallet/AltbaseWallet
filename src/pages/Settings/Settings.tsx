@@ -1,3 +1,4 @@
+import { useModuleLabels } from '../Modules/labels'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Brush, Check, Clock3, Coins, Copy, EyeOff, FileDown, Globe2, Home, Info, KeyRound, List, Lock, Monitor, Moon, Shield, Sun, Trash2 } from 'lucide-react'
@@ -95,10 +96,12 @@ export default function Settings() {
 }
 
 function SettingsMain() {
+  const moduleLabels = useModuleLabels()
   const t = useT()
   return (
     <Card>
       <h2 className="text-lg font-semibold text-white">{t('settingsMainSections')}</h2>
+      <Link to="/modules" className="mt-4 block rounded-2xl bg-white/10 p-4">{moduleLabels[0]}</Link>
       <div className="mt-5 grid gap-3 md:grid-cols-2">
         {sectionConfig.map(({ id, labelKey, icon: Icon }) => (
           <Link
@@ -127,15 +130,13 @@ function SecuritySettings() {
   const [repeat, setRepeat] = useState('')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [passwordChangeBusy, setPasswordChangeBusy] = useState(false)
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false)
 
   const changePassword = async () => {
+    if (passwordChangeBusy) return
     setError('')
-    const ok = await walletService.unlockWallet(current)
-    if (!ok) {
-      setError(t('currentPasswordWrong'))
-      return
-    }
+    setMessage('')
     const parsed = passwordSchema.safeParse(next)
     if (!parsed.success) {
       const message = parsed.error.issues[0]?.message
@@ -146,11 +147,21 @@ function SecuritySettings() {
       setError(t('passwordsMustMatch'))
       return
     }
-    await walletService.changePassword(current, next)
-    setMessage(t('passwordChanged'))
-    setCurrent('')
-    setNext('')
-    setRepeat('')
+    setPasswordChangeBusy(true)
+    try {
+      // The service verifies the current password without unlocking/scanning
+      // every coin again. Keep failures visible and prevent duplicate submits.
+      await walletService.changePassword(current, next)
+      setMessage(t('passwordChanged'))
+      setCurrent('')
+      setNext('')
+      setRepeat('')
+    } catch (cause) {
+      setError(cause instanceof Error && cause.message === 'Wrong password'
+        ? t('currentPasswordWrong') : t('passwordChangeFailed'))
+    } finally {
+      setPasswordChangeBusy(false)
+    }
   }
 
   return (
@@ -173,11 +184,11 @@ function SecuritySettings() {
           </div>
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
             <div className="grid gap-3 md:grid-cols-3">
-              <PasswordInput autoComplete="current-password" label={t('currentPassword')} value={current} onChange={(event) => setCurrent(event.target.value)} />
-              <PasswordInput autoComplete="new-password" label={t('newPasswordLabel')} value={next} onChange={(event) => setNext(event.target.value)} />
-              <PasswordInput autoComplete="new-password" label={t('repeatNewPassword')} value={repeat} onChange={(event) => setRepeat(event.target.value)} error={error} />
+              <PasswordInput disabled={passwordChangeBusy} autoComplete="current-password" label={t('currentPassword')} value={current} onChange={(event) => setCurrent(event.target.value)} />
+              <PasswordInput disabled={passwordChangeBusy} autoComplete="new-password" label={t('newPasswordLabel')} value={next} onChange={(event) => setNext(event.target.value)} />
+              <PasswordInput disabled={passwordChangeBusy} autoComplete="new-password" label={t('repeatNewPassword')} value={repeat} onChange={(event) => setRepeat(event.target.value)} error={error} />
             </div>
-            <Button className="xl:min-w-44" onClick={changePassword} disabled={!current || !next || !repeat} icon={<KeyRound size={17} />}>
+            <Button className="xl:min-w-44" onClick={changePassword} disabled={passwordChangeBusy || !current || !next || !repeat} icon={<KeyRound size={17} />}>
               {t('changePassword')}
             </Button>
           </div>

@@ -15,9 +15,9 @@ export const ckbEngine: WalletEngine = {
   async estimateMaxSend(coin, address, _feeCoin, toAddress) {
     return ckbWalletService.estimateMaxSend(coin.id, address, toAddress)
   },
-  async send({ coin, mnemonic, fromAddress, toAddress, amountCoin, sendMax, maxFeeCoin }) {
+  async send({ coin, mnemonic, fromAddress, toAddress, amountCoin, sendMax, maxFeeCoin, onPrepared }) {
     if (!fromAddress) throw new Error(`Address for ${coin.id} not derived yet - reopen the wallet`)
-    return ckbWalletService.send({ coinId: coin.id, mnemonic, fromAddress, toAddress, amountCoin, sendMax, maxFeeCoin })
+    return ckbWalletService.send({ coinId: coin.id, mnemonic, fromAddress, toAddress, amountCoin, sendMax, maxFeeCoin, onPrepared })
   },
   async exportSecret(_coin, mnemonic) { return ckbWalletService.exportPrivateKey(mnemonic) },
 }

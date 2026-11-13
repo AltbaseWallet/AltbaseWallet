@@ -4,6 +4,7 @@ const path = require('node:path')
 
 const CORE_EXE = process.platform === 'win32' ? 'altbase_core_bridge.exe' : 'altbase_core_bridge'
 const CORE_BRIDGE_ARG = '--altbase-wallet-bridge'
+const MAX_FRAME_BYTES = 64 * 1024 * 1024
 const activeNativeCoreChildren = new Set()
 const traceNativeCore = (event, child, detail = '') => {
   if (process.env.ALTBASE_CORE_TRACE !== '1') return
@@ -43,21 +44,30 @@ const stopAllNativeCoreChildren = () => {
 }
 
 class NativeCoreClient {
-  constructor(app, label = 'core') {
+  constructor(app, label = 'core', { modulesDirectory, executableName = CORE_EXE } = {}) {
     this.app = app
     this.label = label
+    this.modulesDirectory = modulesDirectory
+    this.executableName = executableName
     this.child = null
     this.children = new Set()
     this.nextId = 1
     this.pending = new Map()
     this.coinNodeQueue = Promise.resolve()
     this.buffer = ''
-    this.stderrBuffer = ''
+    this.maxFrameBytes = MAX_FRAME_BYTES
   }
 
   corePath() {
+    const CORE_EXE = this.executableName
+    if (this.modulesDirectory && CORE_EXE !== (process.platform === 'win32' ? 'altbase_core_bridge.exe' : 'altbase_core_bridge')) {
+      return require('./plugins/manifest.cjs').inside(this.modulesDirectory, '_core/' + CORE_EXE)
+    }
+    if (this.modulesDirectory) return require('./native-module-layout.cjs').nativeModuleLayout(this.modulesDirectory).executable
     if (this.app.isPackaged) return path.join(process.resourcesPath, 'native-core', CORE_EXE)
 
+    const localBundle = path.join(__dirname, '..', 'native-core', CORE_EXE)
+    if (fs.existsSync(localBundle)) return localBundle
     const release = path.join(__dirname, '..', 'native', 'core', 'build', 'vs2022-x64-release', 'bin', 'Release', CORE_EXE)
     const debug = path.join(__dirname, '..', 'native', 'core', 'build', 'vs2022-x64-debug', 'bin', 'Debug', CORE_EXE)
     const macosRelease = path.join(__dirname, '..', 'native', 'core', 'build', 'macos-x64-release', 'bin', CORE_EXE)
@@ -79,16 +89,20 @@ class NativeCoreClient {
       ...process.env,
       ALTBASE_CORE_BRIDGE: '1',
     }
+    const libraries = this.modulesDirectory && this.executableName === (process.platform === 'win32' ? 'altbase_core_bridge.exe' : 'altbase_core_bridge')
+      ? require('./native-module-layout.cjs').nativeModuleLayout(this.modulesDirectory).directories : [nativeCoreDir]
     if (process.platform === 'darwin') {
       env.DYLD_LIBRARY_PATH = [
-        nativeCoreDir,
+        ...libraries,
         process.env.DYLD_LIBRARY_PATH,
       ].filter(Boolean).join(':')
     } else if (process.platform !== 'win32') {
       env.LD_LIBRARY_PATH = [
-        nativeCoreDir,
+        ...libraries,
         process.env.LD_LIBRARY_PATH,
       ].filter(Boolean).join(':')
+    } else {
+      env.PATH = [...libraries, process.env.PATH].filter(Boolean).join(path.delimiter)
     }
 
     const child = spawn(exe, [CORE_BRIDGE_ARG], {
@@ -101,26 +115,18 @@ class NativeCoreClient {
     this.child = child
     this.children.add(child)
     activeNativeCoreChildren.add(child)
-    this.stderrBuffer = ''
+    child.stdout.setEncoding('utf8')
     child.stdout.on('data', (chunk) => {
       if (this.child !== child) return
-      this.onData(chunk.toString('utf8'))
+      this.onData(chunk)
     })
-    child.stderr.on('data', (chunk) => {
-      if (this.child !== child) return
-      this.stderrBuffer = `${this.stderrBuffer}${chunk.toString('utf8')}`.slice(-8_192)
-    })
+    // Native stderr may contain provider bodies or key-bearing diagnostics.
+    // Retain only the process exit status; never forward raw stderr to the UI.
+    child.stderr.resume()
     child.altbaseCoreLabel = this.label
     traceNativeCore('start', child)
     child.on('exit', (code, signal) => {
       traceNativeCore('exit', child, `code=${code ?? ''} signal=${signal ?? ''}`)
-      this.children.delete(child)
-      activeNativeCoreChildren.delete(child)
-      if (this.child !== child) return
-      const message = this.exitMessage(code, signal)
-      this.buffer = ''
-      this.stderrBuffer = ''
-      this.rejectAll(message)
     })
     child.on('error', (error) => {
       traceNativeCore('error', child, `message=${String(error?.message || error).replace(/\s+/g, ' ').slice(0, 300)}`)
@@ -135,9 +141,14 @@ class NativeCoreClient {
       this.rejectAll(error.message)
       this.terminateChild(child)
     })
-    child.on('close', () => {
+    child.on('close', (code, signal) => {
       this.children.delete(child)
       activeNativeCoreChildren.delete(child)
+      // Process exit can precede the last stdout data event. Drain that final
+      // response before rejecting requests that truly have no answer.
+      if (this.child !== child) return
+      this.buffer = ''
+      this.rejectAll(this.exitMessage(code, signal))
     })
   }
 
@@ -145,7 +156,14 @@ class NativeCoreClient {
     this.buffer += text
     for (;;) {
       const idx = this.buffer.indexOf('\n')
-      if (idx < 0) return
+      if (idx < 0) {
+        if (Buffer.byteLength(this.buffer) > this.maxFrameBytes) this.restartAfterTimeout('Native core response exceeds the limit')
+        return
+      }
+      if (Buffer.byteLength(this.buffer.slice(0, idx)) > this.maxFrameBytes) {
+        this.restartAfterTimeout('Native core response exceeds the limit')
+        return
+      }
       const line = this.buffer.slice(0, idx).trim()
       this.buffer = this.buffer.slice(idx + 1)
       if (!line) continue
@@ -156,16 +174,37 @@ class NativeCoreClient {
       } catch {
         continue
       }
-      const slot = this.pending.get(String(message.id ?? ''))
+      if (!message || typeof message !== 'object' || Array.isArray(message)) {
+        this.restartAfterTimeout('Native core returned an invalid response')
+        return
+      }
+      const id = message.id
+      if (typeof id !== 'string' && !Number.isSafeInteger(id)) {
+        if (Object.hasOwn(message, 'id')) {
+          this.restartAfterTimeout('Native core returned an invalid response identity')
+          return
+        }
+        continue // Ordinary structured log lines have no response ID.
+      }
+      const responseId = String(id)
+      const slot = this.pending.get(responseId)
       if (!slot) continue
       if (message.event === 'progress') {
+        if (!message.payload || typeof message.payload !== 'object' || Array.isArray(message.payload)) {
+          this.restartAfterTimeout('Native core returned invalid progress data')
+          return
+        }
         slot.refreshTimeout?.()
         slot.onProgress?.(message.payload ?? {})
         continue
       }
-      this.pending.delete(String(message.id))
+      if (typeof message.ok !== 'boolean') {
+        this.restartAfterTimeout('Native core returned an invalid response status')
+        return
+      }
+      this.pending.delete(responseId)
       if (message.ok) slot.resolve(message.result ?? {})
-      else slot.reject(new Error(message.error?.message ?? 'native core error'))
+      else slot.reject(new Error(typeof message.error?.message === 'string' ? message.error.message.slice(0, 4096) : 'native core error'))
     }
   }
 
@@ -214,8 +253,7 @@ class NativeCoreClient {
       : signal
         ? `signal ${signal}`
         : 'unknown status'
-    const detail = this.stderrBuffer.trim().replace(/\s+/g, ' ').slice(-2_000)
-    return `native core exited (${status})${detail ? `: ${detail}` : ''}`
+    return `native core exited (${status})`
   }
 
   hasPendingEpicSend() {

@@ -1,0 +1,363 @@
+{
+  "source": "Altbase-Wallet-Windows-v0.1.9.msi",
+  "sourceSha256": "f73fd54b78998d506d93dc10eac1e1ba2a9bc6a1cf96ad2356ffab3e322d88de",
+  "target": "win32-x64",
+  "sourceProjectModified": false,
+  "selectedRuntimeFiles": [
+    {
+      "path": "local-checks/windows-staging/released-runtime-manifest.json",
+      "size": 740,
+      "sha256": "b0659a202fbdde823739c09ea3e9a6ab7a319bfdfd8d7e3f11487abb8d8e312f"
+    },
+    {
+      "path": "coin-runtimes-stage/win32-x64/mwc/altbase-private-console.exe",
+      "size": 134616,
+      "sha256": "83946f4d0a60a922b705e5e11e3b5003453db4348fa421f060fedf67cbb5cd1e"
+    },
+    {
+      "path": "coin-runtimes-stage/win32-x64/mwc/LICENSE.txt",
+      "size": 10174,
+      "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594"
+    },
+    {
+      "path": "coin-runtimes-stage/win32-x64/mwc/mwc-wallet.exe",
+      "size": 46976512,
+      "sha256": "c69adbed46d3167f760d81002b0ab95959ab9852c230b82b1a4d25b802497167"
+    },
+    {
+      "path": "coin-runtimes-stage/win32-x64/xelis/LICENSE.txt",
+      "size": 1467,
+      "sha256": "cdc649effbb845b7fbbd386f3b8579827e971f6891e8ed56c61c295278428af2"
+    },
+    {
+      "path": "coin-runtimes-stage/win32-x64/xelis/xelis_wallet.exe",
+      "size": 22661120,
+      "sha256": "9aa47e316889ca386c819b7dfb8d3fbcfeb403bf5a88c6925a2566f4094b577a"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_bitcoin_node.dll",
+      "size": 288256,
+      "sha256": "63f0ae6740bb6e52d802c38a09059322dd159dcd0b8d190e8e6c402a8ab8a9a0"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_bitcoin_wallet.dll",
+      "size": 220160,
+      "sha256": "6cb7d60a2df09ad1a06f766b80a41dbad38374acf8d2a23179fb3cce6d0f58ca"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_bitcoin2_node.dll",
+      "size": 288256,
+      "sha256": "fb4c5c9319accb7307f8e1dbb9a878aa96e967d4e1a75583e872a997998cac37"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_bitcoin2_wallet.dll",
+      "size": 357888,
+      "sha256": "b2d58d6ca1a601958cf6cce48af40063b77f57461702777a953cd4fbe2082fe6"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_bitcoincash_node.dll",
+      "size": 280064,
+      "sha256": "4bfbf261d87d1cbf1ff8ba05b06cec37d795c421c40ddd1e5b9b3280c2d723c6"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_bitcoincash_wallet.dll",
+      "size": 214016,
+      "sha256": "d120a5a47e1265f702e3f579b7528be315e7919b76837fc0e13402d3e02de879"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_bitcoincashii_node.dll",
+      "size": 288256,
+      "sha256": "b637ce7782fbf778f9443e0020eedf4fe201962773f0fb34e3d5cc2ddbca2c5c"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_bitcoincashii_wallet.dll",
+      "size": 220160,
+      "sha256": "29a10aeeccef75ac34f2cc000a5d3d2fef9d1ac50bb8da9aae28643c2bcb410b"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_btgs_node.dll",
+      "size": 288768,
+      "sha256": "c323a3f593c8659f9e3e69f6c1e714572a8e0ce3ff2fd66ec8a1073c97afcb76"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_btgs_wallet.dll",
+      "size": 220160,
+      "sha256": "dcb01f52beb69020ff674a0ef60b232c72de89c4eb15dfd703dc2f4af9281b84"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_capstash_node.dll",
+      "size": 288256,
+      "sha256": "b9a69c287d21eccf96a7e84d1d30039d297e51a01fc3501519d5fc6905e0dc7d"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_capstash_wallet.dll",
+      "size": 220160,
+      "sha256": "f27b28ba93499d66174a619ac32f8cf8e8fc9e308e4350cff35ce00151e73f54"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_ckb_node.dll",
+      "size": 288256,
+      "sha256": "83f37ef3fe8cd3f0172bf3337939befcb1a0e819f09f55791986c603b8c6db55"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_core_bridge.exe",
+      "size": 294400,
+      "sha256": "3b57075c3689672621f13130ae52a3ee47f2d23629b1ee0f6fde995e95b33770"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_digibyte_node.dll",
+      "size": 280064,
+      "sha256": "f4f619f36a5caa8ef99380368658b57c56d717a67766d941d0a83f5335c4c4fd"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_digibyte_wallet.dll",
+      "size": 214016,
+      "sha256": "55ff500a66635d5214e9c9bd7c6ee639d8619b55ec5c346eefa3ef91c3085f65"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_epic_node.dll",
+      "size": 288768,
+      "sha256": "290f99b562a1c1f4f40f5b07641710a21ca4ddcb7d1c2f437d4c08dbfbe8c3bf"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_epic_sender.dll",
+      "size": 2621952,
+      "sha256": "39b58f44cf70728c11a1a75a8de1c152418df1af86ff6037d970c98ccbddeac0"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_epic_state.dll",
+      "size": 2672640,
+      "sha256": "505107d096cbc25530a7774b73c816c4495b9ad0a1f7d57f297a726cdac4b6e8"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_epic_transport.dll",
+      "size": 3822592,
+      "sha256": "80839a6fcdb4296874846959685f89d078ac8c8834ff6c85957a89af200b4a97"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_epic_wallet.dll",
+      "size": 488448,
+      "sha256": "9fe33c878dfaba8f9909f3ca7605f62636ea3fb406c85abb3c5753fd9b130f19"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_firo_node.dll",
+      "size": 288768,
+      "sha256": "5db9c61cb0d9869220ad1a0ca5e6d4bd016dc252dd37d68b2890e11e29f41a58"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_firo_wallet.dll",
+      "size": 220160,
+      "sha256": "03fe3a65cdb6c5dee5f698befdb132f07a2cf1e8cd15ad2571444c42f909b6e8"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_hypercoin_node.dll",
+      "size": 288256,
+      "sha256": "341c1fe1392da79e5c875e213f11157afe1aea8c9146180f02304b8d0ec8c710"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_hypercoin_wallet.dll",
+      "size": 220160,
+      "sha256": "c75def839f4b4bc13d3c7ffcf001aca711e2cacdb541116ba4e4627a8f35c8ab"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_junkcoin_node.dll",
+      "size": 288256,
+      "sha256": "e3cfdd0b45a5253f1cfd23e40a023a40f34f4ad39e71b4833d89b52936811e80"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_junkcoin_wallet.dll",
+      "size": 220160,
+      "sha256": "34f78e3475f603a7971e43fe988f3e37c914010be41afc00d87c7577a58761f5"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_kaspa_node.dll",
+      "size": 288256,
+      "sha256": "6490ad5121279e565c47a4eaa7446b9503b0c803b04d8a277b44bf4e56b1479d"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_kerrigan_node.dll",
+      "size": 288256,
+      "sha256": "4328d8a76bf8a09fc2cf66821450b4fe6792a6a9e6af6156b28d7828bb2b0b1d"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_kerrigan_wallet.dll",
+      "size": 220160,
+      "sha256": "38b900e15c3d7033abb2c45e13a382b9657e1fc2733f9bc5116e936f4347372a"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_litecoinii_node.dll",
+      "size": 288256,
+      "sha256": "cced6b460f9a30333a6b784fbb2317147d86b0dceacfe0e8ba459135257d5cce"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_litecoinii_wallet.dll",
+      "size": 220160,
+      "sha256": "7d282beac6c7fad903e42c197ba1643032f4df53711948a59e47422534c82120"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_monero_wallet.dll",
+      "size": 507904,
+      "sha256": "87c78f2e45e92845e1f9b53bec5740276706b441b974592a5fcbe7f6af120586"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_mydogecoin_node.dll",
+      "size": 288256,
+      "sha256": "3b02c1c4e1b2ddae44949e0b8b3bb6a06ebb7b2f1d407312df495b79d79ddbf9"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_mydogecoin_wallet.dll",
+      "size": 220160,
+      "sha256": "cc26de802be9cfce0dd99f84fce4df9e977453499b779973eec21c2832f909d3"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_neoxa_node.dll",
+      "size": 288256,
+      "sha256": "99a1280d42f482a52545082ad14a5c8b732f74c843a01104e390e4b75ed72866"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_neoxa_wallet.dll",
+      "size": 220160,
+      "sha256": "74f235817caa4845ca2b373aea2b0982a3f4c07192d4315302d32e0fc5196ec8"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_net_core.dll",
+      "size": 261632,
+      "sha256": "5474a62eb1d3a82e6c7de34a9dd5d6262c8a4b4984c1e045cbb9718660a0097d"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_nexa_node.dll",
+      "size": 280064,
+      "sha256": "7cc2576aa5344314b0a9fbfc902046ef285b6ea4e1cd716a7927e1975fac76c8"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_nonsense_node.dll",
+      "size": 280064,
+      "sha256": "2c411e20d74126029a289421ea152b9e9bf6008555e280d517c8f33026a26f6c"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_pearl_node.dll",
+      "size": 288256,
+      "sha256": "1cd0309dd29c2d8a2adb51750ee7f171db49517f93710209ac62de0217cde37a"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_pearl_wallet.dll",
+      "size": 220160,
+      "sha256": "80de0d4959359f2ff5eb9b5700a5c539264b1a149f2fb8baa52ed2b646acb04c"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_peercoin_node.dll",
+      "size": 280064,
+      "sha256": "19317da43d85639d390c58d236fb61aec4d447c63de506aa38a88243ec553c65"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_peercoin_wallet.dll",
+      "size": 214016,
+      "sha256": "7bfbaccc6f795e7f922fcdef6cd5d2e28b705500b304440867e6c9fcbc654820"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_pepecoin_node.dll",
+      "size": 288256,
+      "sha256": "4af72bf9904da9601915bbd4c734242c0ad26c8d9bb6b3ab4bb54392cae99248"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_pepecoin_wallet.dll",
+      "size": 220160,
+      "sha256": "eea319d3a26fd09ef4a6479c4b529bee0e9ffa08156b7c3b7fc4d388cdfd4532"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_quai_node.dll",
+      "size": 288768,
+      "sha256": "27facc9a45601de29073e1b3b8b10110676a95f64593a36211109c191347db5d"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_qubic_node.dll",
+      "size": 288256,
+      "sha256": "7f172a80d7c777a271369a9d514b020dcb48ad303680c45b42c347a5f12189b1"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_raptoreum_node.dll",
+      "size": 288256,
+      "sha256": "5adf4114418d5298cd6d04117103c58624010f5adee1a1c925b2da041890e2d1"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_raptoreum_wallet.dll",
+      "size": 220160,
+      "sha256": "d2eb4e9990ea8c5fd8425f0ddda1752c55c5296ea82bfc70d4a1ed61ce26a53a"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_scash_node.dll",
+      "size": 288256,
+      "sha256": "9dcfe4f1c197240ecd423b79e24d1176903aaf8799744cec8c77d7aad4413ffb"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_scash_wallet.dll",
+      "size": 220160,
+      "sha256": "e75fa992b21bdf902ee8099d32b35104471cc7de0d82479c2057da66b3622d9e"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_terracoin_node.dll",
+      "size": 288256,
+      "sha256": "d60212370bb20afb3c40bb52402820c28d3b98e9c3ea3cb8f8729d19546a8dba"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_terracoin_wallet.dll",
+      "size": 220160,
+      "sha256": "d7459b71b63b55d2e13cda4ebd61f49571f311d007d87e769394f1a2ea332100"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_utxo_address.dll",
+      "size": 313856,
+      "sha256": "22b0166e966ea25d12028b21923f45c06b1fe12aac9deca6f39ce7a3ea137c0f"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_utxo_derivation.dll",
+      "size": 297984,
+      "sha256": "ad29997ba6d8785a09d1ea64509502e4e340aee619d9697e8241d7628fc8d830"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_utxo_planner.dll",
+      "size": 282624,
+      "sha256": "305664e5cb276ef5f6acdf7a23652d2f7e01a0d5f266b7c6dc61c7fef1146a8f"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_utxo_signer.dll",
+      "size": 326144,
+      "sha256": "0094d55c0cf088a23062edb9e62f703c10e984e94c046ec3544cfdcad23fec3b"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_wallet_vault.dll",
+      "size": 296448,
+      "sha256": "243d6a087fc94249ac70e9c2d5a91a585d1e3f925f4f4b14f7cee2bf11ea6b17"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_xgr_node.dll",
+      "size": 280064,
+      "sha256": "b1d73241e1ba66694bb6a490a7f112e341742f663f80af635d31e5e3b9d2b567"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_zano_core.dll",
+      "size": 18222592,
+      "sha256": "2ce3e4cca071c0394d69fc6cf732f98eb1c9a8e094d1518daa30edc0f36be5b7"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_zano_node.dll",
+      "size": 288768,
+      "sha256": "aa85622db74977e9877e80636313a6499bd10e62cb3fce581135c3cdd952b844"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_zano_wallet.dll",
+      "size": 542720,
+      "sha256": "6afcb2629273b903a606c12a6e1c333d7ba84e4e3b36dfa26a401edb47e8afaf"
+    },
+    {
+      "path": "native-core-stage/win32-x64/altbase_zcash_node.dll",
+      "size": 280064,
+      "sha256": "875e32458be25aa1b2fe04c575eb26db940c29a5ff912137155fca1f00241872"
+    },
+    {
+      "path": "native-core-stage/win32-x64/libsecp256k1-6.dll",
+      "size": 222208,
+      "sha256": "f112c1d68aa172170c16a68706e635b934e24345f6037d5a4ace33a4b6bcb352"
+    }
+  ]
+}

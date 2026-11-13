@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { useCoinStore } from '../../store/coinStore'
 import { walletService } from '../../services/walletService'
 import { useSettingsStore } from '../../store/settingsStore'
+import { isListedCoin, listedMiningResult } from '../../utils/coinListings'
 
 type MiningMessage = {
   source?: string
@@ -20,7 +21,8 @@ export default function Mining() {
   const [searchParams] = useSearchParams()
   const coins = useCoinStore((state) => state.coins)
   const theme = useSettingsStore((state) => state.settings.theme)
-  const requestedCoinId = searchParams.get('coin')?.toLowerCase() || null
+  const requested = searchParams.get('coin')?.toLowerCase() || null
+  const requestedCoinId = requested && isListedCoin(requested) ? requested : null
   const moduleUrl = useMemo(() => {
     const params = new URLSearchParams({ embedded: '1' })
     if (requestedCoinId && /^[a-z0-9][a-z0-9._-]{0,63}$/.test(requestedCoinId)) {
@@ -69,7 +71,9 @@ export default function Mining() {
           const coinId = String(params?.coinId || '').toLowerCase()
           const algorithm = String(params?.algorithm || '').toLowerCase()
           const coin = walletCoinsRef.current.find((entry) => entry.id === coinId)
-          if (!/^[a-z0-9][a-z0-9._-]{0,63}$/.test(coinId) || !/^[a-z0-9][a-z0-9._/-]{0,63}$/.test(algorithm)) {
+          if (!isListedCoin(coinId)) {
+            respond(requestId, { ok: false, error: 'This coin has been delisted. Use an older version of the wallet.' })
+          } else if (!/^[a-z0-9][a-z0-9._-]{0,63}$/.test(coinId) || !/^[a-z0-9][a-z0-9._/-]{0,63}$/.test(algorithm)) {
             respond(requestId, { ok: false, error: 'Invalid mining identity request' })
           } else {
             const respondWithAddress = (address: string) => respond(requestId, {
@@ -108,7 +112,9 @@ export default function Mining() {
           return
         }
         void window.altbaseWallet?.mining.request({ method, params })
-          .then((response) => respond(requestId, response))
+          .then((response) => respond(requestId, response.ok
+            ? { ...response, result: listedMiningResult(method, response.result) }
+            : response))
           .catch((error) => respond(requestId, { ok: false, error: error instanceof Error ? error.message : String(error) }))
         return
       }

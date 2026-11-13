@@ -1,3 +1,4 @@
+import { pluginReadiness } from './pluginReadiness'
 import { normalizeSeedPhrase } from '../utils/validateSeedPhrase'
 import { allCoins } from './coinService'
 import { nativeCoreService, type NativeWalletSecretOptions } from './nativeCoreService'
@@ -63,8 +64,13 @@ type PendingWalletSetup = {
 let pendingWalletSetup: PendingWalletSetup | null = null
 
 const bumpWalletSessionRevision = () => {
+  pluginReadiness.reset()
+  pendingPublicAddressRequests.clear()
   walletSessionRevision += 1
   return walletSessionRevision
+}
+const assertCurrentSession = (revision: number) => {
+  if (revision !== walletSessionRevision) throw new Error('Wallet session changed')
 }
 
 /**
@@ -102,7 +108,7 @@ const deriveStandardCoinAddresses = async (
 ): Promise<WalletAddresses> => {
   const coinsToDerive = allCoins().filter((coin) =>
     walletEngineRegistry.kindOf(coin) !== 'privacy'
-      && (!previous[coin.id] || ALWAYS_REDERIVE_STANDARD_COIN_IDS.has(coin.id)),
+      && (!previous[coin.id] || coin.walletEngine === 'plugin' || ALWAYS_REDERIVE_STANDARD_COIN_IDS.has(coin.id)),
   )
   if (coinsToDerive.length === 0) return {}
 
@@ -140,27 +146,21 @@ const deriveStandardCoinAddresses = async (
 
 const refreshPrivacyAddresses = async (mnemonic: string): Promise<WalletAddresses> => {
   const revision = walletSessionRevision
-  const current = storageService.get<WalletAddresses>(WALLET_ADDRESSES_KEY, {})
-  const privacyResults = await Promise.all(
+  await Promise.all(
     privacyCoins().map(async (coin) => {
       try {
         const result = await privacyWalletService.ensureWallet(coin.id as PrivacyCoin, mnemonic)
-        return [coin.id, result.address] as const
+        if (!result.address || revision !== walletSessionRevision || sessionMnemonicCache !== mnemonic) return
+        // Publish each deterministic address immediately. An unrelated slow
+        // privacy scan must not hold every coin's receive address hostage.
+        const current = storageService.get<WalletAddresses>(WALLET_ADDRESSES_KEY, {})
+        if (current[coin.id] !== result.address) storageService.set(WALLET_ADDRESSES_KEY, { ...current, [coin.id]: result.address })
       } catch {
-        return [coin.id, undefined] as const
+        // Another coin's address can still become available independently.
       }
     }),
   )
-  const next: WalletAddresses = { ...current }
-  let changed = false
-  for (const [id, addr] of privacyResults) {
-    if (addr && next[id] !== addr) {
-      next[id] = addr
-      changed = true
-    }
-  }
-  if (changed && revision === walletSessionRevision) storageService.set(WALLET_ADDRESSES_KEY, next)
-  return next
+  return storageService.get<WalletAddresses>(WALLET_ADDRESSES_KEY, {})
 }
 
 const refreshPrivacyAddressesInBackground = (mnemonic: string) => {
@@ -177,6 +177,8 @@ const buildWalletMeta = async (
 
   // Roundtrip integrity check — guarantees the stored data can actually be unlocked.
   // Catches silent encryption issues (Buffer polyfill quirks, encoding mismatches, etc).
+  const restored = await nativeCoreService.decryptWalletSecret(secret.encryptedMnemonic, password)
+  if (restored !== mnemonic) throw new Error('Encrypted wallet verification failed')
 
   return {
     isCreated: true,
@@ -206,10 +208,12 @@ const verifyPassword = async (meta: WalletMeta, password: string) => {
 }
 
 const migrateLegacyWallet = async (legacy: LegacyWalletMeta, password: string) => {
+  const revision = walletSessionRevision
   if (!legacy.encryptedMnemonic) return null
   try {
     const mnemonic = await nativeCoreService.decryptWalletSecret(legacy.encryptedMnemonic, password)
     const upgraded = await buildWalletMeta(mnemonic, password)
+    assertCurrentSession(revision)
     storageService.set<WalletMeta>(WALLET_KEY, upgraded)
     return mnemonic
   } catch {
@@ -250,32 +254,51 @@ const trySavePublicAddresses = async (mnemonic: string, includePrivacy = true, f
 const getWalletMeta = () => storageService.get<WalletMeta | null>(WALLET_KEY, null)
 
 const ensureWalletFingerprint = async (meta: WalletMetaV2, mnemonic: string) => {
+  const revision = walletSessionRevision
   if (meta.walletFingerprint) return meta
   const upgraded = { ...meta, walletFingerprint: await walletFingerprintFromMnemonic(mnemonic) }
+  assertCurrentSession(revision)
   storageService.set<WalletMeta>(WALLET_KEY, upgraded)
   return upgraded
 }
 
+const ensureCompatibleWalletMeta = async (meta: WalletMetaV2, mnemonic: string, password: string) => {
+  const revision = walletSessionRevision
+  if (meta.encryptedMnemonic.salt.startsWith('fullnode-scrypt-v1:')) {
+    const compatible = await buildWalletMeta(mnemonic, password)
+    assertCurrentSession(revision)
+    storageService.set<WalletMeta>(WALLET_KEY, compatible)
+  } else {
+    await ensureWalletFingerprint(meta, mnemonic)
+    assertCurrentSession(revision)
+  }
+}
+
 const getMnemonic = async (password: string) => {
+  const revision = walletSessionRevision
   const meta = getWalletMeta()
   if (!meta?.isCreated) throw new Error('Wallet is not created')
 
   if (!isV2(meta)) {
     const mnemonic = await migrateLegacyWallet(meta, password)
+    assertCurrentSession(revision)
     if (!mnemonic) throw new Error('Wrong password')
     return mnemonic
   }
 
   if (!(await verifyPassword(meta, password))) throw new Error('Wrong password')
+  assertCurrentSession(revision)
   const mnemonic = await nativeCoreService.decryptWalletSecret(meta.encryptedMnemonic, password)
-  await ensureWalletFingerprint(meta, mnemonic)
+  assertCurrentSession(revision)
+  await ensureCompatibleWalletMeta(meta, mnemonic, password)
+  assertCurrentSession(revision)
   return mnemonic
 }
 
-const ensurePublicAddress = async (coinId: string): Promise<string | undefined> => {
+const ensurePublicAddress = async (coinId: string, force = false): Promise<string | undefined> => {
   const normalizedCoinId = coinId.trim().toLowerCase()
   const existing = storageService.get<WalletAddresses>(WALLET_ADDRESSES_KEY, {})[normalizedCoinId]
-  if (existing) return existing
+  if (existing && !force) return existing
 
   const pending = pendingPublicAddressRequests.get(normalizedCoinId)
   if (pending) return pending
@@ -308,7 +331,7 @@ const ensurePublicAddress = async (coinId: string): Promise<string | undefined> 
     storageService.set<WalletAddresses>(WALLET_ADDRESSES_KEY, { ...addresses, [coin.id]: address })
     return address
   })().finally(() => {
-    pendingPublicAddressRequests.delete(normalizedCoinId)
+    if (pendingPublicAddressRequests.get(normalizedCoinId) === request) pendingPublicAddressRequests.delete(normalizedCoinId)
   })
 
   pendingPublicAddressRequests.set(normalizedCoinId, request)
@@ -330,8 +353,9 @@ const startPendingWalletSetup = (mnemonic: string, password: string) => {
 
 export const walletService = {
   async createWallet(password: string) {
-    bumpWalletSessionRevision()
+    const revision = bumpWalletSessionRevision()
     const mnemonic = await nativeCoreService.generateMnemonic()
+    assertCurrentSession(revision)
     privacyWalletService.resetNativeReadiness()
     sessionMnemonicCache = mnemonic
     startPendingWalletSetup(mnemonic, password)
@@ -348,7 +372,7 @@ export const walletService = {
   async finalizeWalletSetup(mnemonic?: string, options: { seedSafetyAcknowledged?: boolean } = {}) {
     const pending = pendingWalletSetup
     if (!pending) {
-      if (getWalletMeta()?.isCreated) return true
+      if (getWalletMeta()?.isCreated && sessionMnemonicCache && (!mnemonic || mnemonic === sessionMnemonicCache)) return true
       throw new Error('Wallet setup is not ready')
     }
     if (mnemonic && pending.mnemonic !== mnemonic) throw new Error('Wallet setup seed mismatch')
@@ -377,21 +401,23 @@ export const walletService = {
     onProgress?: WalletLoadProgressHandler,
     options: { seedSafetyAcknowledged?: boolean } = {},
   ) {
-    bumpWalletSessionRevision()
+    const revision = bumpWalletSessionRevision()
     const words = normalizeSeedPhrase(seedPhrase)
     const mnemonic = words.join(' ')
     if (words.length !== 12 || !(await nativeCoreService.validateMnemonic(mnemonic))) {
       throw new Error('Seed phrase must contain 12 valid BIP39 words')
     }
+    assertCurrentSession(revision)
     onProgress?.(buildWalletLoadProgress('addresses'))
-    const metaPromise = buildWalletMeta(mnemonic, password, {
+    const meta = await buildWalletMeta(mnemonic, password, {
       requireSeedSafetyAcknowledgement: true,
       seedSafetyAcknowledged: options.seedSafetyAcknowledged,
     })
-    await trySavePublicAddresses(mnemonic, false, true)
+    assertCurrentSession(revision)
+    const addresses = await deriveStandardCoinAddresses(mnemonic)
+    assertCurrentSession(revision)
     onProgress?.(buildWalletLoadProgress('secureSeed'))
-    const meta = await metaPromise
-    storageService.set<WalletMeta>(WALLET_KEY, meta)
+    storageService.setMany({ [WALLET_KEY]: meta, [WALLET_ADDRESSES_KEY]: addresses })
     privacyBirthService.markRestoredWallet()
     privacyWalletService.resetNativeReadiness()
     bumpWalletSessionRevision()
@@ -400,34 +426,41 @@ export const walletService = {
   },
 
   async unlockWallet(password: string, onProgress?: WalletLoadProgressHandler) {
+    const revision = bumpWalletSessionRevision()
+    sessionMnemonicCache = null
     const meta = getWalletMeta()
     if (!meta?.isCreated) return false
 
     if (!isV2(meta)) {
       const mnemonic = await migrateLegacyWallet(meta, password)
+      assertCurrentSession(revision)
       if (!mnemonic) return false
       privacyWalletService.resetNativeReadiness()
-      bumpWalletSessionRevision()
       sessionMnemonicCache = mnemonic
       onProgress?.(buildWalletLoadProgress('addresses'))
       await trySavePublicAddresses(mnemonic, false, true)
+      assertCurrentSession(revision)
       return true
     }
 
     const ok = await verifyPassword(meta, password)
+    assertCurrentSession(revision)
     if (ok) {
       const mnemonic = await nativeCoreService.decryptWalletSecret(meta.encryptedMnemonic, password)
-      await ensureWalletFingerprint(meta, mnemonic)
-      bumpWalletSessionRevision()
+      assertCurrentSession(revision)
+      await ensureCompatibleWalletMeta(meta, mnemonic, password)
+      assertCurrentSession(revision)
       sessionMnemonicCache = mnemonic
       onProgress?.(buildWalletLoadProgress('addresses'))
       await trySavePublicAddresses(mnemonic, false, true)
+      assertCurrentSession(revision)
     }
     return ok
   },
 
   async lockWallet() {
     bumpWalletSessionRevision()
+    pendingWalletSetup = null
     sessionMnemonicCache = null
     privacyWalletService.resetNativeReadiness()
     await window.altbaseWallet?.resetCoreSession?.()
@@ -444,7 +477,9 @@ export const walletService = {
   },
 
   async getSeedPhrase(password: string) {
+    const revision = walletSessionRevision
     const mnemonic = await getMnemonic(password)
+    assertCurrentSession(revision)
     sessionMnemonicCache = mnemonic
     return mnemonic
   },
@@ -452,6 +487,8 @@ export const walletService = {
   getSessionMnemonic() {
     return sessionMnemonicCache
   },
+
+  getSessionRevision: () => walletSessionRevision,
 
   warmPrivacyAddresses() {
     if (sessionMnemonicCache) refreshPrivacyAddressesInBackground(sessionMnemonicCache)
@@ -464,7 +501,7 @@ export const walletService = {
   async preparePublicAddresses(mnemonic?: string) {
     const source = mnemonic ?? sessionMnemonicCache
     if (!source) return {}
-    sessionMnemonicCache = source
+    if (source !== sessionMnemonicCache) throw new Error('Wallet session changed')
     return trySavePublicAddresses(source, false, true)
   },
 
@@ -474,29 +511,40 @@ export const walletService = {
    * use WIF, so this returns their native recovery seed instead.
    */
   async getPrivateKey(coinId: string, password: string) {
+    const revision = walletSessionRevision
     const mnemonic = await getMnemonic(password)
+    assertCurrentSession(revision)
     const coin = allCoins().find((item) => item.id === coinId)
     if (!coin) throw new Error(`coin-not-supported:${coinId}`)
     const exportSecret = walletEngineRegistry.get(coin).exportSecret
     if (!exportSecret) throw new Error(`coin-not-supported:${coinId}`)
     const secret = await exportSecret(coin, mnemonic)
+    assertCurrentSession(revision)
     if (coin.walletEngine === 'zano-light' || coin.walletEngine === 'epic-light' || coin.walletEngine === 'monero-light') {
       const height = await privacyBirthService.restoreStartHeight(coin.id as PrivacyCoin).catch(() => null)
+      assertCurrentSession(revision)
       return height ? `${secret}\n\nRestore height: ${height}` : secret
     }
     return secret
   },
 
   async refreshDerivedAddresses(password: string) {
+    const revision = walletSessionRevision
     const mnemonic = await getMnemonic(password)
+    assertCurrentSession(revision)
     return savePublicAddresses(mnemonic, true, true)
   },
 
   async changePassword(currentPassword: string, nextPassword: string) {
+    const revision = walletSessionRevision
     const mnemonic = await getMnemonic(currentPassword)
+    assertCurrentSession(revision)
     const meta = await buildWalletMeta(mnemonic, nextPassword)
+    assertCurrentSession(revision)
     storageService.set<WalletMeta>(WALLET_KEY, meta)
-    await savePublicAddresses(mnemonic, true, true)
+    // Re-encrypting the same phrase does not change any public address. Do
+    // not make password changes wait for coin adapters or privacy scans.
+    bumpWalletSessionRevision()
     return true
   },
 

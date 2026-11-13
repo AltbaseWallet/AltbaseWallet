@@ -1,0 +1,9 @@
+BIP32: Hierarchical Deterministic Wallets
+Author: Pieter Wuille <pieter.wuille@gmail.com>
+Assigned: 2012-02-11
+License: BSD-2-Clause
+
+Copyright notice from the pinned specification:
+This BIP is licensed under the 2-clause BSD license.
+
+Source: https://github.com/bitcoin/bips/blob/e8987d3e76d4501a0a5e6fd6c33c60b46c36479e/bip-0032.mediawiki

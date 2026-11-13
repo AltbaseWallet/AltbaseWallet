@@ -1,3 +1,4 @@
+import { useModuleLabels } from '../Modules/labels'
 import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { HelpCircle, Languages } from 'lucide-react'
@@ -12,6 +13,7 @@ import type { Language } from '../../types/settings'
 import logoUrl from '../../assets/logo.png'
 
 export default function Welcome() {
+  const moduleLabels = useModuleLabels()
   const t = useT()
   const { settings, updateSettings } = useSettingsStore()
   const { isCreated, isUnlocked } = useAuthStore()
@@ -72,6 +74,7 @@ export default function Welcome() {
         </div>
 
         <div className="grid gap-4">
+          <Link to="/modules" data-testid="modules-link"><Button variant="secondary" className="w-full">{moduleLabels[0]}</Button></Link>
           <Link to="/create-password" className="block">
             <Button size="lg" className="w-full">{t('createWallet')}</Button>
           </Link>

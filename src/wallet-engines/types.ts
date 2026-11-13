@@ -14,6 +14,7 @@ export type WalletFeeOptions = {
   fromAddress?: string
   toAddress?: string
   amountCoin?: string
+  excludeOutpoints?: Array<{ txid: string; vout: number }>
 }
 
 export type WalletMaxSendResult = {
@@ -35,6 +36,7 @@ export type WalletSendParams = {
   maxFeeCoin?: string
   sendMax?: boolean
   memo?: string
+  onPrepared?: (prepared: WalletSendResult) => void | Promise<void>
 }
 
 export type WalletSendResult = {
@@ -58,6 +60,7 @@ export type WalletEngine = {
     feeCoin?: string,
     toAddress?: string,
     mnemonic?: string,
+    options?: Pick<WalletFeeOptions, 'excludeOutpoints'>,
   ) => Promise<WalletMaxSendResult>
   send: (params: WalletSendParams) => Promise<WalletSendResult>
   exportSecret?: (coin: Coin, mnemonic: string) => Promise<string>

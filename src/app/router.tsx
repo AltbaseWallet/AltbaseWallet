@@ -5,6 +5,7 @@ import { Card } from '../components/ui/Card'
 import { useAuthStore } from '../store/authStore'
 import { useT } from '../utils/i18n'
 
+const Modules = lazy(() => import('../pages/Modules/Modules'))
 const Welcome = lazy(() => import('../pages/Welcome/Welcome'))
 const CreatePassword = lazy(() => import('../pages/CreatePassword/CreatePassword'))
 const GenerateSeed = lazy(() => import('../pages/GenerateSeed/GenerateSeed'))
@@ -61,6 +62,7 @@ export function AppRouter() {
     <Suspense fallback={<Loader />}>
       <Routes>
         <Route path="/" element={<RootRedirect />} />
+        <Route path="/modules" element={<Modules />} />
         <Route element={<PublicOnly />}>
           <Route path="/welcome" element={<Welcome />} />
           <Route path="/create-password" element={<CreatePassword />} />

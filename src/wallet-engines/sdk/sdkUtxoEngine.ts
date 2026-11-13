@@ -1,6 +1,7 @@
 import { coinApiService } from '../../services/coinApiService'
 import type { Coin } from '../../types/coin'
 import type { WalletEngine, WalletMaxSendResult } from '../types'
+import { submitIdentifiedTransaction } from '../../utils/broadcastOutcome'
 
 type SdkReply = WalletMaxSendResult & { address?: string; valid?: boolean; secret?: string; hex?: string; txid?: string }
 const sdk = async (coin: Coin, method: string, params: Record<string, unknown>): Promise<SdkReply> => {
@@ -34,12 +35,15 @@ export const createSdkUtxoEngine = (id: 'zcash-utxo' | 'nexa-utxo'): WalletEngin
   async estimateMaxSend(coin,address,feeCoin,toAddress){
     return sdk(coin,'plan',{...await context(coin,address,true),toAddress:toAddress||address,feeCoin,sendMax:true})
   },
-  async send({coin,mnemonic,fromAddress,toAddress,amountCoin,feeCoin,maxFeeCoin,sendMax}){
+  async send({coin,mnemonic,fromAddress,toAddress,amountCoin,feeCoin,maxFeeCoin,sendMax,onPrepared}){
     if(!fromAddress)throw new Error('The source address is not available')
     const result=await sdk(coin,'sign',{...await context(coin,fromAddress,true),mnemonic,toAddress,amountCoin,feeCoin,maxFeeCoin,sendMax})
     if(!result.hex || !result.txid)throw new Error('The local wallet module returned an incomplete transaction')
-    const txid=await coinApiService.broadcast(coin.id,result.hex,result.txid)
-    return{txid,amountCoin:result.amountCoin,feeCoin:result.feeCoin}
+    const txid=result.txid, hex=result.hex
+    const prepared={txid,amountCoin:result.amountCoin,feeCoin:result.feeCoin}
+    await onPrepared?.(prepared)
+    await submitIdentifiedTransaction(txid,()=>coinApiService.broadcast(coin.id,hex,txid))
+    return prepared
   },
   exportSecret:async(coin,mnemonic)=>{
     const result=await sdk(coin,'export',{mnemonic})

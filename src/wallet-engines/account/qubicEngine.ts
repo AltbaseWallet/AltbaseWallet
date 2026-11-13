@@ -15,9 +15,9 @@ export const qubicEngine: WalletEngine = {
   async estimateFee() { return qubicWalletService.estimateFee() },
   async estimateMinimumFee() { return qubicWalletService.estimateFee() },
   async estimateMaxSend(coin, address) { return qubicWalletService.estimateMaxSend(coin.id, address) },
-  async send({ coin, mnemonic, fromAddress, toAddress, amountCoin, sendMax }) {
+  async send({ coin, mnemonic, fromAddress, toAddress, amountCoin, sendMax, onPrepared }) {
     if (!fromAddress) throw new Error(`Address for ${coin.id} not derived yet - reopen the wallet`)
-    return qubicWalletService.send({ coinId: coin.id, mnemonic, fromAddress, toAddress, amountCoin, sendMax })
+    return qubicWalletService.send({ coinId: coin.id, mnemonic, fromAddress, toAddress, amountCoin, sendMax, onPrepared })
   },
   async exportSecret(_coin, mnemonic) { return qubicWalletService.exportSeed(mnemonic) },
 }

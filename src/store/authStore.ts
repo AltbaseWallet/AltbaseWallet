@@ -5,6 +5,11 @@ import { buildWalletLoadProgress, type WalletLoadProgressHandler } from '../type
 import { useCoinStore } from './coinStore'
 import { useTransactionStore } from './transactionStore'
 
+let authRevision = 0
+const assertCurrentAuth = (revision: number) => {
+  if (revision !== authRevision) throw new Error('Wallet session changed')
+}
+
 const LOCK_STATE_KEY = 'auth-lock-state'
 const MAX_ATTEMPTS = 5
 const LOCK_LADDER_MS = [30_000, 2 * 60_000, 10 * 60_000, 60 * 60_000]
@@ -33,6 +38,7 @@ type AuthStore = {
   sessionMnemonic: string | null
   initialize: () => void
   createWallet: (password: string) => Promise<void>
+  confirmWalletSetup: (seed: string, onProgress?: WalletLoadProgressHandler) => Promise<void>
   restoreWallet: (
     seedPhrase: string,
     password: string,
@@ -65,11 +71,15 @@ export const useAuthStore = create<AuthStore>((set) => ({
   },
 
   createWallet: async (password) => {
+    const revision = ++authRevision
     set({ isUnlocked: false, sessionMnemonic: null })
     await walletService.lockWallet()
+    assertCurrentAuth(revision)
     useTransactionStore.getState().resetTransactions()
     await useCoinStore.getState().resetCoinsForCurrentWallet()
+    assertCurrentAuth(revision)
     const { seedPhrase } = await walletService.createWallet(password)
+    assertCurrentAuth(revision)
     resetLockState()
     set({
       isCreated: true,
@@ -81,17 +91,21 @@ export const useAuthStore = create<AuthStore>((set) => ({
   },
 
   restoreWallet: async (seedPhrase, password, onProgress, options) => {
+    const revision = ++authRevision
     set({ isUnlocked: false, sessionMnemonic: null })
     await walletService.lockWallet()
-    useTransactionStore.getState().resetTransactions()
-    await useCoinStore.getState().resetCoinsForCurrentWallet()
+    assertCurrentAuth(revision)
     await walletService.restoreWallet(seedPhrase, password, onProgress, options)
+    assertCurrentAuth(revision)
     useTransactionStore.getState().resetTransactions()
     await useCoinStore.getState().resetCoinsForCurrentWallet()
+    assertCurrentAuth(revision)
     resetLockState()
     // Cache mnemonic in memory so subsequent sends don't need to re-prompt for password
     const sessionMnemonic =
-      walletService.getSessionMnemonic() ?? (await walletService.getSeedPhrase(password).catch(() => null))
+      walletService.getSessionMnemonic()
+    assertCurrentAuth(revision)
+    if (!sessionMnemonic) throw new Error('Wallet session changed')
     set({
       isCreated: true,
       isUnlocked: false,
@@ -103,6 +117,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
     walletService.warmPrivacyAddresses()
 
     await useCoinStore.getState().loadSendReadyState(onProgress)
+    assertCurrentAuth(revision)
     onProgress?.(buildWalletLoadProgress('history'))
     void useTransactionStore.getState()
       .loadTransactions({ page: 1, force: true, silent: true, startup: true })
@@ -111,7 +126,29 @@ export const useAuthStore = create<AuthStore>((set) => ({
     onProgress?.(buildWalletLoadProgress('ready'))
   },
 
+  confirmWalletSetup: async (seed, onProgress) => {
+    const revision = ++authRevision
+    set({ isUnlocked: false, sessionMnemonic: null })
+    await walletService.finalizeWalletSetup(seed)
+    assertCurrentAuth(revision)
+    await walletService.preparePublicAddresses(seed)
+    assertCurrentAuth(revision)
+    useTransactionStore.getState().resetTransactions()
+    await useCoinStore.getState().resetCoinsForCurrentWallet()
+    assertCurrentAuth(revision)
+    if (walletService.getSessionMnemonic() !== seed) throw new Error('Wallet session changed')
+    set({ sessionMnemonic: seed })
+    walletService.warmPrivacyAddresses()
+    await useCoinStore.getState().loadSendReadyState(onProgress)
+    assertCurrentAuth(revision)
+    onProgress?.(buildWalletLoadProgress('history'))
+    void useTransactionStore.getState().loadTransactions({ page: 1, force: true, silent: true, startup: true }).catch(() => undefined)
+    set({ isUnlocked: true, generatedSeed: null })
+    onProgress?.(buildWalletLoadProgress('ready'))
+  },
+
   unlock: async (password, onProgress) => {
+    const revision = ++authRevision
     const persisted = readLockState()
     if (persisted.lockedUntil && Date.now() < persisted.lockedUntil) {
       set({ attempts: persisted.attempts, lockedUntil: persisted.lockedUntil })
@@ -121,21 +158,26 @@ export const useAuthStore = create<AuthStore>((set) => ({
     onProgress?.(buildWalletLoadProgress('password'))
     const previousScope = walletService.getWalletStorageScope()
     const ok = await walletService.unlockWallet(password, onProgress)
+    assertCurrentAuth(revision)
     if (ok) {
       resetLockState()
       const nextScope = walletService.getWalletStorageScope()
       if (previousScope !== nextScope) {
         useTransactionStore.getState().resetTransactions()
         await useCoinStore.getState().resetCoinsForCurrentWallet()
+        assertCurrentAuth(revision)
       }
 
       // Cache mnemonic for the rest of the session (in memory only, never persisted).
       const sessionMnemonic =
-        walletService.getSessionMnemonic() ?? (await walletService.getSeedPhrase(password).catch(() => null))
+        walletService.getSessionMnemonic()
+      assertCurrentAuth(revision)
+      if (!sessionMnemonic) throw new Error('Wallet session changed')
       set({ sessionMnemonic, attempts: 0, lockedUntil: null })
       walletService.warmPrivacyAddresses()
 
       await useCoinStore.getState().loadSendReadyState(onProgress)
+      assertCurrentAuth(revision)
       onProgress?.(buildWalletLoadProgress('history'))
       void useTransactionStore.getState()
         .loadTransactions({ page: 1, force: true, silent: true, startup: true })
@@ -161,11 +203,13 @@ export const useAuthStore = create<AuthStore>((set) => ({
   },
 
   lock: () => {
-    walletService.lockWallet()
-    set({ isUnlocked: false, sessionMnemonic: null })
+    ++authRevision
+    void walletService.lockWallet().catch(() => undefined)
+    set({ isUnlocked: false, sessionMnemonic: null, generatedSeed: null })
   },
 
   clearWallet: () => {
+    ++authRevision
     walletService.clearWallet()
     useTransactionStore.getState().resetTransactions()
     void useCoinStore.getState().resetCoinsForCurrentWallet()
@@ -181,6 +225,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   },
 
   cancelWalletSetup: () => {
+    ++authRevision
     useTransactionStore.getState().resetTransactions()
     void useCoinStore.getState().resetCoinsForCurrentWallet()
     walletService.discardWalletSetup()

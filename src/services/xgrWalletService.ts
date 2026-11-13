@@ -8,6 +8,7 @@ import {
 } from 'ethers'
 import { atomicAmountToBigInt, coinApiService, type AccountFeeEstimate } from './coinApiService'
 import { assertApprovedSpend } from '../utils/sendFeePolicy'
+import { submitIdentifiedTransaction } from '../utils/broadcastOutcome'
 
 export const XGR_CHAIN_ID = 1643
 export const XGR_DERIVATION_PATH = "m/44'/60'/0'/0/0"
@@ -153,6 +154,7 @@ export const xgrWalletService = {
     maxFeeCoin?: string
     sendMax?: boolean
     knownSpendableCoin?: string
+    onPrepared?: (prepared: { txid: string; amountCoin: string; feeCoin: string }) => void | Promise<void>
   }) {
     if (!isAddress(params.toAddress)) throw new Error('Invalid XGR address')
 
@@ -212,11 +214,13 @@ export const xgrWalletService = {
     })
     const parsed = Transaction.from(signedTx)
     const txid = parsed.hash ?? keccak256(signedTx)
-    const broadcastTxid = await coinApiService.broadcast(params.coinId, signedTx, txid)
-    return {
-      txid: broadcastTxid || txid,
+    const prepared = {
+      txid,
       amountCoin: floorCoinText(valueWei, 8),
       feeCoin: ceilCoinText(feeWei, 8),
     }
+    await params.onPrepared?.(prepared)
+    await submitIdentifiedTransaction(txid, () => coinApiService.broadcast(params.coinId, signedTx, txid))
+    return prepared
   },
 }

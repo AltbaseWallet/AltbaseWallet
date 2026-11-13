@@ -1,0 +1,9 @@
+{
+  "curve": "secp224r1",
+  "messageDigest": "SHA-256",
+  "publicKeyUncompressed": "04afb8a1081da80211db6983ab7c94e4f5b8a13c939da4bbc0e7acdf6b3939f24928a427a783632fc520c78e78ee9452d6afb205e1c6e03ca2",
+  "publicKeyCompressed": "02afb8a1081da80211db6983ab7c94e4f5b8a13c939da4bbc0e7acdf6b",
+  "msg": "049a27b5204bb2be",
+  "sig": "303c021c344cc8cd2571137ce4186ffd03ee7626e9d91ede7ea3afd45aeaf6b2021c2e4743bde502b2c1dda87c55a4451e5956e04e38e68257311d89def3",
+  "expectedValid": false
+}

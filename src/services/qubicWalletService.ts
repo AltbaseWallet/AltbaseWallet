@@ -1,5 +1,8 @@
 import { QubicHelper } from '@qubic-lib/qubic-ts-library/dist/qubicHelper'
 import { coinApiService } from './coinApiService'
+import { assertApprovedSpend } from '../utils/sendFeePolicy'
+import { qubicTransactionId } from '../utils/qubicTransactionId'
+import { submitIdentifiedTransaction } from '../utils/broadcastOutcome'
 
 const helper = new QubicHelper()
 const QUBIC_SEED_LENGTH = 55
@@ -68,6 +71,7 @@ export const qubicWalletService = {
     toAddress: string
     amountCoin: string
     sendMax?: boolean
+    onPrepared?: (prepared: { txid: string; amountCoin: string; feeCoin: string }) => void | Promise<void>
   }) {
     const seed = await qubicSeedFromMnemonic(params.mnemonic)
     const identity = (await helper.createIdPackage(seed)).publicId
@@ -82,10 +86,13 @@ export const qubicWalletService = {
     if (amount > BigInt(String(balance.balance_spendable ?? balance.balance))) throw new Error('Insufficient Qubic balance')
     if (amount > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error('Qubic amount is too large for the signing library')
 
+    assertApprovedSpend({ actualFee: '0', actualAmount: amount.toString(), approvedAmount: params.amountCoin, sendMax: params.sendMax })
     const context = await coinApiService.getAccountTxContext(params.coinId, identity, params.toAddress)
     const targetTick = Number(context.targetTick)
-    if (!Number.isSafeInteger(targetTick) || targetTick <= 0) throw new Error('Qubic node did not return a valid target tick')
+    if (!Number.isSafeInteger(targetTick) || targetTick <= 0 || targetTick > 0xffffffff) throw new Error('Qubic node did not return a valid target tick')
     const signed = await helper.createTransaction(seed, params.toAddress.trim().toUpperCase(), Number(amount), targetTick)
+    const txid = await qubicTransactionId(signed)
+    const prepared = { txid, amountCoin: amount.toString(), feeCoin: '0' }
     const envelope = JSON.stringify({
       encodedTransaction: bytesToBase64(signed),
       from: identity,
@@ -93,7 +100,8 @@ export const qubicWalletService = {
       amount: amount.toString(),
       targetTick,
     })
-    const txid = await coinApiService.broadcast(params.coinId, envelope)
-    return { txid, amountCoin: amount.toString(), feeCoin: '0' }
+    await params.onPrepared?.(prepared)
+    await submitIdentifiedTransaction(txid, () => coinApiService.broadcast(params.coinId, envelope, txid))
+    return prepared
   },
 }

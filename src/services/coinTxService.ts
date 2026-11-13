@@ -11,6 +11,7 @@ import { coinApiService, type FeeRateInfo, type Utxo } from './coinApiService'
 import { nativeCoreService } from './nativeCoreService'
 import { assertApprovedSpend } from '../utils/sendFeePolicy'
 import { assertProvenUtxo, verifiedTransactionOutputs } from '../utils/utxoTransactionProof'
+import { isAlreadyAcceptedBroadcastError, isDeterministicBroadcastRejection } from '../utils/broadcastOutcome'
 
 /* ───── amount / utxo helpers ───── */
 
@@ -62,7 +63,7 @@ const toNativeUtxos = (utxos: Utxo[]) =>
   }))
 
 const outpointKey = (value: { txid: string; vout?: number; outputIndex?: number }) =>
-  `${value.txid}:${value.vout ?? value.outputIndex ?? 0}`
+  `${value.txid.toLowerCase()}:${value.vout ?? value.outputIndex ?? 0}`
 
 const filterExcludedUtxos = (
   utxos: FundingUtxo[],
@@ -104,17 +105,6 @@ const fetchFundingUtxos = async (
     if (!byOutpoint.has(key)) byOutpoint.set(key, row)
   }
   return filterExcludedUtxos(Array.from(byOutpoint.values()), options.excludeOutpoints)
-}
-
-const isAlreadyAcceptedBroadcastError = (error: unknown) =>
-  error instanceof Error
-  && /already in block chain|already known|already have transaction|already in (?:the )?mempool|txn-already-known/i.test(error.message)
-
-const isDeterministicBroadcastRejection = (error: unknown) => {
-  if (!(error instanceof Error)) return false
-  const status = Number((error as Error & { status?: number }).status)
-  if (Number.isFinite(status) && status >= 400 && status < 500 && status !== 408) return true
-  return /bad-txns-inputs-missingorspent|missing.?or.?spent|txn-mempool-conflict|min relay fee not met|mempool full|mempool-script-verify-flag-failed|mandatory-script-verify|non-mandatory-script-verify|bad-txns|insufficient fee|dust/i.test(error.message)
 }
 
 export class UtxoBroadcastError extends Error {

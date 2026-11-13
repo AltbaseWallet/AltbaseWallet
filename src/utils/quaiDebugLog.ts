@@ -21,7 +21,7 @@ const normalizeForLog = (value: unknown, key = '', depth = 0, seen = new WeakSet
   if (typeof value === 'string') {
     return value.length > MAX_STRING_CHARS ? `${value.slice(0, MAX_STRING_CHARS)}...[truncated]` : value
   }
-  if (value instanceof Error) return { message: value.message }
+  if (value instanceof Error) return { type: 'Error', detail: '[redacted]' }
   if (value instanceof Date) return value.toISOString()
   if (typeof value !== 'object') return String(value)
   if (depth >= 5) return '[depth-limited]'
@@ -98,7 +98,8 @@ export const coinDebugLog = (coin: string, event: string, fields: DebugFields = 
 export const coinDebugLogError = (coin: string, event: string, error: unknown, fields: DebugFields = {}) => {
   coinDebugLog(coin, event, {
     ...fields,
-    error: error instanceof Error ? error.message : String(error),
+    // Upstream exception text can embed a private key or recovery input.
+    error: error instanceof Error ? error : { type: 'UnknownError' },
   })
 }
 

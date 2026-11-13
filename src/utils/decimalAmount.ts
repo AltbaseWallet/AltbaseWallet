@@ -1,16 +1,21 @@
 const DEFAULT_DECIMALS = 8
 
-const cleanDecimal = (value: string) => value.replace(/[^0-9.]/g, '')
-
 export const toBaseUnits = (value: string | number, decimals = DEFAULT_DECIMALS): bigint => {
-  const text = cleanDecimal(String(value ?? '').trim())
+  if (!Number.isInteger(decimals) || decimals < 0 || decimals > 18) throw new Error('Invalid amount precision')
+  const text = String(value ?? '').trim()
   if (!text) return 0n
-
-  const [whole = '0', fraction = ''] = text.split('.')
-  const padded = (fraction + '0'.repeat(decimals)).slice(0, decimals)
-  const safeWhole = whole.length === 0 ? '0' : whole
-
-  return BigInt(safeWhole) * 10n ** BigInt(decimals) + BigInt(padded || '0')
+  if (text.length > 256) throw new Error('Invalid decimal amount')
+  const match = /^([+-]?)(\d+(?:\.\d*)?|\.\d+)(?:[eE]([+-]?\d+))?$/.exec(text)
+  if (!match) throw new Error('Invalid decimal amount')
+  const exponent = Number(match[3] || 0)
+  if (!Number.isSafeInteger(exponent) || Math.abs(exponent) > 256) throw new Error('Invalid decimal exponent')
+  const [whole, fraction = ''] = match[2].split('.')
+  const digits = BigInt((whole || '0') + fraction)
+  const shift = decimals + exponent - fraction.length
+  // Retain truncation toward zero for sub-atomic display arithmetic. Send
+  // validation separately rejects amounts with non-zero sub-atomic digits.
+  const units = shift >= 0 ? digits * 10n ** BigInt(shift) : digits / 10n ** BigInt(-shift)
+  return match[1] === '-' ? -units : units
 }
 
 export const fromBaseUnits = (units: bigint, decimals = DEFAULT_DECIMALS): string => {

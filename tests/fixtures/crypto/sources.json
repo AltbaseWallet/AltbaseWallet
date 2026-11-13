@@ -1,0 +1,43 @@
+[
+  {
+    "source": "https://raw.githubusercontent.com/bitcoinjs/tiny-secp256k1/1ab2fee6048ca01b2c2954698a17e40a8e868392/tests/fixtures/ecdsa.json",
+    "sourceSha256": "b830aa30d0ab3b6c51440caffac9206b24ae5450a387a2db73789f5ce795595d",
+    "fixture": "ecdsa.json",
+    "fixtureSha256": "b830aa30d0ab3b6c51440caffac9206b24ae5450a387a2db73789f5ce795595d",
+    "transformation": "BitcoinJS ECDSA JSON copied verbatim"
+  },
+  {
+    "source": "https://raw.githubusercontent.com/bitcoin/bips/e8987d3e76d4501a0a5e6fd6c33c60b46c36479e/bip-0032.mediawiki",
+    "sourceSha256": "e5e00a8289db2f681052cf24a745320afc225e66b25d1e489a7c884d2fc7f11f",
+    "fixture": "bip32.json",
+    "fixtureSha256": "03aa9043bb4555ea88710c13a87b58d0b1f74c2585ebf483c0f79176bf6ac38e",
+    "transformation": "BIP32 vectors 1-4: seed hex and all 17 chain xprv/xpub pairs"
+  },
+  {
+    "source": "https://raw.githubusercontent.com/bitcoin-cash-node/bitcoin-cash-node/b31ed10b4aa4ea54c0a20ed3e536cca05759887c/src/secp256k1/src/modules/schnorr/tests_impl.h",
+    "sourceSha256": "b8a14d1778d0417e58fce2ca8092f9b289a4ccef93ce2b256c92ad5f17540f57",
+    "fixture": "bch-schnorr.json",
+    "fixtureSha256": "b3a9bcd03657aa3c58e1b57512ea609d6652b9df45cb7f3ed42d91e007307195",
+    "transformation": "12 verification blocks: pkbuf, msg, sig arrays; expected return value"
+  },
+  {
+    "source": "https://gitlab.com/api/v4/projects/nexa%2Flibnexa-ts/repository/files/tests%2Fcrypto%2Fschnorr.test.ts/raw?ref=8f416fa43c9352b6b6e7bb0cc55d8175d104938b",
+    "sourceSha256": "f3010e9f7a97baf42bb47078fe8f13e3425f4c7a170d6916f2e7b2941b4a96e1",
+    "fixture": "nexa-padding.json",
+    "fixtureSha256": "fc4b7d86f5bfdb05742ef36a3fbf29367b73d4f93bca5c7548d093caf4e0e477",
+    "transformation": "Sign Schnorr padding test: public scalar, message, expected signature"
+  },
+  {
+    "source": "https://www.rfc-editor.org/rfc/rfc6979.txt",
+    "sourceSha256": "456e8f17558fdbd206f968b96fc6f1b4a71ea331ab30ad17f711ab3adaa7d701",
+    "fixture": "rfc6979-nist.json",
+    "fixtureSha256": "aed7c7c333b2ca606a45c363e372912a2dddc366a9c5a14c1bb4d66e37ffb629",
+    "transformation": "Appendices A.2.3-A.2.7: 50 signatures across five NIST prime curves and five hashes"
+  },
+  {
+    "source": "https://github.com/indutny/elliptic/issues/321",
+    "fixture": "elliptic-issue-321.json",
+    "fixtureSha256": "0910277e6339287ff682cf712a1610f5a4948fee387b493971b7c6adcf87a91b",
+    "transformation": "Published public key, message, invalid DER signature; expected verification false. No private key."
+  }
+]

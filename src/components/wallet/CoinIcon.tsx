@@ -1,77 +1,5 @@
-import bitcoincashLogo from '../../assets/coins/bitcoincash.svg'
-import digibyteLogo from '../../assets/coins/digibyte.svg'
-import peercoinLogo from '../../assets/coins/peercoin.svg'
-import zcashLogo from '../../assets/coins/zcash.svg'
-import mwcLogo from '../../assets/coins/mwc.svg'
-import xelisLogo from '../../assets/coins/xelis.svg'
-import nexaLogo from '../../assets/coins/nexa.svg'
 import { clsx } from 'clsx'
-
-// Static asset imports — Vite hashes & inlines these into the bundle.
-import bitcoinLogo from '../../assets/coins/bitcoin.png'
-import bitcoinIILogo from '../../assets/coins/bitcoinII.png'
-import bch2Logo from '../../assets/coins/bch2.png'
-import btgsLogo from '../../assets/coins/btgs.png'
-import firoLogo from '../../assets/coins/firo.png'
-import capStashLogo from '../../assets/coins/CapStash.png'
-import hypercoinLogo from '../../assets/coins/hypercoin.png'
-import mydogecoinLogo from '../../assets/coins/mydogecoin.png'
-import pepecoinLogo from '../../assets/coins/pepecoin.png'
-import kerriganLogo from '../../assets/coins/kerrigan.png'
-import scashLogo from '../../assets/coins/scash.png'
-import litecoinIILogo from '../../assets/coins/litecoinii.png'
-import moneroLogo from '../../assets/coins/monero.png'
-import neoxaLogo from '../../assets/coins/neoxa.png'
-import terracoinLogo from '../../assets/coins/terracoin.png'
-import junkcoinLogo from '../../assets/coins/junkcoin.png'
-import raptoreumLogo from '../../assets/coins/raptoreum.png'
-import zanoLogo from '../../assets/coins/zano.png'
-import epicLogo from '../../assets/coins/epiccash.png'
-import quaiLogo from '../../assets/coins/quai.png'
-import xgrLogo from '../../assets/coins/xgr.png'
-import pearlLogo from '../../assets/coins/prl.png'
-import qubicLogo from '../../assets/coins/qubic.png'
-import kaspaLogo from '../../assets/coins/kaspa.png'
-import nonsenseLogo from '../../assets/coins/nonsense.png'
-import ckbLogo from '../../assets/coins/ckb.svg'
-
-/** Map ticker → bundled PNG. Lookup is case-insensitive. */
-const LOGO_MAP: Record<string, string> = {
-  BCH: bitcoincashLogo,
-  DGB: digibyteLogo,
-  PPC: peercoinLogo,
-  ZEC: zcashLogo,
-  MWC: mwcLogo,
-  XEL: xelisLogo,
-  NEXA: nexaLogo,
-
-  BTC:   bitcoinLogo,
-  BC2:   bitcoinIILogo,
-  BCH2:  bch2Logo,
-  BTGS:  btgsLogo,
-  FIRO:  firoLogo,
-  CAPS:  capStashLogo,
-  HRC:   hypercoinLogo,
-  MYDOGE: mydogecoinLogo,
-  PEPE:  pepecoinLogo,
-  KER:   kerriganLogo,
-  SCASH: scashLogo,
-  LC2:   litecoinIILogo,
-  XMR:   moneroLogo,
-  NEOX:  neoxaLogo,
-  TRC:   terracoinLogo,
-  JKC:   junkcoinLogo,
-  RTM:   raptoreumLogo,
-  ZANO:  zanoLogo,
-  EPIC:  epicLogo,
-  QUAI:  quaiLogo,
-  XGR:   xgrLogo,
-  PRL:   pearlLogo,
-  QUBIC: qubicLogo,
-  KAS:   kaspaLogo,
-  NNN:   nonsenseLogo,
-  CKB:   ckbLogo,
-}
+import { coinModuleRegistry } from '../../coin-modules'
 
 /** Fallback gradients for tickers that don't have a bundled PNG (e.g. BMC). */
 const FALLBACK_GRADIENTS: Record<string, string> = {
@@ -86,9 +14,9 @@ const FALLBACK_GRADIENTS: Record<string, string> = {
   ECHO: 'from-pink-300 to-orange-400',
 }
 
-export function CoinIcon({ ticker, className }: { ticker: string; className?: string }) {
+export function CoinIcon({ ticker, coinId, className }: { ticker: string; coinId?: string; className?: string }) {
   const normalizedTicker = ticker.toUpperCase()
-  const logo = LOGO_MAP[normalizedTicker]
+  const logo = (coinId ? coinModuleRegistry.get(coinId) : coinModuleRegistry.all().find(m => m.coin.ticker === normalizedTicker))?.coin.iconUrl
   if (logo) {
     return (
       <span className={clsx('grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-white/5', className)}>

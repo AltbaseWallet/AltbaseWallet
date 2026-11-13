@@ -41,6 +41,7 @@ export default function Dashboard() {
   }, [allHistoryLoaded, transactions.length, historyPage])
 
   const refreshAll = () => {
+    void useCoinStore.getState().refreshPrices()
     setRefreshTapped(true)
     window.setTimeout(() => setRefreshTapped(false), 800)
     setHistoryPage(1)

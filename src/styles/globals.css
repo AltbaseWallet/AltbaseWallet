@@ -285,3 +285,19 @@ select option {
   color: #0f172a !important;
   box-shadow: 0 24px 70px rgba(15, 23, 42, 0.18) !important;
 }
+
+/* Delisting notice: each duplicate occupies half the track for a seamless loop. */
+.delisting-marquee { overflow: hidden; }
+.delisting-track {
+  display: flex;
+  width: max-content;
+  animation: delisting-scroll 40s linear infinite;
+}
+.delisting-copy { flex: none; padding-right: 3rem; white-space: nowrap; }
+@keyframes delisting-scroll { to { transform: translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) {
+  .delisting-track { animation: none; display: block; width: auto; }
+  .delisting-copy { padding-right: 0; white-space: normal; }
+  .delisting-copy + .delisting-copy { display: none; }
+  [data-testid="delisting-pause"] { display: none; }
+}

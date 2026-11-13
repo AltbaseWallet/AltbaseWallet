@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "abiVersion": 1,
+  "id": "fixture-javascript",
+  "name": "JavaScript Fixture Coin",
+  "ticker": "JSTEST",
+  "version": "1.0.0",
+  "kind": "account",
+  "networkId": "local-fixture",
+  "decimals": 8,
+  "testOnly": true,
+  "capabilities": ["derive", "validate", "snapshot", "nodeRequest", "estimateFee", "estimateMax", "send"],
+  "runtime": { "type": "javascript", "entry": "index.cjs" }
+}

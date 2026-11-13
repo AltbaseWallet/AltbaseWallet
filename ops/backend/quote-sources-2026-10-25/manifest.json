@@ -1,0 +1,29 @@
+{
+  "at": "2026-10-25T18:16:32.680784+00:00",
+  "changes": {
+    "212.43.147.158": {
+      "patch": "primary.patch",
+      "beforeSha256": "e5af762d5ab6ff92b8b3e50f711a516a63fbc905a435431f9eae04eec74e65bd",
+      "afterSha256": "98dca4aeea7c62da39f5eea5d32543e63be8daa0995e68b04181b21b1e6856b8"
+    },
+    "188.137.235.140": {
+      "patch": "node2.patch",
+      "beforeSha256": "470ea8b8c9842de10377519aebc7286027d407eaca233724cb1b16f0288677e3",
+      "afterSha256": "afaf7c39da47bd846bd923e70116c25bd07c939ae9c5a24ec2509372511240a5"
+    }
+  },
+  "deployments": {
+    "212.43.147.158": {
+      "at": "2026-10-25T18:14:23.702188+00:00",
+      "path": "/opt/altbase-api/lib/priceFeed.cjs",
+      "backup": "/opt/altbase-api/audit-backup-20261025-quote-sources/lib/priceFeed.cjs",
+      "sha256": "98dca4aeea7c62da39f5eea5d32543e63be8daa0995e68b04181b21b1e6856b8"
+    },
+    "188.137.235.140": {
+      "at": "2026-10-25T18:14:15.225703+00:00",
+      "path": "/opt/altbase-api-node2/lib/priceFeed.cjs",
+      "backup": "/opt/altbase-api-node2/audit-backup-20261025-quote-sources/lib/priceFeed.cjs",
+      "sha256": "afaf7c39da47bd846bd923e70116c25bd07c939ae9c5a24ec2509372511240a5"
+    }
+  }
+}

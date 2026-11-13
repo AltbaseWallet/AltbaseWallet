@@ -29,16 +29,24 @@ import { normalizeQubicTransaction } from '../utils/qubicTransactionStatus'
 import { isWalletAddressVariant } from '../utils/walletAddressOwnership'
 import { walletEngineRegistry } from '../wallet-engines/registry'
 import { fromBaseUnits, toBaseUnits } from '../utils/decimalAmount'
+import { pluginReadiness } from '../services/pluginReadiness'
 import { shouldRefreshUtxoBalanceBeforeHistoryCommit } from '../utils/utxoBalanceSyncProfile'
+import { BroadcastError } from '../utils/broadcastOutcome'
+import { canUseUnreservedUtxos } from '../utils/utxoReservations'
 
 type SendWithMnemonic = SendPayload & { mnemonic: string }
 
-const usesDedicatedRemoteWalletEngine = (coin: Coin) =>
-  coin.walletEngine === 'xgr-account'
+const usesDedicatedWalletEngine = (coin: Coin) =>
+  coin.walletEngine === 'plugin'
+  || coin.walletEngine === 'xgr-account'
   || coin.walletEngine === 'qubic-account'
   || coin.walletEngine === 'kaspa-utxo'
   || coin.walletEngine === 'nonsense-utxo'
   || coin.walletEngine === 'ckb-cell'
+  || coin.walletEngine === 'xelis-local'
+  || coin.walletEngine === 'mwc-local'
+  || coin.walletEngine === 'zcash-utxo'
+  || coin.walletEngine === 'nexa-utxo'
 
 type LoadTransactionsResult = {
   pageLoaded: boolean
@@ -734,12 +742,18 @@ const isDroppedLocalPending = (tx: Transaction, coin: Awaited<ReturnType<typeof 
   return now - createdAtMs >= graceMs
 }
 
-const pendingOutgoingBlocksSend = (
+export const pendingOutgoingBlocksSend = (
   tx: Transaction,
   coin: Awaited<ReturnType<typeof coinService.getCoins>>[number] | undefined,
   now = Date.now(),
 ) => {
   if (tx.type !== 'outgoing' || tx.status !== 'pending') return false
+  // The generic UTXO send path excludes these exact reserved inputs when
+  // selecting coins. Other proven outputs can still fund another transaction.
+  // Account engines and pending rows with unknown inputs retain their guard.
+  if (coin && canUseUnreservedUtxos(tx, walletEngineRegistry.get(coin).id)) {
+    return false
+  }
   if (walletEngineRegistry.isPrivacy(coin) && !tx.balanceBefore && !tx.expectedBalanceAfter) return false
   const createdAtMs = Date.parse(tx.createdAt)
   if (!Number.isFinite(createdAtMs)) return true
@@ -764,7 +778,7 @@ const markDroppedLocalPending = (tx: Transaction): Transaction => ({
   confirmations: 0,
 })
 
-const activeSpentOutpointsForCoin = (coinId: string, transactions: Transaction[]) => {
+export const activeSpentOutpointsForCoin = (coinId: string, transactions: Transaction[]) => {
   const now = Date.now()
   const byOutpoint = new Map<string, { txid: string; vout: number }>()
   for (const tx of transactions) {
@@ -774,7 +788,7 @@ const activeSpentOutpointsForCoin = (coinId: string, transactions: Transaction[]
     if (Number.isFinite(createdAtMs) && now - createdAtMs >= lockMs) continue
     for (const outpoint of tx.spentOutpoints ?? []) {
       if (!outpoint.txid || !Number.isInteger(outpoint.vout) || outpoint.vout < 0) continue
-      byOutpoint.set(`${outpoint.txid}:${outpoint.vout}`, { txid: outpoint.txid, vout: outpoint.vout })
+      byOutpoint.set(`${outpoint.txid.toLowerCase()}:${outpoint.vout}`, { txid: outpoint.txid.toLowerCase(), vout: outpoint.vout })
     }
   }
   return Array.from(byOutpoint.values())
@@ -1912,6 +1926,11 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
 
   sendTransaction: async (payload) => {
     if (sendInFlight) throw new Error('A previous send is still in progress')
+    // Acquire before the first await: two callers can otherwise both pass.
+    sendInFlight = true
+    set({ sending: true })
+    try {
+    const sessionRevision = walletService.getSessionRevision()
     // Privacy engines enforce spendability themselves. Keep only the short
     // local propagation guard so stale cached history cannot lock the wallet.
     const lockCoin = await coinService.getCoinById(payload.coinId)
@@ -1926,14 +1945,21 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
       throw new Error(`Please wait ${seconds}s before sending again (previous transaction is still propagating)`)
     }
 
-    sendInFlight = true
-    set({ sending: true })
-
-    try {
       const { coinId, to, amount, mnemonic } = payload
+      const assertCurrentSendWallet = () => {
+        if (walletService.getSessionRevision() !== sessionRevision || walletService.getSessionMnemonic() !== mnemonic) {
+          throw new Error('Wallet session changed; inspect transaction status before any further send')
+        }
+      }
       let balanceBeforeSend = useCoinStore.getState().coins.find((coin) => coin.id === coinId)?.balance
 
       const coinMeta = (await coinService.getCoinById(coinId)) ?? null
+      if (walletService.getSessionRevision() !== sessionRevision) throw new Error('Wallet session changed')
+      if (coinMeta?.walletEngine === 'plugin') {
+        if (walletService.getSessionMnemonic() !== mnemonic || pluginReadiness.get(coinId) !== 'ready') {
+          throw new Error('Coin module balance or wallet session is not ready')
+        }
+      }
       const savedBalanceBeforeSend = coinMeta?.balance
       if (
         (!balanceBeforeSend || Number.parseFloat(balanceBeforeSend) <= 0)
@@ -2025,7 +2051,7 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
         const fromAddress = walletService.getWalletAddresses()[coinId]
         const actualAmount = result.amount || amount
         const actualFee = result.fee ?? payload.fee
-        const internal = Boolean(fromAddress && to && to.trim().toLowerCase() === fromAddress.trim().toLowerCase())
+        const internal = Boolean(fromAddress && to && to.trim() === fromAddress.trim())
         let expectedBalanceAfter: string | undefined
         if (balanceBeforeSend) {
           const decimals = decimalsForSatsPerCoin(coinMeta.satsPerCoin ?? 100_000_000)
@@ -2130,6 +2156,7 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
             fallbackBalanceBeforeSend: balanceBeforeSend,
           })
         }
+        assertCurrentSendWallet()
         quaiDebugLog('send.quai.start', {
           from: fromAddress,
           to,
@@ -2185,6 +2212,7 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
           maxFeeCoin: payload.maxFee,
               sendMax: payload.sendMax,
               onPrepared: async (prepared) => {
+                assertCurrentSendWallet()
                 const tx: Transaction = {
                   id: `${coinId}-${prepared.txid}`,
                   coinId,
@@ -2205,7 +2233,7 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
                   tx: summarizeTxForDebug(tx),
                 })
                 if (provisionalTx) {
-                  useCoinStore.getState().releaseOutgoingReservation(provisionalTx.txHash)
+                  useCoinStore.getState().releaseOutgoingReservation(provisionalTx.coinId, provisionalTx.txHash)
                   provisionalTx = null
                 }
                 const nextTransactions = dedupeTransactions([tx, ...get().transactions])
@@ -2214,6 +2242,7 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
                 preparedBalanceApplied = await useCoinStore.getState().applyTransactionBalanceDelta(tx, {
                   forceOutgoingExpectedBalance,
                 })
+                assertCurrentSendWallet()
                 quaiDebugLog('send.quai.preparedBalanceApplied', {
                   tx: summarizeTxForDebug(tx),
                   applied: preparedBalanceApplied,
@@ -2224,17 +2253,26 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
               },
             })
           } catch (error) {
+            assertCurrentSendWallet()
+            const uncertainPrepared = preparedTx as Transaction | null
+            if (uncertainPrepared && error instanceof BroadcastError && error.uncertain) {
+              const uncertainTx = { ...uncertainPrepared, broadcastUncertain: true }
+              const next = dedupeTransactions([uncertainTx, ...get().transactions])
+              saveStoredTransactions(next)
+              set({ transactions: next, lastSentAt: Date.now() })
+              throw new Error(`Broadcast status is uncertain. The wallet will monitor transaction ${uncertainTx.txHash} before allowing another send.`, { cause: error })
+            }
             quaiDebugLogError('send.quai.error', error, {
               preparedTx: preparedTx ? summarizeTxForDebug(preparedTx) : null,
               preparedBalanceApplied,
             })
             if (provisionalTx) {
-              useCoinStore.getState().releaseOutgoingReservation(provisionalTx.txHash)
+              useCoinStore.getState().releaseOutgoingReservation(provisionalTx.coinId, provisionalTx.txHash)
               provisionalTx = null
             }
             const failedPreparedTx = preparedTx as Transaction | null
             if (failedPreparedTx) {
-              useCoinStore.getState().releaseOutgoingReservation(failedPreparedTx.txHash)
+              useCoinStore.getState().releaseOutgoingReservation(failedPreparedTx.coinId, failedPreparedTx.txHash)
               const rollbackTransactions = get().transactions.filter((item) => txKey(item) !== txKey(failedPreparedTx))
               set({ transactions: rollbackTransactions })
               saveStoredTransactions(rollbackTransactions)
@@ -2252,6 +2290,7 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
             throw error
           }
         })()
+        assertCurrentSendWallet()
         if (!result.txid) throw new Error('Quai wallet engine did not return a transaction id')
         const preparedTransaction = (preparedTx ?? null) as Transaction | null
         const sentAmount = result.amountCoin ?? preparedTransaction?.amount ?? amount
@@ -2303,25 +2342,67 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
         return tx
       }
 
-      if (coinMeta && usesDedicatedRemoteWalletEngine(coinMeta)) {
+      if (coinMeta && usesDedicatedWalletEngine(coinMeta)) {
         const fromAddress = walletService.getWalletAddresses()[coinId]
         if (!fromAddress) throw new Error(`Address for ${coinId} not derived yet - reopen the wallet`)
-        const result = await walletEngineRegistry.get(coinMeta).send({
-          coin: coinMeta,
-          mnemonic,
-          fromAddress,
-          toAddress: to,
-          amountCoin: amount,
-          feeCoin: payload.fee,
-          maxFeeCoin: payload.maxFee,
-          sendMax: payload.sendMax,
-          memo: payload.comment,
-        })
+        const internal = ['xgr-account', 'qubic-account'].includes(coinMeta.walletEngine ?? '')
+          ? fromAddress.trim().toLowerCase() === to.trim().toLowerCase()
+          : fromAddress.trim() === to.trim()
+        let checkpoint: Transaction | null = null
+        const onPrepared = async (prepared: { txid: string; amountCoin?: string; feeCoin?: string }) => {
+          assertCurrentSendWallet()
+          const tx: Transaction = {
+            id: `${coinId}-${prepared.txid}`, coinId, type: 'outgoing', status: 'pending',
+            txHash: prepared.txid, amount: prepared.amountCoin ?? amount, fee: prepared.feeCoin ?? '0',
+            from: fromAddress, to, internal, createdAt: new Date().toISOString(),
+            confirmations: 0, balanceBefore: balanceBeforeSend,
+          }
+          const next = dedupeTransactions([tx, ...get().transactions])
+          saveStoredTransactions(next)
+          checkpoint = tx
+          set({ transactions: next })
+        }
+        const result = await (async () => {
+          try {
+            return await walletEngineRegistry.get(coinMeta).send({
+              coin: coinMeta,
+              mnemonic,
+              fromAddress,
+              toAddress: to,
+              amountCoin: amount,
+              feeCoin: payload.fee,
+              maxFeeCoin: payload.maxFee,
+              sendMax: payload.sendMax,
+              memo: payload.comment,
+              ...(['qubic-account', 'xgr-account', 'ckb-cell', 'zcash-utxo', 'nexa-utxo', 'xelis-local'].includes(coinMeta.walletEngine ?? '') ? { onPrepared } : {}),
+            })
+          } catch (error) {
+            assertCurrentSendWallet()
+            const prepared = checkpoint as Transaction | null
+            if (prepared && error instanceof BroadcastError && error.uncertain) {
+              const uncertainTx = { ...prepared, broadcastUncertain: true }
+              const next = dedupeTransactions([uncertainTx, ...get().transactions])
+              saveStoredTransactions(next)
+              set({ transactions: next, lastSentAt: Date.now() })
+              await useCoinStore.getState().applyTransactionBalanceDelta(uncertainTx)
+              throw new Error(`Broadcast status is uncertain. The wallet will monitor transaction ${prepared.txHash} before allowing another send.`, { cause: error })
+            }
+            if (prepared) {
+              const next = get().transactions.filter(tx => txKey(tx) !== txKey(prepared))
+              saveStoredTransactions(next); set({ transactions: next })
+            }
+            throw error
+          }
+        })()
         if (!result.txid) throw new Error(`${coinMeta.name} wallet engine did not return a transaction id`)
+        // A completed broadcast belongs to the initiating wallet. Never add it
+        // to a profile selected while the module was responding.
+        if (walletService.getSessionRevision() !== sessionRevision || walletService.getSessionMnemonic() !== mnemonic) {
+          throw new Error('Wallet session changed; inspect transaction status before any further send')
+        }
 
         const actualAmount = result.amountCoin ?? amount
         const actualFee = result.feeCoin ?? payload.fee ?? '0'
-        const internal = fromAddress.trim().toLowerCase() === to.trim().toLowerCase()
         let expectedBalanceAfter: string | undefined
         if (balanceBeforeSend) {
           const decimals = decimalsForSatsPerCoin(coinMeta.satsPerCoin ?? 100_000_000)
@@ -2428,7 +2509,7 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
         }
 
         if (pendingPrepared) {
-          useCoinStore.getState().releaseOutgoingReservation(pendingPrepared.txHash)
+          useCoinStore.getState().releaseOutgoingReservation(pendingPrepared.coinId, pendingPrepared.txHash)
           const rollbackTransactions = get().transactions.filter((item) => txKey(item) !== txKey(pendingPrepared))
           set({ transactions: rollbackTransactions })
           saveStoredTransactions(rollbackTransactions)

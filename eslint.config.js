@@ -9,13 +9,20 @@ export default defineConfig([
   globalIgnores([
     'dist',
     'release',
+    'artifacts',
+    'local-checks',
+    'native-core-stage',
+    // Generated dependency bundles are checked through their runtime sources.
+    'electron/coin-sdks/**',
     'native-core',
     'build-logs',
     'native/**/build/**',
     'native/**/target/**',
     'native/kaspa_wallet_wasm/generated/**',
     'native/vendor/**',
-    'vendor/kaspa-wasm-v2.0.1/**',
+    // Upstream/vendored dependencies are verified by provenance and compatibility
+    // tests rather than applying application style rules to their source/types.
+    'vendor/**',
   ]),
   {
     files: ['**/*.{ts,tsx}'],
@@ -30,7 +37,7 @@ export default defineConfig([
     },
   },
   {
-    files: ['electron/**/*.cjs', 'scripts/**/*.cjs'],
+    files: ['electron/**/*.cjs', 'scripts/**/*.cjs', 'modules/account-common/**/*.cjs', 'modules/evm/**/*.cjs', 'modules/sol/**/*.cjs', 'modules/trx/**/*.cjs'],
     extends: [js.configs.recommended],
     languageOptions: {
       ecmaVersion: 'latest',

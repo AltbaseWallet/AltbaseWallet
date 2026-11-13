@@ -1,90 +1,29 @@
-import xelis from './xelis'
-import mwc from './mwc'
-import nexa from './nexa'
-import zcash from './zcash'
-import bitcoincash from './bitcoincash'
-import digibyte from './digibyte'
-import peercoin from './peercoin'
-import bitcoin from './bitcoin'
-import bitcoin2 from './bitcoin2'
-import bitcoincashii from './bitcoincashii'
-import btgs from './btgs'
-import capstash from './capstash'
-import ckb from './ckb'
-import epic from './epic'
-import firo from './firo'
-import hypercoin from './hypercoin'
-import junkcoin from './junkcoin'
-import kaspa from './kaspa'
-import kerrigan from './kerrigan'
-import litecoinii from './litecoinii'
-import monero from './monero'
-import mydogecoin from './mydogecoin'
-import neoxa from './neoxa'
-import nonsense from './nonsense'
-import pearl from './pearl'
-import pepecoin from './pepecoin'
-import quai from './quai'
-import xgr from './xgr'
-import qubic from './qubic'
-import raptoreum from './raptoreum'
-import scash from './scash'
-import terracoin from './terracoin'
-import zano from './zano'
 import type { CoinModule } from './types'
+import type { PluginCatalog, PluginDescriptor } from '../services/pluginService'
+import { isListedCoin } from '../utils/coinListings'
 
-export const coinModules: readonly CoinModule[] = [
-  bitcoin,
-  xelis,
-  mwc,
-  nexa,
-  zcash,
-  bitcoincash,
-  digibyte,
-  peercoin,
-  bitcoin2,
-  bitcoincashii,
-  firo,
-  btgs,
-  capstash,
-  hypercoin,
-  mydogecoin,
-  pepecoin,
-  kerrigan,
-  scash,
-  litecoinii,
-  monero,
-  neoxa,
-  nonsense,
-  terracoin,
-  junkcoin,
-  raptoreum,
-  zano,
-  epic,
-  quai,
-  xgr,
-  pearl,
-  qubic,
-  kaspa,
-  ckb,
-]
-
-const modulesById = new Map(coinModules.map((module) => [module.id, module]))
-
+// Populated before React starts. No coin list is compiled into this registry.
+export const coinModules: CoinModule[] = []
+const modulesById = new Map<string, CoinModule>()
+const pluginsById = new Map<string, PluginDescriptor>()
+export function installPluginCatalog(catalog: PluginCatalog) {
+  const listed = { ...catalog, modules: catalog.modules.filter(item => isListedCoin(item.id) && isListedCoin(item.coin.id)) }
+  const next = listed.modules.map(item => ({ id: item.id, nativeRoute: item.nativeRoute, coin: { ...item.coin } }))
+  coinModules.splice(0, coinModules.length, ...next)
+  modulesById.clear(); pluginsById.clear()
+  for (const module of next) modulesById.set(module.id, module)
+  for (const descriptor of listed.modules) pluginsById.set(descriptor.id, descriptor)
+  return listed
+}
 export const coinModuleRegistry = {
-  get(coinId: string) {
-    return modulesById.get(coinId)
-  },
-
+  get: (coinId: string) => modulesById.get(coinId),
   require(coinId: string) {
     const module = modulesById.get(coinId)
-    if (!module) throw new Error(`Unsupported coin module: ${coinId}`)
+    if (!module) throw new Error(`Coin module is not installed: ${coinId}`)
     return module
   },
-
-  all() {
-    return [...coinModules]
-  },
+  all: () => [...coinModules],
+  descriptor: (coinId: string) => pluginsById.get(coinId),
+  isPlugin: (coinId: string) => pluginsById.get(coinId)?.runtimeType === 'plugin',
 }
-
 export type { CoinModule, NativeCoinRoute } from './types'

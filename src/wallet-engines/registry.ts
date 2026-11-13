@@ -1,3 +1,4 @@
+import { pluginEngine } from './plugin/pluginEngine'
 import xelisEngine from '../../modules/xelis/frontend/engine'
 import mwcEngine from '../../modules/mwc/frontend/engine'
 import zcashEngine from '../../modules/zcash/frontend/engine'
@@ -16,6 +17,7 @@ import { kaspaEngine } from './utxo/kaspaEngine'
 import { nonsenseEngine } from './utxo/nonsenseEngine'
 
 const engineForCoin = (coin?: Pick<Coin, 'walletEngine'> | null): WalletEngine => {
+  if (coin?.walletEngine === 'plugin') return pluginEngine
   if (coin?.walletEngine === 'xelis-local') return xelisEngine
   if (coin?.walletEngine === 'mwc-local') return mwcEngine
   if (coin?.walletEngine === 'zcash-utxo') return zcashEngine

@@ -19,6 +19,7 @@ import { useT } from '../../utils/i18n'
 import { hasLoadedHistoryPage } from '../../utils/historyPagination'
 import { isPrivacyCoin } from '../../utils/privacyCoins'
 import { usePrivacyBalanceDisplay } from '../../hooks/usePrivacyBalanceDisplay'
+import { AccountTokensDisclosure } from '../../components/wallet/AccountAssets'
 
 export default function CoinDetails() {
   const t = useT()
@@ -165,7 +166,7 @@ export default function CoinDetails() {
       <Card>
         <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
           <div className="flex items-center gap-4">
-            <CoinIcon ticker={coin.ticker} className="h-14 w-14 text-sm" />
+            <CoinIcon coinId={coin.id} ticker={coin.ticker} className="h-14 w-14 text-sm" />
             <div>
               <h1 className="text-2xl font-bold text-white">{coin.name}</h1>
               <p className="text-slate-500">
@@ -238,6 +239,7 @@ export default function CoinDetails() {
           <QRCodeBox value={effectiveAddress} />
         </div>
       </Card>
+      <AccountTokensDisclosure key={coin.id} coinId={coin.id} />
       <Card>
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-lg font-semibold text-white">{t('txHistory')}</h2>

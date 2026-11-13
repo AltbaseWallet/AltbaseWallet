@@ -4,19 +4,20 @@ import { useCoinStore } from '../../store/coinStore'
 import { useSettingsStore } from '../../store/settingsStore'
 import { formatUsd } from '../../utils/formatAmount'
 import { useT } from '../../utils/i18n'
+import { portfolioValuation } from '../../utils/portfolioValuation'
 
 export function Header() {
   const t = useT()
   const coins = useCoinStore((state) => state.coins)
   const { settings, updateSettings } = useSettingsStore()
-  const total = coins.filter((coin) => coin.enabled).reduce((sum, coin) => sum + (coin.fiatValue ?? 0), 0)
+  const { total, unpriced } = portfolioValuation(coins)
 
   return (
     <header className="z-20 shrink-0 border-b border-white/10 bg-ink/95 px-3 py-3 sm:px-4 lg:px-5 xl:px-6">
       <div className="flex min-w-0 items-center justify-between gap-2 sm:gap-4">
         <div className="min-w-0">
           <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{t('totalBalance')}</p>
-          <h1 className="truncate text-xl font-bold text-white sm:text-2xl">{settings.hideBalances ? '••••••' : formatUsd(total)}</h1>
+          <h1 className="truncate text-xl font-bold text-white sm:text-2xl">{settings.hideBalances ? '••••••' : unpriced && total === 0 ? '—' : formatUsd(total)}</h1>
         </div>
 
         <div className="flex shrink-0 items-center gap-1 sm:gap-3">

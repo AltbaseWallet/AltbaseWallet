@@ -8,6 +8,7 @@ import { useT } from '../../utils/i18n'
 export function AppUpdateNotice() {
   const t = useT()
   const [update, setUpdate] = useState<AppUpdateInfo | null>(null)
+  const [opening, setOpening] = useState(false)
 
   useEffect(() => {
     let mounted = true
@@ -25,11 +26,16 @@ export function AppUpdateNotice() {
     setUpdate(null)
   }
 
-  const download = () => {
-    if (!update) return
-    void window.altbaseWallet?.openExternal(update.downloadUrl)
-    if (!update.required) dismissUpdateForToday(update.latestVersion)
-    setUpdate(null)
+  const download = async () => {
+    if (!update || opening) return
+    setOpening(true)
+    try {
+      const result = await window.altbaseWallet?.openExternal(update.downloadUrl)
+      if (!result?.ok) return
+      if (!update.required) dismissUpdateForToday(update.latestVersion)
+      setUpdate(null)
+    } catch { /* Keep the notice available when the browser could not open. */ }
+    finally { setOpening(false) }
   }
 
   if (!update) return null
@@ -64,7 +70,7 @@ export function AppUpdateNotice() {
               {t('updateLater')}
             </Button>
           )}
-          <Button icon={<Download size={17} />} onClick={download}>
+          <Button icon={<Download size={17} />} disabled={opening} onClick={() => { void download() }}>
             {t('updateDownload')}
           </Button>
         </div>

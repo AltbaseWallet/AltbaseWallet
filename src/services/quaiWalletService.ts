@@ -9,6 +9,7 @@ import { atomicAmountToBigInt, coinApiService } from './coinApiService'
 import { quaiDebugLog } from '../utils/quaiDebugLog'
 import { isValidQuaiAddress } from '../utils/quaiAddress'
 import { assertApprovedSpend } from '../utils/sendFeePolicy'
+import { submitIdentifiedTransaction } from '../utils/broadcastOutcome'
 
 const QUAI_COIN_ID = 'quai'
 const WEI_PER_UI_BASE = 10_000_000_000n
@@ -301,9 +302,9 @@ export const quaiWalletService = {
     const amountCoin = floorQuaiText(valueWei, 8)
     const feeCoin = ceilQuaiText(feeWei, 8)
     await params.onPrepared?.({ txid, amountCoin, feeCoin })
-    const broadcastTxid = await coinApiService.broadcast(params.coinId, signedTx)
+    await submitIdentifiedTransaction(txid, () => coinApiService.broadcast(params.coinId, signedTx, txid))
     return {
-      txid: broadcastTxid || txid,
+      txid,
       amountCoin,
       feeCoin,
     }

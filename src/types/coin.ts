@@ -2,6 +2,7 @@ import type { CoinCryptoParams } from './crypto'
 
 export type CoinStatus = 'active' | 'syncing' | 'preparing' | 'recovering' | 'offline' | 'maintenance'
 export type CoinWalletEngine =
+  | 'plugin'
   | 'bitcoin-utxo'
   | 'pearl-utxo'
   | 'zcash-utxo'
@@ -52,6 +53,8 @@ export type Coin = {
   satsPerCoin?: number
   /** Latest USD price per coin (fetched from api.altbase.io price feed) */
   priceUsd?: number
+  /** Timestamp of the verified quote, in milliseconds since epoch. */
+  priceUpdatedAt?: number
   /** Non-Bitcoin chains use a local wallet engine instead of UTXO signing. */
   walletEngine?: CoinWalletEngine
   /** Server-side UTXO read strategy used to keep balance/history synchronized. */

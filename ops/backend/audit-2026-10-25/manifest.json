@@ -1,0 +1,30 @@
+{
+  "212.43.147.158": {
+    "gateway.cjs": {
+      "before": "bcc5c70d16103a6db14344194ed7672e7d6d53ce6e8d85358b59890692476752",
+      "after": "3c013b6da1f0e2bb50570ad2ebf998fa7c9297010c55defd5c2f22f8433bef20"
+    },
+    "lib/cache.cjs": {
+      "before": "1c34932681e99b7aff5d7ca8d74f23cf82c962ebc43cd280499242fadc920c62",
+      "after": "ec80bd7ae99c29a35d9f4d7badfc63cc8d9dfad4711bcd0f2cde9a8fb8d4b289"
+    },
+    "lib/priceFeed.cjs": {
+      "before": "588b9e18347e1c727ceacc648155d96fd0aa87546a2b1071350cc7ba49225f58",
+      "after": "e5af762d5ab6ff92b8b3e50f711a516a63fbc905a435431f9eae04eec74e65bd"
+    }
+  },
+  "188.137.235.140": {
+    "gateway.cjs": {
+      "before": "f2c3745fc65ee87c7d5bd5f9b1ebde29e4bc49012d98b5fb43214e7b958ca8c2",
+      "after": "de0f742bca66deae0041f6b3972adb5107caf6b2c486b4e3f2098408ce95419c"
+    },
+    "lib/cache.cjs": {
+      "before": "6663c16f0070ea26b13ea1cf5e48468434213c2a36bf1b86c00b63ca3f03ca95",
+      "after": "36973eb82c9fc71c03bbecdd4b02c9673629e110926ea7689262ae2df9a1ce85"
+    },
+    "lib/priceFeed.cjs": {
+      "before": "f60919c1ee5b0366f862b07054e8d6106019fe34b4cd6226c6159f0ec4e9af09",
+      "after": "470ea8b8c9842de10377519aebc7286027d407eaca233724cb1b16f0288677e3"
+    }
+  }
+}

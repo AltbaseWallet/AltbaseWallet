@@ -1,9 +1,11 @@
+import { normalizedTransactionHash } from '../services/transactionIdentity'
 import { isLocalWalletCoin } from '../services/localWalletSnapshot'
-﻿import { create } from 'zustand'
+import { create } from 'zustand'
 import type { Coin } from '../types/coin'
 import type { Transaction } from '../types/transaction'
 import { atomicAmountToBigInt, coinApiService, networkToStatus, type CoinBalance, type Utxo, type WalletSnapshotCoin, type WalletSnapshotResponse } from '../services/coinApiService'
 import { coinService } from '../services/coinService'
+import { marketPriceService } from '../services/marketPriceService'
 import { privacyWalletService, type NativePrivacyRecoveryProgress, type PrivacyCoin, type PrivacyWalletResponse } from '../services/privacyWalletService'
 import { privacyBirthService } from '../services/privacyBirthService'
 import { storageService } from '../services/storageService'
@@ -61,6 +63,7 @@ type CoinStore = {
   /** Last successful status/balance startup base load in this app session. */
   sendReadyLoadedAt: number
   loadNetworkStatuses: () => Promise<void>
+  refreshPrices: () => Promise<void>
   loadSendReadyState: (onProgress?: WalletLoadProgressHandler) => Promise<void>
   loadCoins: (options?: { forceBalances?: boolean; bootstrapBalances?: boolean; onlyCoinIds?: string[]; skipHistoryRefresh?: boolean; skipIncomingHistoryFetch?: boolean }) => Promise<void>
   refreshPrivacyBalances: () => Promise<void>
@@ -74,7 +77,7 @@ type CoinStore = {
   resetCoinsForCurrentWallet: () => Promise<void>
   rescanPrivacyCoin: (coinId: 'zano' | 'epic' | 'monero', fromHeight: number) => Promise<void>
   applyTransactionBalanceDelta: (tx: Transaction, options?: ApplyTransactionBalanceDeltaOptions) => Promise<boolean>
-  releaseOutgoingReservation: (txHash: string) => void
+  releaseOutgoingReservation: (coinId: string, txHash: string) => void
   restoreCoinBalance: (coinId: string, balance: string, spendableBalance?: string) => Promise<void>
 }
 
@@ -156,8 +159,8 @@ const scopedKey = (key: string) => `${key}:${walletService.getWalletStorageScope
 const stillSameWallet = (expectedScope?: string, expectedMnemonic?: string) =>
   (!expectedScope || walletService.getWalletStorageScope() === expectedScope)
   && (!expectedMnemonic || walletService.getSessionMnemonic() === expectedMnemonic)
-const normalizedTxHash = (hash: string) => hash.trim().toLowerCase()
-const txKey = (tx: Pick<Transaction, 'coinId' | 'txHash'>) => `${tx.coinId}:${normalizedTxHash(tx.txHash)}`
+const normalizedTxHash = normalizedTransactionHash
+const txKey = (tx: Pick<Transaction, 'coinId' | 'txHash'>) => `${tx.coinId}:${normalizedTxHash(tx.txHash, tx.coinId)}`
 const summarizeCoinState = (coin: Pick<Coin, 'balance' | 'spendableBalance' | 'status'> | undefined | null) =>
   coin
     ? {
@@ -308,11 +311,11 @@ const snapshotPendingOutgoingUnits = (snapshot: WalletSnapshotCoin | undefined) 
 const snapshotPendingOutgoingTxids = (snapshot: WalletSnapshotCoin | undefined) => {
   const txids = new Set<string>()
   for (const txid of snapshot?.walletBalance?.pendingOutgoingTxids ?? []) {
-    if (txid) txids.add(normalizedTxHash(txid))
+    if (txid) txids.add(normalizedTxHash(txid, snapshot?.coin))
   }
   for (const balance of Object.values(snapshot?.balances ?? {})) {
     for (const txid of balance?.pendingOutgoingTxids ?? []) {
-      if (txid) txids.add(normalizedTxHash(txid))
+      if (txid) txids.add(normalizedTxHash(txid, snapshot?.coin))
     }
   }
   return txids
@@ -324,7 +327,7 @@ const reservationTrackedBySnapshot = (
   snapshotPendingUnits: bigint,
   delta: bigint,
 ) => {
-  const txid = reservation.txHash ? normalizedTxHash(reservation.txHash) : ''
+  const txid = reservation.txHash ? normalizedTxHash(reservation.txHash, reservation.coinId) : ''
   return (txid && snapshotTxids.has(txid)) || (snapshotPendingUnits > 0n && snapshotPendingUnits >= delta)
 }
 
@@ -687,9 +690,9 @@ const snapshotHasSettledAddressBalance = (
   addresses: string[] = [],
 ) => snapshotBalancesForAddresses(coinSnapshot, addresses).some((balance) => Number(balance.pendingIncoming ?? 0) === 0)
 
-const addServerTxids = (target: Set<string>, txids: Array<string | undefined | null>) => {
+const addServerTxids = (coinId: string, target: Set<string>, txids: Array<string | undefined | null>) => {
   for (const txid of txids) {
-    if (txid) target.add(normalizedTxHash(txid))
+    if (txid) target.add(normalizedTxHash(txid, coinId))
   }
 }
 
@@ -702,10 +705,10 @@ const noteServerPendingIncoming = (
 ) => {
   if (!balance) return
   const represented = representedTxidsByCoin.get(coinId) ?? new Set<string>()
-  addServerTxids(represented, balance.pendingTxids ?? [])
-  addServerTxids(represented, balance.pendingOutgoingTxids ?? [])
-  addServerTxids(represented, (balance.pendingTransactions ?? []).map((tx) => tx.txid))
-  addServerTxids(represented, (balance.utxos ?? []).map((utxo) => utxo.txid))
+  addServerTxids(coinId, represented, balance.pendingTxids ?? [])
+  addServerTxids(coinId, represented, balance.pendingOutgoingTxids ?? [])
+  addServerTxids(coinId, represented, (balance.pendingTransactions ?? []).map((tx) => tx.txid))
+  addServerTxids(coinId, represented, (balance.utxos ?? []).map((utxo) => utxo.txid))
   if (represented.size > 0) representedTxidsByCoin.set(coinId, represented)
 
   if (Number(balance.pendingIncoming ?? 0) <= 0) return
@@ -725,12 +728,17 @@ const noteServerPendingIncoming = (
     return
   }
   const target = txidsByCoin.get(coinId) ?? new Set<string>()
-  addServerTxids(target, txids)
+  addServerTxids(coinId, target, txids)
   txidsByCoin.set(coinId, target)
 }
 
 const readReservedOutgoing = () => {
-  const raw = storageService.get<Record<string, ReservedOutgoing>>(scopedKey(RESERVED_OUTGOING_KEY), {})
+  const stored = storageService.get<Record<string, ReservedOutgoing>>(scopedKey(RESERVED_OUTGOING_KEY), {})
+  // Migrate old hash-only keys in memory; every new write includes the coin ID.
+  const raw = Object.fromEntries(Object.entries(stored).map(([key, value]) => {
+    const txHash = value.txHash ?? (key.startsWith(value.coinId + ':') ? key.slice(value.coinId.length + 1) : key)
+    return [txKey({ coinId: value.coinId, txHash }), { ...value, txHash }]
+  }))
   const now = Date.now()
   const pruned = Object.fromEntries(Object.entries(raw).filter(([, reservation]) => {
     if ((reservation.status ?? 'pending') === 'pending') return true
@@ -761,7 +769,7 @@ const pendingReservationsFromTransactions = (transactions: Transaction[]) => {
     if (tx.type !== 'outgoing' || tx.status === 'failed') continue
     const createdAtMs = Date.parse(tx.createdAt)
     if (tx.status !== 'pending' && Number.isFinite(createdAtMs) && now - createdAtMs >= CONFIRMED_RESERVATION_TTL_MS) continue
-    reservations[tx.txHash] = {
+    reservations[txKey(tx)] = {
       coinId: tx.coinId,
       amount: tx.amount,
       fee: tx.fee,
@@ -803,8 +811,9 @@ const pendingReservationsWithStoredMetadata = (transactions: Transaction[]) => {
 }
 
 const sameKnownAddress = (left?: string, right?: string) => {
-  const normalizedLeft = left?.trim().toLowerCase()
-  const normalizedRight = right?.trim().toLowerCase()
+  const normalize = (value?: string) => value && /^0x[0-9a-f]{40}$/i.test(value.trim()) ? value.trim().toLowerCase() : value?.trim()
+  const normalizedLeft = normalize(left)
+  const normalizedRight = normalize(right)
   return Boolean(normalizedLeft && normalizedRight && normalizedLeft === normalizedRight)
 }
 
@@ -832,7 +841,7 @@ const pendingIncomingFromTransactions = (
     if (!freshIncomingBalanceGateTxs.has(key)) continue
     if (serverPendingIncomingWithoutTxids.has(tx.coinId)) continue
     const serverTxids = serverPendingIncomingTxidsByCoin.get(tx.coinId)
-    const normalizedHash = normalizedTxHash(tx.txHash)
+    const normalizedHash = normalizedTxHash(tx.txHash, tx.coinId)
     if (serverTxids?.has(normalizedHash) || serverRepresentedTxidsByCoin.get(tx.coinId)?.has(normalizedHash)) {
       // The server already accounts for this tx in balance data. Keep the gate
       // until preloadIncomingHistory consumes it as proof for the same-cycle
@@ -2080,6 +2089,21 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
   reservedOutgoing: readReservedOutgoing(),
   sendReadyLoadedAt: 0,
 
+  refreshPrices: async () => {
+    const scope = walletService.getWalletStorageScope()
+    const revision = walletService.getSessionRevision()
+    try {
+      marketPriceService.update(await coinApiService.getPrices())
+    } catch {
+      // A temporary outage may retain a still-fresh quote; expired or unknown
+      // quotes must not leave a historical dollar value attached to a balance.
+    }
+    if (scope !== walletService.getWalletStorageScope() || revision !== walletService.getSessionRevision()) return
+    const next = get().coins.map(coin => marketPriceService.apply(coin))
+    set({ coins: next })
+    await coinService.saveRuntimeCoins(next)
+  },
+
   loadNetworkStatuses: async () => {
     const loadSeq = ++coinLoadSeq
     const cached = await coinService.getCoins()
@@ -2847,11 +2871,11 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
     const completedOutgoingHashes = new Set(
       storedTransactions
         .filter((tx) => tx.type === 'outgoing' && tx.status !== 'pending')
-        .map((tx) => normalizedTxHash(tx.txHash)),
+        .map(txKey),
     )
     const existingReservations = Object.fromEntries(
       Object.entries(get().reservedOutgoing)
-        .filter(([hash]) => !completedOutgoingHashes.has(normalizedTxHash(hash))),
+        .filter(([hash]) => !completedOutgoingHashes.has(hash)),
     )
     const activePendingHashes = new Set(
       Object.entries(storedPending)
@@ -2936,7 +2960,7 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
       const localPendingIncomingUnits = shouldUseFreshIncomingUtxoOverlay(c) ? uncoveredPendingIncomingUnits : 0n
       const serverUnits = baseServerUnits + localPendingIncomingUnits
       let reservedUnits = 0n
-      let expectedAfterFloor = 0n
+      let expectedAfterFloor: bigint | null = null
       let quaiExpectedAfterCeiling: bigint | null = null
       let quaiExpectedAfterCeilingAt = -Infinity
       let zeroExpectedAfter = false
@@ -2971,6 +2995,9 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
           const quaiSnapshotStillStale = quaiAccountCoin
             && expectedAfterWithLaterIncoming !== null
             && serverUnits > expectedAfterWithLaterIncoming
+          const utxoSnapshotStillStale = utxoCoin
+            && expectedAfterWithLaterIncoming !== null
+            && serverUnits > expectedAfterWithLaterIncoming
           if (quaiSnapshotStillStale) {
             const reservationCreatedAtMs = Date.parse(reservation.createdAt)
             const order = Number.isFinite(reservationCreatedAtMs) ? reservationCreatedAtMs : quaiExpectedAfterCeilingAt
@@ -2984,11 +3011,12 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
             && reservation.status === 'pending'
             && reservationTrackedBySnapshot(reservation, snapshotOutgoingTxids, snapshotOutgoingUnits, delta)
             && !quaiSnapshotStillStale
+            && !utxoSnapshotStillStale
           ) {
             if (
               shouldApplyExpectedAfterFloor
               && expectedAfterWithLaterIncoming !== null
-              && expectedAfterWithLaterIncoming > expectedAfterFloor
+              && (expectedAfterFloor === null || expectedAfterWithLaterIncoming < expectedAfterFloor)
             ) {
               expectedAfterFloor = expectedAfterWithLaterIncoming
             }
@@ -3009,7 +3037,7 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
             reservation.status === 'pending'
             && shouldApplyExpectedAfterFloor
             && expectedAfterWithLaterIncoming !== null
-            && expectedAfterWithLaterIncoming > expectedAfterFloor
+            && (expectedAfterFloor === null || expectedAfterWithLaterIncoming < expectedAfterFloor)
           ) {
             expectedAfterFloor = expectedAfterWithLaterIncoming
           }
@@ -3036,7 +3064,13 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
       }
       // Floor at the post-send expected balance so a node that has counted the
       // spent inputs but not yet credited our change can't briefly under-report.
-      if (shouldApplyExpectedAfterFloor && expectedAfterFloor > nextUnits) nextUnits = expectedAfterFloor
+      if (shouldApplyExpectedAfterFloor && expectedAfterFloor !== null) {
+        // A mempool TXID alone does not prove that the returned numeric total
+        // has deducted that spend. Across several pending sends use the lowest
+        // post-send total, including later known deposits, so an older send's
+        // change floor cannot resurrect money spent by the next one.
+        nextUnits = expectedAfterFloor
+      }
       if (nextUnits < 0n) nextUnits = 0n
       const hiddenAccountIncomingCandidateUnits = accountCoin
         && hasPendingReservation
@@ -3204,7 +3238,7 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
             createdAt: reservation.createdAt,
           })),
           quaiExpectedAfterCeiling: quaiExpectedAfterCeiling?.toString() ?? null,
-          expectedAfterFloor: expectedAfterFloor.toString(),
+        expectedAfterFloor: expectedAfterFloor?.toString(),
           hiddenAccountIncomingCandidateUnits: hiddenAccountIncomingCandidateUnits.toString(),
           zeroExpectedAfter,
           nextUnits: visibleUnits.toString(),
@@ -3300,7 +3334,7 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
             expectedBalanceAfter: reservation.expectedBalanceAfter,
             createdAt: reservation.createdAt,
           })),
-          expectedAfterFloor: expectedAfterFloor.toString(),
+        expectedAfterFloor: expectedAfterFloor?.toString(),
           zeroExpectedAfter,
           nextUnits: visibleUnits.toString(),
           balance,
@@ -4377,8 +4411,8 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
       if (tx.type !== 'outgoing' || tx.status === 'failed') continue
       const createdAtMs = Date.parse(tx.createdAt)
       if (tx.status !== 'pending' && Number.isFinite(createdAtMs) && now - createdAtMs >= CONFIRMED_RESERVATION_TTL_MS) continue
-      const previous = next[tx.txHash]
-      next[tx.txHash] = {
+      const previous = next[txKey(tx)]
+      next[txKey(tx)] = {
         coinId: tx.coinId,
         amount: tx.amount,
         fee: tx.fee,
@@ -4460,10 +4494,12 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
   },
 
   applyTransactionBalanceDelta: async (tx, options = {}) => {
+    const revision = walletService.getSessionRevision()
     const current = get().coins.length > 0 ? get().coins : await coinService.getCoins()
+    if (walletService.getSessionRevision() !== revision) return false
     const reservedOutgoing = { ...get().reservedOutgoing }
     const existingOutgoingReservation = tx.type === 'outgoing' && tx.status === 'pending'
-      ? reservedOutgoing[tx.txHash]
+      ? reservedOutgoing[txKey(tx)]
       : undefined
     const txCoin = current.find((coin) => coin.id === tx.coinId)
     if (tx.type === 'incoming' && !options.allowIncomingLedgerDelta) return false
@@ -4486,8 +4522,9 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
         ? sameKnownAddress(tx.from, tx.to) || await isWalletAddressVariant(tx.coinId, tx.to, tx.from ?? txCoin.address, txCoin.cryptoParams)
         : false
     )
+    if (walletService.getSessionRevision() !== revision) return false
     if (tx.type === 'outgoing' && tx.status === 'pending') {
-      reservedOutgoing[tx.txHash] = {
+      reservedOutgoing[txKey(tx)] = {
         ...existingOutgoingReservation,
         coinId: tx.coinId,
         amount: tx.amount,
@@ -4556,8 +4593,8 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
         ? fromBaseUnits(signedSpendable < 0n ? 0n : signedSpendable, decimals)
         : coin.spendableBalance
       if (tx.type === 'outgoing' && tx.status === 'pending') {
-        reservedOutgoing[tx.txHash] = {
-          ...reservedOutgoing[tx.txHash],
+        reservedOutgoing[txKey(tx)] = {
+          ...reservedOutgoing[txKey(tx)],
           balanceBefore: fromBaseUnits(baseline, decimals),
           expectedBalanceAfter: fromBaseUnits(expectedAfter < 0n ? 0n : expectedAfter, decimals),
         }
@@ -4586,14 +4623,14 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
         changed,
         beforeQuai: summarizeQuaiCoin(current.find((coin) => coin.id === 'quai')),
         nextQuai: summarizeQuaiCoin(next.find((coin) => coin.id === 'quai')),
-        reservation: reservedOutgoing[tx.txHash]
+        reservation: reservedOutgoing[txKey(tx)]
           ? {
-              status: reservedOutgoing[tx.txHash].status,
-              amount: reservedOutgoing[tx.txHash].amount,
-              fee: reservedOutgoing[tx.txHash].fee,
-              internal: reservedOutgoing[tx.txHash].internal,
-              balanceBefore: reservedOutgoing[tx.txHash].balanceBefore,
-              expectedBalanceAfter: reservedOutgoing[tx.txHash].expectedBalanceAfter,
+              status: reservedOutgoing[txKey(tx)].status,
+              amount: reservedOutgoing[txKey(tx)].amount,
+              fee: reservedOutgoing[txKey(tx)].fee,
+              internal: reservedOutgoing[txKey(tx)].internal,
+              balanceBefore: reservedOutgoing[txKey(tx)].balanceBefore,
+              expectedBalanceAfter: reservedOutgoing[txKey(tx)].expectedBalanceAfter,
             }
           : null,
       })
@@ -4601,13 +4638,14 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
     if (tx.type === 'outgoing' && tx.status === 'pending') writeReservedOutgoing(reservedOutgoing)
     if (!changed && tx.type === 'incoming') return false
     const savedCoins = await coinService.saveRuntimeCoins(reconcilePrivacyRuntimeCommit(next, get().coins))
+    if (walletService.getSessionRevision() !== revision) return false
     set({ coins: reconcilePrivacyRuntimeCommit(savedCoins, get().coins), reservedOutgoing })
     return changed
   },
 
-  releaseOutgoingReservation: (txHash) => {
-    const key = txHash.trim()
-    if (!key) return
+  releaseOutgoingReservation: (coinId, txHash) => {
+    if (!txHash.trim()) return
+    const key = txKey({ coinId, txHash })
     const reservedOutgoing = { ...get().reservedOutgoing }
     if (!reservedOutgoing[key]) return
     delete reservedOutgoing[key]

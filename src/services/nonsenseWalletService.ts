@@ -16,22 +16,19 @@ type NonsensePendingTransaction = {
 }
 type NonsenseTransactionPlan = { transactions: NonsensePendingTransaction[] }
 let sdkPromise: Promise<NonsenseSdk> | null = null
-let wasmBytes: Uint8Array<ArrayBuffer> | null = null
-
-const embeddedWasmBytes = (nonsenseWasmBase64: string) => {
-  if (wasmBytes) return wasmBytes
-  const binary = atob(nonsenseWasmBase64)
-  wasmBytes = Uint8Array.from(binary, (character) => character.charCodeAt(0))
-  return wasmBytes
-}
-
 const nonsenseSdk = () => {
   sdkPromise ??= Promise.all([
     import('nonsense-wasm'),
-    import('nonsense-wasm/nonsense_bg.base64.js'),
-  ]).then(async ([sdk, embedded]) => {
-    await sdk.default({ module_or_path: embeddedWasmBytes(embedded.default) })
+    fetch('altbase-coin://runtime/nonsense/nonsense_bg.wasm').then(async response => {
+      if (!response.ok) throw new Error('Nonsense module binary is unavailable')
+      return response.arrayBuffer()
+    }),
+  ]).then(async ([sdk, binary]) => {
+    await sdk.default({ module_or_path: binary })
     return sdk
+  }).catch(error => {
+    sdkPromise = null
+    throw error
   })
   return sdkPromise
 }

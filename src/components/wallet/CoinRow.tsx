@@ -1,4 +1,5 @@
-import { Eye, EyeOff, Star } from 'lucide-react'
+import { useState } from 'react'
+import { ChevronDown, Eye, EyeOff, Star } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import type { Coin } from '../../types/coin'
 import { formatAmount, formatUsd, formatUsdPrice } from '../../utils/formatAmount'
@@ -8,6 +9,9 @@ import { CoinStatusBadge } from './CoinStatusBadge'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useT } from '../../utils/i18n'
 import { usePrivacyBalanceDisplay } from '../../hooks/usePrivacyBalanceDisplay'
+import { isAccountModule } from '../../services/accountAssetsService'
+import { AccountAssets } from './AccountAssets'
+import { useAccountLabels } from './accountLabels'
 
 type CoinRowProps = {
   coin: Coin
@@ -21,15 +25,18 @@ export function CoinRow({ coin, compact, onFavorite, onHide, onSelect }: CoinRow
   const t = useT()
   const hideBalances = useSettingsStore((state) => state.settings.hideBalances)
   const display = usePrivacyBalanceDisplay(coin)
+  const labels = useAccountLabels()
+  const [tokensOpen, setTokensOpen] = useState(false)
+  const hasTokens = isAccountModule(coin.id)
 
   return (
-    <div className={`grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 rounded-lg border border-white/10 px-3 py-3 transition md:grid-cols-[1.4fr_1fr_1fr_auto] md:gap-4 ${
+    <div data-coin-row={coin.id} className={`grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 rounded-lg border border-white/10 px-3 py-3 transition md:grid-cols-[1.4fr_1fr_1fr_auto] md:gap-4 ${
       coin.enabled === false
         ? 'bg-white/3 opacity-60 hover:opacity-80'
         : 'bg-white/6 hover:bg-white/9'
     }`}>
       <Link to={`/app/coin/${coin.id}`} className="order-1 flex min-w-0 items-center gap-3 md:order-none" onClick={() => onSelect?.(coin.id)}>
-        <CoinIcon ticker={coin.ticker} className={compact ? 'h-9 w-9' : ''} />
+        <CoinIcon coinId={coin.id} ticker={coin.ticker} className={compact ? 'h-9 w-9' : ''} />
         <div className="min-w-0">
           <p className="truncate font-semibold text-white">{coin.name}</p>
           <p className="text-sm text-slate-500">
@@ -49,6 +56,22 @@ export function CoinRow({ coin, compact, onFavorite, onHide, onSelect }: CoinRow
       <CoinStatusBadge status={display.status} recoveryProgress={coin.recoveryProgress} walletScanPercent={coin.walletScanPercent} className="hidden md:order-none md:inline-flex" />
 
       <div className="order-2 flex items-center gap-1 md:order-none">
+        {hasTokens && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-9 w-9 rounded-xl p-0"
+            aria-label={`${labels.tokens}: ${coin.name}`}
+            title={labels.tokens}
+            aria-expanded={tokensOpen}
+            aria-controls={`coin-tokens-${coin.id}`}
+            data-testid={`token-toggle-${coin.id}`}
+            onClick={() => setTokensOpen(open => !open)}
+          >
+            <ChevronDown size={18} className={`transition-transform ${tokensOpen ? 'rotate-180' : ''}`} />
+          </Button>
+        )}
         {onFavorite && (
           <Button
             type="button"
@@ -80,6 +103,11 @@ export function CoinRow({ coin, compact, onFavorite, onHide, onSelect }: CoinRow
           </Button>
         )}
       </div>
+      {hasTokens && tokensOpen && (
+        <div className="order-4 col-span-full min-w-0 border-t border-white/10 pt-3 md:order-last md:pl-12">
+          <AccountAssets coinId={coin.id} />
+        </div>
+      )}
     </div>
   )
 }

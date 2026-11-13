@@ -1,0 +1,78 @@
+--- a/lib/priceFeed.cjs
++++ b/lib/priceFeed.cjs
+@@ -51,17 +51,19 @@
+   xgr: 'XGRUSDC',
+ }
+ 
+-// Pearl trades on SafeTrade as PRL/USDT. SafeTrade is primary; CoinPaprika's
+-// markets endpoint is a fallback for the same SafeTrade PRL/USDT market.
++// Pearl's current SafeTrade API is hosted at safetrade.com. NestEx supplies
++// the same PRL/USDT pair if that venue is unavailable.
+ const SAFETRADE_PAIRS = {
+   pearl: 'prlusdt',
+ }
++const SAFETRADE_NESTEX_FALLBACKS = { pearl: 'PRL_USDT' }
+ 
+ const COINPAPRIKA_MARKETS = {
+   pearl: { coinId: 'prl-pearl-1', exchangeId: 'safetrade', pair: 'PRL/USDT' },
+ }
+ 
+ const COINPAPRIKA_TICKERS = {
++  neoxa: 'neox-neoxa',
+   btgs: 'btgs-bitcoingold',
+   hypercoin: 'hrc-hypercoin',
+   mydogecoin: 'mydoge-mydogecoin',
+@@ -69,6 +71,7 @@
+ 
+ // Public no-key CoinGecko fallback for coins that are not available through LCW.
+ const COINGECKO_IDS = {
++  neoxa: 'neoxa',
+   ethereum: 'ethereum', bsc: 'binancecoin', polygon: 'polygon-ecosystem-token', solana: 'solana', tron: 'tron',
+   bitcoincash: 'bitcoin-cash', digibyte: 'digibyte', peercoin: 'peercoin', zcash: 'zcash', nexa: 'nexa', xelis: 'xelis', mwc: 'mimblewimblecoin',
+   bitcoin: 'bitcoin',
+@@ -153,7 +156,8 @@
+     const r = await fetchWithTimeout(`https://trade.nestex.one/api/cg/tickers/${pair}`)
+     if (!r.ok) throw new Error(`nestex http ${r.status}`)
+     const data = await r.json()
+-    const price = parseFloat(data?.last_price)
++    if (data?.ticker_id !== undefined && data.ticker_id !== pair) return null
++    const price = Number(data?.last_price)
+     return Number.isFinite(price) && price > 0 ? price : null
+   } catch (err) {
+     logger.warn('priceFeed.nestexFailed', { pair, error: err.message })
+@@ -187,7 +191,9 @@
+   }
+ 
+   for (const row of rows.filter(Boolean)) {
+-    const price = parseFloat(row.last ?? row.last_price ?? row.price ?? row.close)
++    const market = row.id ?? row.market ?? row.ticker_id
++    if (market !== undefined && String(market).toLowerCase().replace(/[/_-]/g, '') !== pair) continue
++    const price = Number(row.last ?? row.last_price ?? row.price ?? row.close)
+     if (Number.isFinite(price) && price > 0) return price
+   }
+   return null
+@@ -196,7 +202,7 @@
+ /** Fetch a USDT pair price from SafeTrade public API. */
+ const fetchFromSafetrade = async (pair) => {
+   try {
+-    const url = `https://safe.trade/api/v2/peatio/public/markets/${encodeURIComponent(pair)}/tickers`
++    const url = `https://safetrade.com/api/v2/trade/public/tickers/${encodeURIComponent(pair)}`
+     const r = await fetchWithTimeout(url, {
+       headers: { referer: 'https://safetrade.com/exchange/PRL-USDT' },
+     })
+@@ -320,10 +326,14 @@
+           }
+         }),
+       )
+-      // SafeTrade coins fetched in parallel, with CoinPaprika market fallback.
++      // Current SafeTrade route, then an independent NestEx pair, then the
++      // existing CoinPaprika market fallback.
+       await Promise.all(
+         Object.entries(SAFETRADE_PAIRS).map(async ([coinId, pair]) => {
+           let rate = await fetchFromSafetrade(pair)
++          if (rate === null && SAFETRADE_NESTEX_FALLBACKS[coinId]) {
++            rate = await fetchFromNestex(SAFETRADE_NESTEX_FALLBACKS[coinId])
++          }
+           if (rate === null && COINPAPRIKA_MARKETS[coinId]) {
+             rate = await fetchFromCoinpaprikaMarket(COINPAPRIKA_MARKETS[coinId])
+           }

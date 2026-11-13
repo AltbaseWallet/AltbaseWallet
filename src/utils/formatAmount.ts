@@ -1,8 +1,5 @@
+import { coinModuleRegistry } from '../coin-modules'
 const DEFAULT_COIN_DECIMALS = 8
-
-const COIN_DECIMALS: Record<string, number> = {
-  ZANO: 12,
-}
 
 const normalizeDecimalText = (value: string | number, decimals: number) => {
   if (typeof value === 'number') {
@@ -36,15 +33,16 @@ const formatCoinAmount = (value: string | number, decimals: number) => {
 }
 
 export const formatAmount = (value: string | number, ticker?: string) => {
-  const decimals = COIN_DECIMALS[ticker?.toUpperCase() ?? ''] ?? DEFAULT_COIN_DECIMALS
+  const module = coinModuleRegistry.all().find(item => item.coin.ticker === ticker?.toUpperCase())
+  const decimals = module ? coinModuleRegistry.descriptor(module.id)?.decimals ?? DEFAULT_COIN_DECIMALS : DEFAULT_COIN_DECIMALS
   const amount = formatCoinAmount(value, decimals)
   return ticker ? `${amount} ${ticker}` : amount
 }
 
 export const formatUsd = (value?: number) =>
-  typeof value === 'number'
+  typeof value === 'number' && Number.isFinite(value)
     ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value)
-    : 'N/A'
+    : '—'
 
 /**
  * Format a USD unit price with enough precision to be useful for sub-cent

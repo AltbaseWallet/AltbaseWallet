@@ -1,3 +1,4 @@
+import { useModuleLabels } from '../../pages/Modules/labels'
 import { Link, useLocation } from 'react-router-dom'
 import { ArrowDownToLine, Coins, History, Home, Lock, Pickaxe, Repeat2, Send, Settings } from 'lucide-react'
 import { Button } from '../ui/Button'
@@ -18,6 +19,7 @@ const navItems = [
 ] satisfies Array<{ to: string; labelKey: TranslationKey; icon: typeof Home; disabled?: boolean }>
 
 export function Sidebar() {
+  const moduleLabels = useModuleLabels()
   const lock = useAuthStore((state) => state.lock)
   const language = useSettingsStore((state) => state.settings.language)
   const { pathname } = useLocation()
@@ -66,6 +68,7 @@ export function Sidebar() {
             </Link>
           ),
         )}
+        <Link to="/modules" className="flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm text-slate-400 hover:bg-white/7"><Coins size={18} />{moduleLabels[0]}</Link>
       </nav>
 
       <div className="shrink-0 pt-4">

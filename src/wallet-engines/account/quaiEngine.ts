@@ -37,7 +37,7 @@ export const quaiEngine: WalletEngine = {
     return quaiWalletService.estimateMaxSend(coin.id, address, feeCoin, toAddress)
   },
 
-  async send({ coin, mnemonic, fromAddress, toAddress, amountCoin, feeCoin, sendMax }) {
+  async send({ coin, mnemonic, fromAddress, toAddress, amountCoin, feeCoin, maxFeeCoin, sendMax }) {
     if (!fromAddress) throw new Error(`Address for ${coin.id} not derived yet - reopen the wallet`)
     return quaiWalletService.send({
       coinId: coin.id,
@@ -46,6 +46,7 @@ export const quaiEngine: WalletEngine = {
       toAddress,
       amountCoin,
       feeCoin,
+      maxFeeCoin,
       sendMax,
     })
   },

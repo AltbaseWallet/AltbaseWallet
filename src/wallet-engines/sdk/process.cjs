@@ -38,7 +38,7 @@ const spawnWithPrivateConfig=async(binary,config,dir)=>{
 }
 const readRpc=async(url,method,params,authorization,timeout=20000)=>{
   const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json',...(authorization?{Authorization:authorization}:{})},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params}),signal:AbortSignal.timeout(timeout)})
-  if(!response.ok)throw new Error('Local wallet RPC HTTP '+response.status)
+  if(!response.ok){const error=new Error('Local wallet RPC HTTP '+response.status);error.status=response.status;throw error}
   const body=await response.json()
   if(body.error){const error=new Error('Local wallet '+method+' failed ('+body.error.code+')');error.rpcCode=body.error.code;throw error}
   if(!Object.hasOwn(body,'result'))throw new Error('Local wallet omitted RPC result')

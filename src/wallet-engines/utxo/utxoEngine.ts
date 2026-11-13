@@ -78,6 +78,7 @@ export const utxoEngine: WalletEngine = {
         toAddress: options.toAddress,
         amountCoin: options.amountCoin,
         force: options.force,
+        excludeOutpoints: options.excludeOutpoints,
       })
       return { ...estimate, exact: true }
     }
@@ -102,7 +103,7 @@ export const utxoEngine: WalletEngine = {
     )
   },
 
-  async estimateMaxSend(coin, address, feeCoin) {
+  async estimateMaxSend(coin, address, feeCoin, _toAddress, _mnemonic, options = {}) {
     if (!coin.cryptoParams) throw new Error(`Coin "${coin.id}" has no crypto parameters configured`)
     return coinTxService.estimateMaxSend({
       coinId: coin.id,
@@ -110,6 +111,7 @@ export const utxoEngine: WalletEngine = {
       satsPerCoin: coin.satsPerCoin ?? 100_000_000,
       fromAddress: address,
       feeCoin,
+      excludeOutpoints: options.excludeOutpoints,
     })
   },
 

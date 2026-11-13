@@ -1,9 +1,11 @@
 import type { Transaction } from '../types/transaction'
+import { coinModuleRegistry } from '../coin-modules'
 
-export const normalizedTransactionHash = (hash: string) => hash.trim().toLowerCase()
+export const normalizedTransactionHash = (hash: string, coinId?: string) =>
+  coinId && coinModuleRegistry.isPlugin(coinId) ? hash.trim() : hash.trim().toLowerCase()
 
 export const transactionIdentityKey = (tx: Pick<Transaction, 'coinId' | 'txHash' | 'id'>) => {
-  const hash = normalizedTransactionHash(tx.txHash)
+  const hash = normalizedTransactionHash(tx.txHash, tx.coinId)
   return `${tx.coinId}:${hash || `missing:${tx.id}`}`
 }
 

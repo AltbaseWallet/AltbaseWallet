@@ -11,6 +11,8 @@ import { useCoinStatusLabel } from '../../components/wallet/useCoinStatusLabel'
 import { SeedPhraseWarning } from '../../components/wallet/SeedPhraseWarning'
 import { Toast } from '../../components/ui/Toast'
 import type { AddressVariant } from '../../types/crypto'
+import type { Coin } from '../../types/coin'
+import { usePrivacyBalanceDisplay } from '../../hooks/usePrivacyBalanceDisplay'
 import { walletService } from '../../services/walletService'
 import { useCoinStore } from '../../store/coinStore'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -30,6 +32,11 @@ const addressVariantLabel = (variant: AddressVariant) => {
   return variant.label
 }
 
+function ReceiveBalance({ coin, hidden }: { coin: Coin; hidden: boolean }) {
+  const display = usePrivacyBalanceDisplay(coin)
+  return <>{coin.ticker} · {hidden ? '••••' : display.hideZero ? '—' : formatAmount(coin.balance, coin.ticker)}</>
+}
+
 export default function Receive() {
   const t = useT()
   const statusLabel = useCoinStatusLabel()
@@ -43,6 +50,7 @@ export default function Receive() {
   const [toast, setToast] = useState<string | null>(null)
   const [addressType, setAddressType] = useState<AddressVariant['id']>('legacy')
   const [addressVariants, setAddressVariants] = useState<AddressVariant[]>([])
+  const [preparedAddress, setPreparedAddress] = useState<{ coinId: string; address: string; revision: number } | null>(null)
   const addressVariantCache = useRef<Record<string, AddressVariant[]>>({})
   const canDeriveAddresses = walletService.hasStoredSeedPhrase()
   const enabledCoins = useMemo(() => coins.filter((item) => item.enabled), [coins])
@@ -56,7 +64,10 @@ export default function Receive() {
     [enabledCoins, selectedId],
   )
   const coinId = coin?.id
-  const effectiveAddress = coin ? walletService.getWalletAddresses()[coin.id] ?? coin.address : ''
+  const coinDisplay = usePrivacyBalanceDisplay(coin)
+  const effectiveAddress = coin ? walletService.getWalletAddresses()[coin.id] || coin.address || (
+    preparedAddress?.coinId === coin.id && preparedAddress.revision === walletService.getSessionRevision() ? preparedAddress.address : ''
+  ) : ''
   const privacyCoin = isPrivacyCoin(coin)
   const filteredCoins = useMemo(
     () =>
@@ -69,6 +80,16 @@ export default function Receive() {
   useEffect(() => {
     loadCoins()
   }, [loadCoins])
+
+  useEffect(() => {
+    if (!coinId || effectiveAddress || !canDeriveAddresses) return
+    let cancelled = false
+    const revision = walletService.getSessionRevision()
+    void walletService.ensurePublicAddress(coinId).then(address => {
+      if (!cancelled && address && revision === walletService.getSessionRevision()) setPreparedAddress({ coinId, address, revision })
+    }).catch(() => {})
+    return () => { cancelled = true }
+  }, [coinId, effectiveAddress, canDeriveAddresses])
 
   useEffect(() => {
     let cancelled = false
@@ -187,7 +208,7 @@ export default function Receive() {
                 <div className="min-w-0">
                   <p className="truncate font-semibold text-white">{item.name}</p>
                   <p className="text-sm text-slate-500">
-                    {item.ticker} · {hideBalances ? '••••' : formatAmount(item.balance, item.ticker)}
+                    <ReceiveBalance coin={item} hidden={hideBalances} />
                   </p>
                 </div>
               </div>
@@ -210,11 +231,11 @@ export default function Receive() {
       <Card className={`${mobilePane === 'details' ? 'block' : 'hidden'} space-y-5 lg:block`}>
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div className="flex min-w-0 items-center gap-3">
-            <CoinIcon ticker={coin.ticker} className="h-12 w-12" />
+            <CoinIcon coinId={coin.id} ticker={coin.ticker} className="h-12 w-12" />
             <div className="min-w-0">
               <h2 className="truncate text-xl font-bold text-white">{coin.name}</h2>
               <p className="truncate text-sm text-slate-500">
-                {coin.ticker} · {statusLabel(coin.status)} · {hideBalances ? '••••' : formatUsd(coin.fiatValue)}
+                {coin.ticker} · {statusLabel(coinDisplay.status)} · {hideBalances ? '••••' : coinDisplay.unverified ? '—' : formatUsd(coin.fiatValue)}
               </p>
             </div>
           </div>

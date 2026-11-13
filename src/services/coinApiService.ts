@@ -1,3 +1,9 @@
+import { coinModuleRegistry } from '../coin-modules'
+import { pluginService } from './pluginService'
+import { validatePluginSnapshot } from './pluginSnapshot'
+import { pluginReadiness } from './pluginReadiness'
+import type { MarketPrices } from './marketPriceService'
+import { normalizedTransactionHash } from './transactionIdentity'
 import { isLocalWalletCoin, mergeLocalWalletSnapshots, readLocalWalletSnapshot } from './localWalletSnapshot'
 /**
  * Multi-coin API client for api.altbase.io.
@@ -20,6 +26,8 @@ import { coinDebugLog, coinDebugLogError, quaiDebugLog, quaiDebugLogError } from
 import { fromBaseUnits } from '../utils/decimalAmount'
 import { coinDecimalsFromSats, coinValueToUnits } from '../utils/transactionAmounts'
 import { resolveTransactionConfirmations } from '../utils/transactionConfirmations'
+import { atomicAmountToBigInt } from '../utils/atomicInteger'
+export { atomicAmountToBigInt } from '../utils/atomicInteger'
 
 const API_BASE = 'https://api.altbase.io/api/v1'
 
@@ -129,13 +137,6 @@ export type CoinBalance = {
   pendingOutgoingTxids?: string[]
   pendingTransactions?: AddressMempoolPending[]
   utxos?: Utxo[]
-}
-
-export const atomicAmountToBigInt = (value: unknown): bigint => {
-  if (typeof value === 'bigint') return value
-  if (typeof value === 'string' && /^-?\d+$/.test(value.trim())) return BigInt(value.trim())
-  if (typeof value === 'number' && Number.isFinite(value)) return BigInt(Math.trunc(value))
-  return 0n
 }
 
 export type Utxo = {
@@ -465,6 +466,7 @@ const coinNodeJsonWithTimeout = async <T>(
   timeoutMs = 10_000,
   priority = false,
 ): Promise<T> => {
+  if (coinModuleRegistry.isPlugin(coinId)) return pluginService.request<T>(coinId, 'nodeRequest', { path, method, body: body ? JSON.parse(body) : undefined })
   if (coinId === 'monero') {
     return fetchJsonWithTimeout<T>(`${API_BASE}/monero${path}`, {
       method,
@@ -678,8 +680,8 @@ export const mapHistoryResponseToTransactions = (
   tipHeight?: number,
 ): Transaction[] => {
   const hasPagedTxids = Array.isArray(history.txids)
-  const pageTxids = new Set((history.txids ?? []).map((txid) => txid.trim().toLowerCase()).filter(Boolean))
-  const belongsToPage = (txid: string) => !hasPagedTxids || pageTxids.has(txid.trim().toLowerCase())
+  const pageTxids = new Set((history.txids ?? []).map((txid) => normalizedTransactionHash(txid, coinId)).filter(Boolean))
+  const belongsToPage = (txid: string) => !hasPagedTxids || pageTxids.has(normalizedTransactionHash(txid, coinId))
   const ownAddressSet = new Set(walletAddresses.filter(Boolean))
   const rawTouchesWallet = (raw: RawTx | undefined) => {
     if (!raw) return true
@@ -1041,11 +1043,45 @@ export const coinApiService = {
    * USD prices for every coin the gateway tracks. Server polls LiveCoinWatch
    * every ~5 min and caches; this just returns the cached snapshot.
    */
-  async getPrices(): Promise<{ prices: Record<string, number>; updatedAt: number | null }> {
-    return getGlobal<{ ok: true; prices: Record<string, number>; updatedAt: number | null }>('/prices')
+  async getPrices(): Promise<MarketPrices> {
+    const response = await getGlobal<{ ok: true } & MarketPrices>('/prices')
+    if (!response.prices || typeof response.prices !== 'object' || Array.isArray(response.prices)) {
+      throw new Error('Current market prices are unavailable')
+    }
+    return response
   },
 
   async getWalletSnapshot(request: WalletSnapshotRequest, timeoutMs = 0): Promise<WalletSnapshotResponse> {
+    const plugins = request.coins.filter(item => coinModuleRegistry.isPlugin(item.coin))
+    if (plugins.length) {
+      const readinessRevision = pluginReadiness.revision()
+      const legacy = request.coins.filter(item => !coinModuleRegistry.isPlugin(item.coin))
+      const remote = legacy.length
+        ? this.getWalletSnapshot({ ...request, coins: legacy }, timeoutMs).catch(() => ({ prices: {}, pricesUpdatedAt: null, coins: {} } as WalletSnapshotResponse))
+        : Promise.resolve({ prices: {}, pricesUpdatedAt: null, coins: {} } as WalletSnapshotResponse)
+      const reads = plugins.map(async item => {
+        try {
+          const { coins: _coins, ...options } = request
+          void _coins
+          const result = await pluginService.request<unknown>(item.coin, 'snapshot', { ...options, addresses: item.addresses })
+          const snapshot = validatePluginSnapshot(item.coin, result, coinModuleRegistry.descriptor(item.coin)?.networkId, request.includeBalances === false ? undefined : item.addresses)
+          if (snapshot.network?.initialBlockDownload || (snapshot.network && snapshot.network.headers > snapshot.network.blocks) || snapshot.errors?.balance === 'Module synchronization is incomplete') {
+            pluginReadiness.set(item.coin, 'syncing', readinessRevision)
+          } else if (request.includeBalances !== false && item.addresses.length) {
+            const verified = snapshot.walletBalance || item.addresses.every(address => snapshot.balances[address])
+            pluginReadiness.set(item.coin, verified ? 'ready' : snapshot.network ? 'balance-unavailable' : 'error', readinessRevision)
+          }
+          return snapshot
+        } catch {
+          pluginReadiness.set(item.coin, 'error', readinessRevision)
+          return { coin: item.coin, network: null, balances: {}, histories: {}, errors: { module: 'Coin module data is unavailable' } } as WalletSnapshotCoin
+        }
+      })
+      const [base, snapshots] = await Promise.all([remote, Promise.all(reads)])
+      for (const snapshot of snapshots) base.coins[snapshot.coin] = snapshot
+      return base
+    }
+
     const key = JSON.stringify(request)
     const cacheable = request.includeHistory === false && request.forceBalances !== true
     const cached = cacheable ? walletSnapshotCache.get(key) : undefined
@@ -1141,8 +1177,8 @@ export const coinApiService = {
 
   /**
    * Returns the address history as wallet-friendly Transaction objects.
-   * Requires the daemon to have `addressindex=1`; without it the gateway
-   * returns 501 and this function returns an empty array.
+   * Requires a supported history source. Unavailable or partial responses
+   * reject so callers can retain the last successful history.
    */
   async getAddressHistory(
     coinId: string,
@@ -1151,23 +1187,19 @@ export const coinApiService = {
     limit = 25,
     offset = 0,
   ): Promise<Transaction[]> {
-    let history: HistoryResponse
     if(isLocalWalletCoin(coinId)){
       const network=await this.getNetwork(coinId)
       const local=await readLocalWalletSnapshot(coinId,address,network,{historyLimit:limit,historyOffset:offset})
       if(local.syncing||!local.history)throw new Error('Local wallet history is still synchronizing')
       return mapHistoryResponseToTransactions(local.history,coinId,address,satsPerCoin,[address],network.blocks)
     }
-    try {
-      history = await postJson<HistoryResponse>(
+    const history = await postJson<HistoryResponse & { partial?: boolean }>(
         coinId,
         '/address/history',
         { address, limit, offset },
         coinId === 'nonsense' ? INTERACTIVE_BALANCE_TIMEOUT_MS : 10_000,
       )
-    } catch {
-      return []
-    }
+    if ('partial' in history && history.partial === true) throw new Error('Address history is incomplete')
     return mapHistoryResponseToTransactions(history, coinId, address, satsPerCoin)
   },
 

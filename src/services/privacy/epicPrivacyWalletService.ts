@@ -29,6 +29,9 @@ type SnapshotInFlight = {
 }
 
 let snapshotInFlight: SnapshotInFlight | undefined
+let addressInFlight: { mnemonic: string; promise: Promise<PrivacyWalletResponse> } | undefined
+let publicAddress: string | undefined
+let publicAddressMnemonic: string | undefined
 let nativeCallQueue: Promise<unknown> | undefined
 let nativeReadiness: NativeReadiness = 'unknown'
 let readinessEpoch = 0
@@ -166,7 +169,7 @@ const callNativeLightWallet = async (
   const callId = ++nativeCallSeq
   const callStartedAt = Date.now()
   const mnemonic = body.mnemonic
-  const cached = mnemonic
+  const cached = mnemonic && action !== 'ensure'
     ? await privacyCacheService.load(COIN, mnemonic).catch(() => null)
     : null
   session.assertCurrent()
@@ -244,9 +247,20 @@ export const epicPrivacyWalletService: PrivacyCoinWalletService = {
   },
 
   async ensureWallet(mnemonic) {
-    const response = await runExclusive(() => callNativeLightWallet('ensure', { mnemonic }), 'ensure')
-    if (!response.ok) updateNativeReadiness(response)
-    return response
+    if (publicAddress && publicAddressMnemonic === mnemonic) return { ok: true, address: publicAddress, code: 'epic-address-ready' }
+    if (addressInFlight?.mnemonic === mnemonic) return addressInFlight.promise
+    const session = taskSession.capture()
+    const promise = runExclusive(() => callNativeLightWallet('ensure', { mnemonic }), 'ensure').then(response => {
+      session.assertCurrent()
+      if (response.ok && response.address) {
+        publicAddress = response.address
+        publicAddressMnemonic = mnemonic
+      }
+      if (!response.ok) updateNativeReadiness(response)
+      return response
+    }).finally(() => { if (addressInFlight?.promise === promise) addressInFlight = undefined })
+    addressInFlight = { mnemonic, promise }
+    return promise
   },
 
   async warmWallet(mnemonic) {
@@ -287,7 +301,10 @@ export const epicPrivacyWalletService: PrivacyCoinWalletService = {
       }
       return response
     }
-    const promise = runExclusive(task, 'snapshot').finally(() => {
+    // Start address derivation before putting the long scan on the native
+    // queue. The native ensure action opens keys without contacting the node.
+    const addressReady = epicPrivacyWalletService.ensureWallet(mnemonic)
+    const promise = addressReady.then(() => runExclusive(task, 'snapshot')).finally(() => {
       if (snapshotInFlight?.promise === promise) snapshotInFlight = undefined
       listeners.clear()
     })
@@ -353,6 +370,9 @@ export const epicPrivacyWalletService: PrivacyCoinWalletService = {
 
   resetNativeReadiness() {
     taskSession.invalidate()
+    publicAddress = undefined
+    publicAddressMnemonic = undefined
+    addressInFlight = undefined
     readinessEpoch += 1
     snapshotInFlight = undefined
     nativeCallQueue = undefined

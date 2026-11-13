@@ -6,9 +6,6 @@ import { Card } from '../../components/ui/Card'
 import { Input } from '../../components/ui/Input'
 import { WalletLoadProgressView } from '../../components/wallet/WalletLoadProgress'
 import { useAuthStore } from '../../store/authStore'
-import { useCoinStore } from '../../store/coinStore'
-import { useTransactionStore } from '../../store/transactionStore'
-import { walletService } from '../../services/walletService'
 import { buildWalletLoadProgress, type WalletLoadProgress } from '../../types/walletLoadProgress'
 import { useT } from '../../utils/i18n'
 
@@ -52,30 +49,15 @@ export default function ConfirmSeed() {
       warmingUpRef.current = true
       setWarmingUp(true)
       setLoadProgress(buildWalletLoadProgress('addresses'))
-      useAuthStore.setState({ sessionMnemonic: seed })
       try {
-        await walletService.finalizeWalletSetup(seed)
-        await walletService.preparePublicAddresses(seed)
-        walletService.warmPrivacyAddresses()
-        useTransactionStore.getState().resetTransactions()
-        await useCoinStore.getState().resetCoinsForCurrentWallet()
+        await useAuthStore.getState().confirmWalletSetup(seed, setLoadProgress)
+        navigate('/app', { replace: true })
       } catch (error) {
         setLoadProgress(null)
         setFormError(error instanceof Error ? error.message : t('walletDataLoadFailed'))
         warmingUpRef.current = false
         setWarmingUp(false)
-        return
       }
-      useAuthStore.setState({ isUnlocked: false, sessionMnemonic: seed })
-      await useCoinStore.getState().loadSendReadyState(setLoadProgress)
-      setLoadProgress(buildWalletLoadProgress('history'))
-      void useTransactionStore.getState()
-        .loadTransactions({ page: 1, force: true, silent: true, startup: true })
-        .catch(() => undefined)
-      useAuthStore.setState({ isUnlocked: true })
-      setLoadProgress(buildWalletLoadProgress('ready'))
-      navigate('/app', { replace: true })
-      useAuthStore.getState().clearGeneratedSeed()
     }
   }
 

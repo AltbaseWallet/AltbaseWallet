@@ -5,45 +5,29 @@
   "author": "Altbase",
   "homepage": "https://altbase.io",
   "private": true,
-  "version": "0.1.9",
+  "version": "0.1.13",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
-    "sync:mining": "node scripts/sync-mining-frontend.cjs",
-    "build:mining": "node scripts/build-mining-module.cjs",
-    "prepare:monero:linux": "node scripts/build-monero-wallet-module.cjs --target=linux-x64",
-    "prepare:monero:windows": "node scripts/build-monero-wallet-module.cjs --target=windows-x64",
-    "prepare:monero:macos": "node scripts/build-monero-wallet-module.cjs --target=macos-universal",
-    "qa:mining-ui": "electron scripts/qa-mining-ui.cjs",
-    "release:mining": "node scripts/package-mining-module-release.cjs",
-    "dev": "npm run sync:mining && vite",
-    "build:zano": "node scripts/build-zano-native.cjs",
-    "build:epic": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-epic-resilient.ps1",
-    "build:kaspa-wallet-wasm": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-kaspa-wallet-wasm.ps1 -Threads 1",
-    "build:nonsense-wallet-wasm": "bash scripts/build-nonsense-wallet-wasm.sh",
-    "build:core": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-core-native.ps1",
-    "build": "npm run sync:mining && npm run build:mining && npm run build:coin-sdks && tsc -b && vite build",
-    "build:release": "npm run sync:mining && node scripts/build-mining-module.cjs --require-signature && npm run build:coin-sdks && tsc -b && vite build",
-    "cli:build": "vite build --config vite.cli.config.ts",
-    "cli": "npm run -s cli:build && node cli-dist/altbase-cli.mjs",
+    "dev": "vite",
     "electron": "electron .",
-    "dist:win": "npm run build:core && npm run dist:win:dir && node scripts/build-native-installer.cjs",
-    "dist:win:dir": "node scripts/stage-coin-runtimes.cjs --target=windows --arch=x64 && npm run prepare:monero:windows && node scripts/copy-native-core.cjs --target=windows --arch=x64 && npm run build:release && electron-builder --win dir --x64 --config.win.signAndEditExecutable=false && node scripts/set-win-icon.cjs",
-    "dist:win:msi": "npm run build:core && npm run dist:win:dir && node scripts/build-native-installer.cjs",
-    "dist:win:installer": "npm run dist:win:msi",
-    "dist:linux:appimage": "node scripts/stage-coin-runtimes.cjs --target=linux --arch=x64 && npm run prepare:monero:linux && node scripts/copy-native-core.cjs --target=linux --arch=x64 && npm run build:release && electron-builder --linux AppImage --x64",
-    "dist:linux:dir": "node scripts/stage-coin-runtimes.cjs --target=linux --arch=x64 && npm run prepare:monero:linux && node scripts/copy-native-core.cjs --target=linux --arch=x64 && npm run build:release && electron-builder --linux dir --x64",
-    "dist:mac:dmg": "node scripts/stage-coin-runtimes.cjs --target=macos --arch=universal && npm run prepare:monero:macos && node scripts/stage-macos-universal-native.cjs && npm run build:release && electron-builder --mac dmg --universal",
-    "dist:mac:zip": "node scripts/stage-coin-runtimes.cjs --target=macos --arch=universal && npm run prepare:monero:macos && node scripts/stage-macos-universal-native.cjs && npm run build:release && electron-builder --mac zip --universal",
-    "lint": "eslint .",
-    "pretest": "npm run sync:mining && npm run build:mining",
-    "test": "node --experimental-strip-types --test tests/**/*.test.ts tests/**/*.test.cjs && node --test modules/mining/dist/tests/*.test.js",
-    "preview": "vite preview",
-    "build:coin-sdks": "node scripts/build-coin-sdks.mjs"
+    "start": "electron .",
+    "build": "node scripts/build-project.cjs",
+    "build:plugin-host": "node scripts/build-plugin-host.cjs",
+    "build:plugin-host:windows": "node scripts/build-plugin-host.cjs --windows",
+    "build:coin-sdks": "node scripts/build-coin-sdks.cjs",
+    "test": "node scripts/test-project.cjs",
+    "dist:linux": "node scripts/package-project.cjs linux-x64",
+    "dist:win": "node scripts/package-project.cjs win32-x64",
+    "dist:mac": "node scripts/package-project.cjs darwin-arm64",
+    "test:gui": "electron scripts/qa-plugin-gui.cjs",
+    "build:fixtures": "node scripts/build-plugin-fixtures.cjs",
+    "test:mining": "node scripts/test-mining.cjs",
+    "dist:win:msi": "node scripts/package-project.cjs win32-x64 --msi"
   },
   "dependencies": {
     "@bitgo/utxo-lib": "11.24.4",
-    "@ckb-ccc/core": "1.16.1",
+    "@ckb-ccc/core": "file:vendor/ckb-ccc-core-1.16.1+altbase.1.tgz",
     "@hookform/resolvers": "^5.2.2",
     "@noble/curves": "1.9.7",
     "@noble/hashes": "1.8.0",
@@ -51,21 +35,31 @@
     "@scure/base": "1.2.6",
     "@scure/bip32": "1.7.0",
     "@scure/bip39": "1.6.0",
+    "@solana-program/system": "0.15.0",
+    "@solana-program/token": "0.17.0",
+    "@solana-program/token-2022": "0.19.0",
+    "@solana/kit": "8.3.0",
     "clsx": "^2.1.1",
+    "elliptic": "file:vendor/elliptic-6.6.1+altbase.1.tgz",
     "ethers": "6.17.0",
     "framer-motion": "^12.38.0",
+    "jpeg-js": "0.4.4",
     "kaspa-wasm": "file:vendor/kaspa-wasm-v2.0.1",
     "libnexa-ts": "3.0.3",
     "lucide-react": "^1.14.0",
     "nonsense-wasm": "file:vendor/nonsense-wasm-v0.1.7",
+    "pngjs": "7.0.0",
     "qrcode.react": "^4.2.0",
     "quais": "^1.0.0-alpha.54",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-hook-form": "^7.75.0",
     "react-router-dom": "^7.15.0",
+    "semver": "7.8.5",
+    "tar": "7.5.22",
+    "tronweb": "6.5.1",
     "ws": "8.21.0",
-    "zod": "^4.4.3",
+    "zod": "4.6.7",
     "zustand": "^5.0.13"
   },
   "devDependencies": {
@@ -75,7 +69,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
     "autoprefixer": "^10.5.0",
-    "electron": "^43.1.1",
+    "electron": "43.8.3",
     "electron-builder": "^26.15.3",
     "eslint": "^10.2.1",
     "eslint-plugin-react-hooks": "^7.1.1",
@@ -89,13 +83,14 @@
     "tailwindcss": "^3.4.17",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.58.2",
-    "vite": "^8.0.10"
+    "vite": "8.1.6",
+    "braces": "file:vendor/braces-3.0.3+altbase.1.tgz"
   },
   "build": {
     "appId": "com.altbase.wallet",
     "productName": "Altbase Wallet",
     "directories": {
-      "output": "release"
+      "output": "artifacts"
     },
     "files": [
       "dist/**/*",
@@ -129,6 +124,14 @@
           "dist/src/**/*",
           "dist/frontend/**/*"
         ]
+      },
+      {
+        "from": "coin-plugins",
+        "to": "coin-plugins"
+      },
+      {
+        "from": "native-plugin-host/bin",
+        "to": "native-plugin-host/bin"
       }
     ],
     "win": {
@@ -173,9 +176,29 @@
           ]
         }
       ],
-      "artifactName": "Altbase-Wallet-macOS-universal.${ext}",
+      "artifactName": "Altbase-Wallet-macOS.${ext}",
       "x64ArchFiles": "Contents/Resources/{native-core/**,coin-runtimes/**,app.asar.unpacked/node_modules/secp256k1/prebuilds/**}"
     },
-    "npmRebuild": false
+    "npmRebuild": false,
+    "msi": {
+      "oneClick": false,
+      "perMachine": false,
+      "runAfterFinish": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "artifactName": "Altbase-Wallet-Windows-x64-v${version}.msi"
+    }
+  },
+  "overrides": {
+    "elliptic": "$elliptic",
+    "axios": "1.20.0",
+    "brace-expansion@^1.1.7": "1.1.21",
+    "brace-expansion@^2.0.1": "2.1.7",
+    "fast-uri": "3.1.9",
+    "http-cache-semantics": "4.3.0",
+    "braces": "$braces",
+    "brace-expansion@^5.0.0": "5.0.12",
+    "zod": "$zod",
+    "minimatch@>=7.0.0 <11.0.1": "11.0.1"
   }
 }

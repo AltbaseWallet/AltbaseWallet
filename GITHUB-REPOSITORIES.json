@@ -1,0 +1,417 @@
+{
+  "wallet": {
+    "repository": "AltbaseWallet/AltbaseWallet",
+    "directory": "."
+  },
+  "modules": {
+    "module-account-common": {
+      "paths": [
+        "modules/account-common"
+      ],
+      "directory": "modules/account-common",
+      "repository": "AltbaseWallet/module-account-common",
+      "commit": "f0a54b67a25a1734950665896db121d0431e510b"
+    },
+    "module-bitcoin": {
+      "paths": [
+        "modules/bitcoin",
+        "coin-plugins/bitcoin"
+      ],
+      "directory": "modules/bitcoin",
+      "repository": "AltbaseWallet/module-bitcoin",
+      "commit": "d2371322eef6b5fef5ab3c336e86b23ada7db70d"
+    },
+    "module-bitcoin2": {
+      "paths": [
+        "modules/bitcoin2",
+        "coin-plugins/bitcoin2"
+      ],
+      "directory": "modules/bitcoin2",
+      "repository": "AltbaseWallet/module-bitcoin2",
+      "commit": "c9f388a6faf56bc12813881fdb7ddc09e8317526"
+    },
+    "module-bitcoincash": {
+      "paths": [
+        "modules/bitcoincash",
+        "coin-plugins/bitcoincash"
+      ],
+      "directory": "modules/bitcoincash",
+      "repository": "AltbaseWallet/module-bitcoincash",
+      "commit": "3677dae0c4d67d21c0cdb69c291bae7be01e5d3d"
+    },
+    "module-bitcoincashii": {
+      "paths": [
+        "modules/bitcoincashii",
+        "coin-plugins/bitcoincashii"
+      ],
+      "directory": "modules/bitcoincashii",
+      "repository": "AltbaseWallet/module-bitcoincashii",
+      "commit": "f82c5c2d0aff905745cb627a79d7f6de004085de"
+    },
+    "module-btgs": {
+      "paths": [
+        "modules/btgs",
+        "coin-plugins/btgs"
+      ],
+      "directory": "modules/btgs",
+      "repository": "AltbaseWallet/module-btgs",
+      "commit": "cbed93661b6f5d0f5a55bad33b7791c529fe3e1e"
+    },
+    "module-capstash": {
+      "paths": [
+        "modules/capstash",
+        "coin-plugins/capstash"
+      ],
+      "directory": "modules/capstash",
+      "repository": "AltbaseWallet/module-capstash",
+      "commit": "c405f152f09f7f4b89a022b6c5211f67584f56a8"
+    },
+    "module-ckb": {
+      "paths": [
+        "modules/ckb",
+        "coin-plugins/ckb"
+      ],
+      "directory": "modules/ckb",
+      "repository": "AltbaseWallet/module-ckb",
+      "commit": "c3f5065b721df662a52c15f575f936420b3080ea"
+    },
+    "module-digibyte": {
+      "paths": [
+        "modules/digibyte",
+        "coin-plugins/digibyte"
+      ],
+      "directory": "modules/digibyte",
+      "repository": "AltbaseWallet/module-digibyte",
+      "commit": "3e8e9bddd1af942b8d6f7e54e0dce2a8d2d586b0"
+    },
+    "module-epic": {
+      "paths": [
+        "modules/epic",
+        "coin-plugins/epic"
+      ],
+      "directory": "modules/epic",
+      "repository": "AltbaseWallet/module-epic",
+      "commit": "1e3724a4a106bd08902fcbfd241c3913cfedd782"
+    },
+    "module-evm": {
+      "paths": [
+        "modules/evm"
+      ],
+      "directory": "modules/evm",
+      "repository": "AltbaseWallet/module-evm",
+      "commit": "9e0138e5fe9b7d29f04e638f4c5daf859df35c64"
+    },
+    "module-firo": {
+      "paths": [
+        "modules/firo",
+        "coin-plugins/firo"
+      ],
+      "directory": "modules/firo",
+      "repository": "AltbaseWallet/module-firo",
+      "commit": "aed25effe21a7b4cad14d290bcd447543e698c28"
+    },
+    "module-hypercoin": {
+      "paths": [
+        "modules/hypercoin",
+        "coin-plugins/hypercoin"
+      ],
+      "directory": "modules/hypercoin",
+      "repository": "AltbaseWallet/module-hypercoin",
+      "commit": "71f5d4bc473812240d5cef1a1e037891080f5316"
+    },
+    "module-junkcoin": {
+      "paths": [
+        "modules/junkcoin",
+        "coin-plugins/junkcoin"
+      ],
+      "directory": "modules/junkcoin",
+      "repository": "AltbaseWallet/module-junkcoin",
+      "commit": "b31547ab5cd38cc26516a62cb60ecfc42619b9a7"
+    },
+    "module-kaspa": {
+      "paths": [
+        "modules/kaspa",
+        "coin-plugins/kaspa"
+      ],
+      "directory": "modules/kaspa",
+      "repository": "AltbaseWallet/module-kaspa",
+      "commit": "87325c4d57bc433d494fbc37906faa4e2888d6d0"
+    },
+    "module-kerrigan": {
+      "paths": [
+        "modules/kerrigan",
+        "coin-plugins/kerrigan"
+      ],
+      "directory": "modules/kerrigan",
+      "repository": "AltbaseWallet/module-kerrigan",
+      "commit": "522e49e59a886d20326e7f43989fbf21f112c659"
+    },
+    "module-litecoinii": {
+      "paths": [
+        "modules/litecoinii",
+        "coin-plugins/litecoinii"
+      ],
+      "directory": "modules/litecoinii",
+      "repository": "AltbaseWallet/module-litecoinii",
+      "commit": "225e65aa33fbdda8894af8389db8a47f77ba7d03"
+    },
+    "module-mining": {
+      "paths": [
+        "modules/mining"
+      ],
+      "directory": "modules/mining",
+      "repository": "AltbaseWallet/module-mining",
+      "commit": "289e037d96d4f840f33a8356a8be046ec618845d"
+    },
+    "module-monero": {
+      "paths": [
+        "modules/monero",
+        "coin-plugins/monero"
+      ],
+      "directory": "modules/monero",
+      "repository": "AltbaseWallet/module-monero",
+      "commit": "b525f74e1670debef3200d3eb94578afc8f8909f"
+    },
+    "module-mwc": {
+      "paths": [
+        "modules/mwc",
+        "coin-plugins/mwc"
+      ],
+      "directory": "modules/mwc",
+      "repository": "AltbaseWallet/module-mwc",
+      "commit": "8a6d15a17a668c3c51e34263d0a13f09edae653e"
+    },
+    "module-mydogecoin": {
+      "paths": [
+        "modules/mydogecoin",
+        "coin-plugins/mydogecoin"
+      ],
+      "directory": "modules/mydogecoin",
+      "repository": "AltbaseWallet/module-mydogecoin",
+      "commit": "6d86ff5fe4a43a2d74a8ca38b315ece884aa1d0e"
+    },
+    "module-neoxa": {
+      "paths": [
+        "modules/neoxa",
+        "coin-plugins/neoxa"
+      ],
+      "directory": "modules/neoxa",
+      "repository": "AltbaseWallet/module-neoxa",
+      "commit": "cd3f8814997e04977b73fa6dc079653c42f9adde"
+    },
+    "module-nexa": {
+      "paths": [
+        "modules/nexa",
+        "coin-plugins/nexa"
+      ],
+      "directory": "modules/nexa",
+      "repository": "AltbaseWallet/module-nexa",
+      "commit": "56dae906e38575b7a46a969b02337acdf18b74a4"
+    },
+    "module-nonsense": {
+      "paths": [
+        "modules/nonsense",
+        "coin-plugins/nonsense"
+      ],
+      "directory": "modules/nonsense",
+      "repository": "AltbaseWallet/module-nonsense",
+      "commit": "1f0f6feb9ac71027a3d349c338d4c81eb2b8a254"
+    },
+    "module-pearl": {
+      "paths": [
+        "modules/pearl",
+        "coin-plugins/pearl"
+      ],
+      "directory": "modules/pearl",
+      "repository": "AltbaseWallet/module-pearl",
+      "commit": "6b90d64c252ca26bfb6fc10dc0860f9b9b6c3bdc"
+    },
+    "module-peercoin": {
+      "paths": [
+        "modules/peercoin",
+        "coin-plugins/peercoin"
+      ],
+      "directory": "modules/peercoin",
+      "repository": "AltbaseWallet/module-peercoin",
+      "commit": "1a05fdec4211cae90f1f6279de964b53ecfbe326"
+    },
+    "module-pepecoin": {
+      "paths": [
+        "modules/pepecoin",
+        "coin-plugins/pepecoin"
+      ],
+      "directory": "modules/pepecoin",
+      "repository": "AltbaseWallet/module-pepecoin",
+      "commit": "95f430de9f5433fd34d0b8047b23f8b52c2cab9f"
+    },
+    "module-quai": {
+      "paths": [
+        "modules/quai",
+        "coin-plugins/quai"
+      ],
+      "directory": "modules/quai",
+      "repository": "AltbaseWallet/module-quai",
+      "commit": "86d6062f9f032531ae9d4fffe0841cd8aee3b187"
+    },
+    "module-qubic": {
+      "paths": [
+        "modules/qubic",
+        "coin-plugins/qubic"
+      ],
+      "directory": "modules/qubic",
+      "repository": "AltbaseWallet/module-qubic",
+      "commit": "74dd24c62ee630e977692bceab79ff5ee2e9dd88"
+    },
+    "module-raptoreum": {
+      "paths": [
+        "modules/raptoreum",
+        "coin-plugins/raptoreum"
+      ],
+      "directory": "modules/raptoreum",
+      "repository": "AltbaseWallet/module-raptoreum",
+      "commit": "a8996d60905376147074a84e2a49e9ac39491969"
+    },
+    "module-scash": {
+      "paths": [
+        "modules/scash",
+        "coin-plugins/scash"
+      ],
+      "directory": "modules/scash",
+      "repository": "AltbaseWallet/module-scash",
+      "commit": "21118349d3ccf31e03d4118bb3d735838ac02aa2"
+    },
+    "module-sol": {
+      "paths": [
+        "modules/sol"
+      ],
+      "directory": "modules/sol",
+      "repository": "AltbaseWallet/module-sol",
+      "commit": "6e409bb0e10d8989b03f42724f25ff45e332b904"
+    },
+    "module-terracoin": {
+      "paths": [
+        "modules/terracoin",
+        "coin-plugins/terracoin"
+      ],
+      "directory": "modules/terracoin",
+      "repository": "AltbaseWallet/module-terracoin",
+      "commit": "aac0704d287e82c688123a76b9ac0b8b274b9569"
+    },
+    "module-trx": {
+      "paths": [
+        "modules/trx"
+      ],
+      "directory": "modules/trx",
+      "repository": "AltbaseWallet/module-trx",
+      "commit": "4852a8621dab53e35db1b9dd38dfea5c8b0e1830"
+    },
+    "module-xelis": {
+      "paths": [
+        "modules/xelis",
+        "coin-plugins/xelis"
+      ],
+      "directory": "modules/xelis",
+      "repository": "AltbaseWallet/module-xelis",
+      "commit": "d34b8b1813a03973145e510e87d0259953fc685c"
+    },
+    "module-xgr": {
+      "paths": [
+        "modules/xgr",
+        "coin-plugins/xgr"
+      ],
+      "directory": "modules/xgr",
+      "repository": "AltbaseWallet/module-xgr",
+      "commit": "f06a889e28b7691899a4d5e4e238c96975078e65"
+    },
+    "module-zano": {
+      "paths": [
+        "modules/zano",
+        "coin-plugins/zano"
+      ],
+      "directory": "modules/zano",
+      "repository": "AltbaseWallet/module-zano",
+      "commit": "f83bfc62ce2e92a8b6f0f390caa743a4a910516b"
+    },
+    "module-zcash": {
+      "paths": [
+        "modules/zcash",
+        "coin-plugins/zcash"
+      ],
+      "directory": "modules/zcash",
+      "repository": "AltbaseWallet/module-zcash",
+      "commit": "02f53bbbea4ecdae014a93a1d483f9055f2a3495"
+    },
+    "module-arbitrum": {
+      "paths": [
+        "coin-plugins/arbitrum"
+      ],
+      "directory": "coin-plugins/arbitrum",
+      "repository": "AltbaseWallet/module-arbitrum",
+      "commit": "3db7fcb9ea482fdcc528312366bbb48432e78ce4"
+    },
+    "module-bsc": {
+      "paths": [
+        "coin-plugins/bsc"
+      ],
+      "directory": "coin-plugins/bsc",
+      "repository": "AltbaseWallet/module-bsc",
+      "commit": "1e6de311aacc0868a4da0debde52afc7e43f7061"
+    },
+    "module-ethereum": {
+      "paths": [
+        "coin-plugins/ethereum"
+      ],
+      "directory": "coin-plugins/ethereum",
+      "repository": "AltbaseWallet/module-ethereum",
+      "commit": "d22dd5cb42f3fea2f1ca0de342a5b0fd8c984962"
+    },
+    "module-polygon": {
+      "paths": [
+        "coin-plugins/polygon"
+      ],
+      "directory": "coin-plugins/polygon",
+      "repository": "AltbaseWallet/module-polygon",
+      "commit": "df76563d919e295c4ecc22f8633e07578038f699"
+    },
+    "module-solana": {
+      "paths": [
+        "coin-plugins/solana"
+      ],
+      "directory": "coin-plugins/solana",
+      "repository": "AltbaseWallet/module-solana",
+      "commit": "c7a709308e27ee324bc0325f5cf3e1fb56b8fe3e"
+    },
+    "module-tron": {
+      "paths": [
+        "coin-plugins/tron"
+      ],
+      "directory": "coin-plugins/tron",
+      "repository": "AltbaseWallet/module-tron",
+      "commit": "ef5149f7461d6432e74e506afb4d6ce7e93698d9"
+    },
+    "core": {
+      "paths": [
+        "native/core"
+      ],
+      "directory": "native/core",
+      "repository": "AltbaseWallet/core",
+      "commit": "a3a0f72325aee94c5f76230922fb068526cb3f7b"
+    },
+    "plugin-sdk": {
+      "paths": [
+        "plugin-sdk"
+      ],
+      "directory": "plugin-sdk",
+      "repository": "AltbaseWallet/plugin-sdk",
+      "commit": "130c15404d9d31bc691a73a32c6b8af004f99924"
+    },
+    "plugin-host": {
+      "paths": [
+        "native-plugin-host"
+      ],
+      "directory": "native-plugin-host",
+      "repository": "AltbaseWallet/plugin-host",
+      "commit": "1eb50d74a0a75b92937e71008e03a491f1a08548"
+    }
+  }
+}

@@ -4,6 +4,7 @@ import { Header } from './Header'
 import { Sidebar } from './Sidebar'
 import { BottomActions } from './BottomActions'
 import { useT } from '../../utils/i18n'
+import { DelistingNotice } from '../wallet/DelistingNotice'
 
 const backTargetFor = (pathname: string) => {
   if (pathname.startsWith('/app/settings/')) return '/app/settings'
@@ -27,6 +28,7 @@ export function AppLayout() {
         <Sidebar />
         <div className="flex min-h-0 min-w-0 flex-1 flex-col pb-[calc(4.5rem+env(safe-area-inset-bottom))] lg:pb-0">
           <Header />
+          <DelistingNotice />
           {showBack && (
             <div className="shrink-0 border-b border-white/10 px-3 py-2 sm:px-4 lg:px-5 xl:px-6">
               <button
