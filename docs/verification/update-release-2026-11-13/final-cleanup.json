@@ -1,5 +1,5 @@
 {
-  "at": "2026-11-13T02:39:16.945939+00:00",
+  "at": "2026-11-13T02:45:40.632591+00:00",
   "passed": true,
   "removedOwnTemporaryDirectories": [
     {
@@ -26,5 +26,6 @@
   "rootDiskFreeGiB": 81.78,
   "sharedDiskFreeGiB": 14.73,
   "realProfilesTouched": false,
-  "currentDeliverablesPreserved": true
+  "currentDeliverablesPreserved": true,
+  "finalSiteProfileRemoved": true
 }

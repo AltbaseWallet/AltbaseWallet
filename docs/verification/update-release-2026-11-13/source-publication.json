@@ -1,5 +1,5 @@
 {
-  "at": "2026-11-13T02:32:07.190208+00:00",
+  "at": "2026-11-13T02:40:58.922496+00:00",
   "repositories": [
     {
       "repository": "AltbaseWallet/core",
@@ -448,6 +448,15 @@
       "before": "289e037d96d4f840f33a8356a8be046ec618845d",
       "commit": "4ef63bab627f88b1f76b30bdb4b8e5a4f4a783f5",
       "changedEntries": 4,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/AltbaseWallet",
+      "branch": "main",
+      "before": "eb206f88ac80ab39402a3bc1017fd9d0ba3bc3e4",
+      "commit": "06c7ec6c66720ad085e1c40993fbf08afa7e751b",
+      "changedEntries": 47,
       "protectedEntriesUnchanged": true,
       "newProtectedUploads": 0
     }

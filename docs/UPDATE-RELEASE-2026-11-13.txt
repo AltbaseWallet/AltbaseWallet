@@ -1,5 +1,5 @@
 Altbase Wallet 0.1.13 — update repair, publication and deployment
-Completed verification: 2026-11-13T02:40:33.282439+00:00
+Completed verification: 2026-11-13T02:45:40.651782+00:00
 Project: /home/user/Documents/AltbaseFullNode
 Clean public source: /home/user/Documents/Altbase_GitHub
 Evidence: docs/verification/update-release-2026-11-13/
@@ -78,6 +78,11 @@ Arbitrum's native ETH uses the Ethereum market source. Existing price-provider
 logic was preserved, adding the native account networks through the same mapping.
 The production GUI was checked after deployment; all seven translations and the
 mobile layout passed. Public checksum data was compared to the release assets.
+A confirmed encoded-segment bypass of static private-file checks was corrected:
+paths are normalized before private-path matching, temporary files are denied,
+and directory containment uses a full separator boundary. Twelve offline vectors
+passed; four protected URLs returned HTTP 404 in production without reading their
+response bodies. The seven-language GUI passed again after deployment.
 An earlier DNS failure had left certbot failed. Normal renewal was retried once,
 succeeded and extended the website certificate to February 11, 2027.
 
@@ -113,6 +118,6 @@ The tests cover the exercised fixtures and live reads, not every future provider
 consensus or hardware condition.
 
 CLEANUP
-Own transport copies, obsolete local Mining archive, QA profiles and preview
-cache were removed. Current source, build dependencies, deliverables and real
-profiles remain. Root disk free: 81.78 GiB. Shared drive free: 14.73 GiB.
+Own transport copies, obsolete local Mining archive, QA profiles, preview cache
+and temporary Windows tasks were removed. Current source, deliverables and real
+profiles remain. Root disk free: 81.78 GiB. Shared disk free: 14.73 GiB.

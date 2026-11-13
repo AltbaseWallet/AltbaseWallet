@@ -1,5 +1,5 @@
 {
-  "at": "2026-11-13T02:40:33.822814+00:00",
+  "at": "2026-11-13T02:45:40.833169+00:00",
   "version": "0.1.13",
   "protectedSourceIncluded": false,
   "credentialScanPassed": true,
@@ -1526,8 +1526,8 @@
     },
     {
       "file": "docs/UPDATE-RELEASE-2026-11-13.txt",
-      "size": 8164,
-      "sha256": "6b5cbc725ab41810f479f735d824b14c9a723795bf837e16596d50f5d68ccdbd"
+      "size": 8561,
+      "sha256": "47eb4219d9db2c9a8b4b94005aabefbe849d3dd4a7e4150d33d81503e7205b56"
     },
     {
       "file": "docs/PUBLICNODE-CHECKS-2026-09-24.md",
@@ -1542,12 +1542,12 @@
     {
       "file": "docs/verification/update-release-2026-11-13/site-production-gui.json",
       "size": 478,
-      "sha256": "8a632e05abfee5adfb3e0603e8b7f4f298dfcfc00f791ee1ec381681e35b9a3f"
+      "sha256": "0bc80d7e9da1febcc141861660431356a7a202c1aad59d23f758e2acbdf95a3f"
     },
     {
       "file": "docs/verification/update-release-2026-11-13/production-desktop-release.png",
-      "size": 328879,
-      "sha256": "497f167498b9389bca888f1144ec19f4e422e9664e8f481ddc97b78df0ab6bdf"
+      "size": 138852,
+      "sha256": "16b8834fceb697742d986a0d19f7b69f0a7aead3aa0d6dcac96bfc248892fec3"
     },
     {
       "file": "docs/verification/update-release-2026-11-13/native-windows-update-notice.png",
@@ -1567,12 +1567,17 @@
     {
       "file": "docs/verification/update-release-2026-11-13/summary.json",
       "size": 355,
-      "sha256": "d2e80fe7255b9b5eb100b9de14f11241d56bbcbe5dfdf1822b42f1e93791db95"
+      "sha256": "a35ee369afcc9bf1ea9da7601f29a0d014bcb5c8b8750fcb252888b0c146fc98"
     },
     {
       "file": "docs/verification/update-release-2026-11-13/mining-0.1.15-tests.log",
       "size": 2738,
       "sha256": "c213b4977d053bae51d626f684605dfe56bf1e46dda7f993fa230847c5048225"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/site-path-vectors.json",
+      "size": 946,
+      "sha256": "4403785cc93302f881aeb936c9a46675f0ac4ddadf649c09bf5d8171cf8212d0"
     },
     {
       "file": "docs/verification/update-release-2026-11-13/final-lint.log",
@@ -1626,8 +1631,8 @@
     },
     {
       "file": "docs/verification/update-release-2026-11-13/final-cleanup.json",
-      "size": 864,
-      "sha256": "94cfb8040af345ba89197e0912ee6396cc9aa3dfb6e8d9c422374f0e0eb5e663"
+      "size": 899,
+      "sha256": "6903d79f80d05a8f2515d33030c2b284ade825d3910f6ffa53874d3966a2c3c1"
     },
     {
       "file": "docs/verification/update-release-2026-11-13/update-tests.log",
@@ -1648,6 +1653,11 @@
       "file": "docs/verification/update-release-2026-11-13/windows-final-task-cleanup.json",
       "size": 154,
       "sha256": "d38596d6cf04fb202c5c1d788cb50825eee1cac9ae9f4d8f0155b1a31c801c36"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/site-live-path-checks.json",
+      "size": 501,
+      "sha256": "c58a49bf22f378de58930334227c875b11cddabbbfcd0af40030353372a5fd34"
     },
     {
       "file": "docs/verification/update-release-2026-11-13/backend-update-tests.log",
@@ -1677,7 +1687,7 @@
     {
       "file": "docs/verification/update-release-2026-11-13/website-deployment.json",
       "size": 1988,
-      "sha256": "7f4f4eb38a8f60f1d599862200be2b6fe0169656f1fcaa73a9d02b2204a5718d"
+      "sha256": "d23e98f4ac21a9d843982183cd5839e975c269b6c63ccfef9cdb8521440f4f45"
     },
     {
       "file": "docs/verification/update-release-2026-11-13/windows-delivery-cleanup.json",
@@ -1746,8 +1756,8 @@
     },
     {
       "file": "docs/verification/update-release-2026-11-13/source-publication.json",
-      "size": 15428,
-      "sha256": "4872713851488ced55705494f568148ea1e9203d979ceb742b449ceade1edd9f"
+      "size": 15736,
+      "sha256": "9c1ff1869f2492fd0e98e601ce7403e830cd146adf6f63f07437189de2bbedd7"
     },
     {
       "file": "docs/verification/update-release-2026-11-13/release-publication.json",

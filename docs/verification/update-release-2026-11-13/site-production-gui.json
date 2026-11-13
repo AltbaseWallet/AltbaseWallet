@@ -1,5 +1,5 @@
 {
-  "at": "2026-11-13T02:29:25.832Z",
+  "at": "2026-11-13T02:44:53.850Z",
   "passed": true,
   "origin": "https://altbase.io",
   "actualGui": true,
@@ -19,5 +19,5 @@
   "delistedActiveLinksRemoved": true,
   "postRequestsAllowed": false,
   "realTransfers": 0,
-  "evidence": "local-checks/update-release-2026-11-12/site-gui-1794536918032"
+  "evidence": "local-checks/update-release-2026-11-12/site-gui-1794537867752"
 }

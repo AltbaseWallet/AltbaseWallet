@@ -1,5 +1,5 @@
 {
-  "at": "2026-11-13T02:28:12.230134+00:00",
+  "at": "2026-11-13T02:43:57.279851+00:00",
   "passed": true,
   "unit": "altbase-wallet-site.service",
   "files": [
@@ -29,7 +29,7 @@
     },
     {
       "file": "server.js",
-      "sha256": "4aa9c4c983f7d730e394f677b35761c2551e4d734461e0f90755ccf61cfcb9c3"
+      "sha256": "9e8768e7bcba5d709edb0978ced056379769efb57d211851fbe5b833a430aa8b"
     },
     {
       "file": "assets/img/networks/ethereum.png",

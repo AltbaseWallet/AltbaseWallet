@@ -1,0 +1,27 @@
+{
+  "at": "2026-11-13T02:44:27.680768+00:00",
+  "passed": true,
+  "checks": [
+    {
+      "path": "/server.js",
+      "http": 404,
+      "bodyRead": false
+    },
+    {
+      "path": "/assets/%2e%2e%2fserver.js",
+      "http": 404,
+      "bodyRead": false
+    },
+    {
+      "path": "/assets/%2e%2e%2fdata/tickets.json",
+      "http": 404,
+      "bodyRead": false
+    },
+    {
+      "path": "/server.js.release.tmp",
+      "http": 404,
+      "bodyRead": false
+    }
+  ],
+  "privateFileBodiesRead": 0
+}
