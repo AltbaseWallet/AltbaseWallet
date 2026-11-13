@@ -1,0 +1,30 @@
+{
+  "at": "2026-11-13T02:39:16.945939+00:00",
+  "passed": true,
+  "removedOwnTemporaryDirectories": [
+    {
+      "path": "/media/sf_re/Altbase Crypt/qa-release-upload-20261113",
+      "bytes": 757314084
+    },
+    {
+      "path": "/media/sf_re/Altbase Crypt/qa-update-20261112",
+      "bytes": 430918805
+    },
+    {
+      "path": "/home/user/Documents/AltbaseFullNode/artifacts/mining-0.1.14",
+      "bytes": 1341694
+    },
+    {
+      "path": "/home/user/Documents/AltbaseFullNode/local-checks/update-release-2026-11-12/preview-cache",
+      "bytes": 6290183
+    },
+    {
+      "path": "/home/user/Documents/AltbaseFullNode/local-checks/update-release-2026-11-12/site-gui-1794536918032/profile",
+      "bytes": 8803092
+    }
+  ],
+  "rootDiskFreeGiB": 81.78,
+  "sharedDiskFreeGiB": 14.73,
+  "realProfilesTouched": false,
+  "currentDeliverablesPreserved": true
+}

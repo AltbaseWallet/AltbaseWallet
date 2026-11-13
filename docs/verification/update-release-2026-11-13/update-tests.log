@@ -1,0 +1,14 @@
+✔ wallet update check reaches the production endpoint with the actual version and platform (184.512602ms)
+✔ update checks reject downgrades, the current version, malformed feeds and spoofed availability (94.154271ms)
+✔ optional update dismissal expires by day and cannot suppress another or mandatory release (13.078419ms)
+✔ unavailable feeds and restricted or corrupted storage never break wallet startup (14.708981ms)
+✔ published Linux and Windows updates use the current build without offering downgrades (0.670768ms)
+✔ an unavailable new macOS build retains the actual last published macOS version (0.139418ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 475.401466

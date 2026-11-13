@@ -1,0 +1,26 @@
+{
+  "at": "2026-11-13T01:27:45.676751+00:00",
+  "removedOwnQaProfiles": [
+    {
+      "path": "/home/user/Documents/AltbaseFullNode/local-checks/update-release-2026-11-12/update-gui/profile",
+      "bytes": 1797002
+    },
+    {
+      "path": "/home/user/Documents/AltbaseFullNode/local-checks/update-release-2026-11-12/update-gui-final/profile-9ZLk8m",
+      "bytes": 1796112
+    },
+    {
+      "path": "/home/user/Documents/AltbaseFullNode/local-checks/update-release-2026-11-12/asset-debug-profile",
+      "bytes": 8683025
+    },
+    {
+      "path": "/home/user/Documents/AltbaseFullNode/local-checks/update-release-2026-11-12/site-gui-1794532188514/profile",
+      "bytes": 7770481
+    },
+    {
+      "path": "/home/user/Documents/AltbaseFullNode/local-checks/update-release-2026-11-12/site-gui-1794529153664/profile",
+      "bytes": 9726201
+    }
+  ],
+  "diskFreeGiB": 81.91
+}

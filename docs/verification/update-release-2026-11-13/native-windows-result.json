@@ -1,0 +1,17 @@
+{
+  "at": "2026-11-12T22:57:49.709Z",
+  "passed": true,
+  "platform": "native Windows 11",
+  "actualPackagedApplication": true,
+  "realRenderer": true,
+  "realPreload": true,
+  "realMainIpc": true,
+  "requests": 5,
+  "failedBrowserOpenKeepsNotice": true,
+  "officialDownloadHandoff": true,
+  "dismissalAndRequiredUpdate": true,
+  "offlineStartup": true,
+  "realBrowserLaunches": 0,
+  "realUserProfilesOpened": 0,
+  "realTransfers": 0
+}

@@ -1,0 +1,455 @@
+{
+  "at": "2026-11-13T02:32:07.190208+00:00",
+  "repositories": [
+    {
+      "repository": "AltbaseWallet/core",
+      "branch": "main",
+      "before": "69abde390eab709ea3748a4e26a0da8bf8dac27a",
+      "commit": "a3a0f72325aee94c5f76230922fb068526cb3f7b",
+      "changedEntries": 4,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-account-common",
+      "branch": "main",
+      "before": "986662dfb63e8d6efdbcf6e9c82119bdf73c5396",
+      "commit": "f0a54b67a25a1734950665896db121d0431e510b",
+      "changedEntries": 15,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-arbitrum",
+      "branch": "main",
+      "before": "0d822a786b203a848a69aec22a5a75e1130b3cdc",
+      "commit": "3db7fcb9ea482fdcc528312366bbb48432e78ce4",
+      "changedEntries": 4,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-bitcoin",
+      "branch": "main",
+      "before": "bccf6c4a21cd3c9cf40df7a9e85dd206c6e9e4b5",
+      "commit": "d2371322eef6b5fef5ab3c336e86b23ada7db70d",
+      "changedEntries": 3,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-bitcoin2",
+      "branch": "main",
+      "before": "afaa37c44e19ed2f346e682c88c8912869796854",
+      "commit": "c9f388a6faf56bc12813881fdb7ddc09e8317526",
+      "changedEntries": 3,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-bitcoincash",
+      "branch": "main",
+      "before": "668d5977cbce864632d00f580280294832ef0d38",
+      "commit": "3677dae0c4d67d21c0cdb69c291bae7be01e5d3d",
+      "changedEntries": 3,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-bitcoincashii",
+      "branch": "main",
+      "before": "2f89beda226ba4cdbd0ca5b39de5e07a53900940",
+      "commit": "f82c5c2d0aff905745cb627a79d7f6de004085de",
+      "changedEntries": 3,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-bsc",
+      "branch": "main",
+      "before": "33f5e34d5507a5a954709225095271b6e7d48c1e",
+      "commit": "1e6de311aacc0868a4da0debde52afc7e43f7061",
+      "changedEntries": 4,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-btgs",
+      "branch": "main",
+      "before": "393263cd4269585e0dd643eb08055cb9625e2013",
+      "commit": "cbed93661b6f5d0f5a55bad33b7791c529fe3e1e",
+      "changedEntries": 3,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-capstash",
+      "branch": "main",
+      "before": "d75009313876262ec62dc9b91e7ff9b73849952e",
+      "commit": "c405f152f09f7f4b89a022b6c5211f67584f56a8",
+      "changedEntries": 3,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-ckb",
+      "branch": "main",
+      "before": "89a135c971d9b48f548aa5f4fba2298805792752",
+      "commit": "c3f5065b721df662a52c15f575f936420b3080ea",
+      "changedEntries": 3,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-digibyte",
+      "branch": "main",
+      "before": "c6ab64157f9d8bde7338cafa0257492970138528",
+      "commit": "3e8e9bddd1af942b8d6f7e54e0dce2a8d2d586b0",
+      "changedEntries": 3,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-epic",
+      "branch": "main",
+      "before": "57dfe74b9f7c6f8ea3372e5a4d62b097f457b8ac",
+      "commit": "1e3724a4a106bd08902fcbfd241c3913cfedd782",
+      "changedEntries": 3,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-ethereum",
+      "branch": "main",
+      "before": "5d63f92896585f41638810618d0ac626b72eff61",
+      "commit": "d22dd5cb42f3fea2f1ca0de342a5b0fd8c984962",
+      "changedEntries": 4,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-evm",
+      "branch": "main",
+      "before": "8a2e98c4648621d57f4251949f44af3c8e39452e",
+      "commit": "9e0138e5fe9b7d29f04e638f4c5daf859df35c64",
+      "changedEntries": 2,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-firo",
+      "branch": "main",
+      "before": "c6b9c140e6c3e206c6b3ddcd7e8a6ec009bfd294",
+      "commit": "aed25effe21a7b4cad14d290bcd447543e698c28",
+      "changedEntries": 3,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-hypercoin",
+      "branch": "main",
+      "before": "b08af7ca9e13c9e1266de17f310752d96f87224e",
+      "commit": "71f5d4bc473812240d5cef1a1e037891080f5316",
+      "changedEntries": 3,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-junkcoin",
+      "branch": "main",
+      "before": "613b51f576ec1b58d54e34341bcf87f2c0a974cd",
+      "commit": "b31547ab5cd38cc26516a62cb60ecfc42619b9a7",
+      "changedEntries": 3,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-kaspa",
+      "branch": "main",
+      "before": "7d3ffdcc35a6f359703736e3e48894a214e74ac9",
+      "commit": "87325c4d57bc433d494fbc37906faa4e2888d6d0",
+      "changedEntries": 3,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-kerrigan",
+      "branch": "main",
+      "before": "c807f235a4c92518caec8878afe326947553c44f",
+      "commit": "522e49e59a886d20326e7f43989fbf21f112c659",
+      "changedEntries": 3,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-litecoinii",
+      "branch": "main",
+      "before": "4f808aa9a9f1be8a2718d9281270fd9df7034e07",
+      "commit": "225e65aa33fbdda8894af8389db8a47f77ba7d03",
+      "changedEntries": 3,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-mining",
+      "branch": "main",
+      "before": "1b7ce6bd8d01bab51513cb0e54a580d3e8bc0ce3",
+      "commit": "289e037d96d4f840f33a8356a8be046ec618845d",
+      "changedEntries": 13,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-monero",
+      "branch": "main",
+      "before": "2351719e9a7ae7ae92a46a13db4fca45b04d5a14",
+      "commit": "b525f74e1670debef3200d3eb94578afc8f8909f",
+      "changedEntries": 3,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-mwc",
+      "branch": "main",
+      "before": "908d44e70a074b9b98ec529ea172b40c3a290af0",
+      "commit": "8a6d15a17a668c3c51e34263d0a13f09edae653e",
+      "changedEntries": 3,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-mydogecoin",
+      "branch": "main",
+      "before": "1ee1757a0fb0dea08d8e53c04ccca89a360b2b06",
+      "commit": "6d86ff5fe4a43a2d74a8ca38b315ece884aa1d0e",
+      "changedEntries": 3,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-neoxa",
+      "branch": "main",
+      "before": "6ad8a936a9a937b929b1392cc9827e2e3fe29092",
+      "commit": "cd3f8814997e04977b73fa6dc079653c42f9adde",
+      "changedEntries": 3,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-nexa",
+      "branch": "main",
+      "before": "59b1aeaefa1a208152a71c00cf9397afc5408971",
+      "commit": "56dae906e38575b7a46a969b02337acdf18b74a4",
+      "changedEntries": 3,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-nonsense",
+      "branch": "main",
+      "before": "7fe5a7ae63cbf51837964100b75f86319547d93f",
+      "commit": "1f0f6feb9ac71027a3d349c338d4c81eb2b8a254",
+      "changedEntries": 3,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-pearl",
+      "branch": "main",
+      "before": "8be19bfae924cbe5609c248f5f58e5afcdf11b83",
+      "commit": "6b90d64c252ca26bfb6fc10dc0860f9b9b6c3bdc",
+      "changedEntries": 3,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-peercoin",
+      "branch": "main",
+      "before": "8b0c1c44d65821dbe14eeef694c4b1d4ad7c8c58",
+      "commit": "1a05fdec4211cae90f1f6279de964b53ecfbe326",
+      "changedEntries": 3,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-pepecoin",
+      "branch": "main",
+      "before": "712afe4528ffdeaa4de6e7f668f009f448b5647d",
+      "commit": "95f430de9f5433fd34d0b8047b23f8b52c2cab9f",
+      "changedEntries": 3,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-polygon",
+      "branch": "main",
+      "before": "3b84848c591e053fc94b05f7fafeef96ac91eed0",
+      "commit": "df76563d919e295c4ecc22f8633e07578038f699",
+      "changedEntries": 4,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-quai",
+      "branch": "main",
+      "before": "4ea8768e29c787c9d167c407e252ca391b18734c",
+      "commit": "86d6062f9f032531ae9d4fffe0841cd8aee3b187",
+      "changedEntries": 3,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-qubic",
+      "branch": "main",
+      "before": "cd9c22ee701ad89408fa411ce74c4d480bd1d5c5",
+      "commit": "74dd24c62ee630e977692bceab79ff5ee2e9dd88",
+      "changedEntries": 3,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-raptoreum",
+      "branch": "main",
+      "before": "0597b5889432a1fe256bb1a98660b5c04727b9ba",
+      "commit": "a8996d60905376147074a84e2a49e9ac39491969",
+      "changedEntries": 3,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-scash",
+      "branch": "main",
+      "before": "a5523f5f64aa33058d6af1c00c862102440b01e0",
+      "commit": "21118349d3ccf31e03d4118bb3d735838ac02aa2",
+      "changedEntries": 3,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-sol",
+      "branch": "main",
+      "before": "8b34f14f847f85f009bb8b4f24181350379a913a",
+      "commit": "6e409bb0e10d8989b03f42724f25ff45e332b904",
+      "changedEntries": 2,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-solana",
+      "branch": "main",
+      "before": "89a91c2789c306e4d0939e5290c8a5bbdef2e3df",
+      "commit": "c7a709308e27ee324bc0325f5cf3e1fb56b8fe3e",
+      "changedEntries": 4,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-terracoin",
+      "branch": "main",
+      "before": "8a0523c3a74d3b5544d4cbcc3fa26ed9eb73b6bc",
+      "commit": "aac0704d287e82c688123a76b9ac0b8b274b9569",
+      "changedEntries": 3,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-tron",
+      "branch": "main",
+      "before": "d040172142525d33dcc9fc464360fd957aec4cb9",
+      "commit": "ef5149f7461d6432e74e506afb4d6ce7e93698d9",
+      "changedEntries": 4,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-trx",
+      "branch": "main",
+      "before": "ed3c599b6dfdfcc6f45f98f12322e9830ac6649c",
+      "commit": "4852a8621dab53e35db1b9dd38dfea5c8b0e1830",
+      "changedEntries": 2,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-xelis",
+      "branch": "main",
+      "before": "639a799097652049a233d7cc23af6c76c67f93b4",
+      "commit": "d34b8b1813a03973145e510e87d0259953fc685c",
+      "changedEntries": 4,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-xgr",
+      "branch": "main",
+      "before": "03b3045200bf4cd26117ba4698f4166fceb57158",
+      "commit": "f06a889e28b7691899a4d5e4e238c96975078e65",
+      "changedEntries": 3,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-zano",
+      "branch": "main",
+      "before": "1267a783dec33fbca54d69cfebafff89c9ced157",
+      "commit": "f83bfc62ce2e92a8b6f0f390caa743a4a910516b",
+      "changedEntries": 3,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-zcash",
+      "branch": "main",
+      "before": "57fa484b5d48f0eb2bfd7959c769a96d0e033af9",
+      "commit": "02f53bbbea4ecdae014a93a1d483f9055f2a3495",
+      "changedEntries": 3,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/plugin-host",
+      "branch": "main",
+      "before": "8a1d7befbf5281f4c60224b3919c167b161ce766",
+      "commit": "1eb50d74a0a75b92937e71008e03a491f1a08548",
+      "changedEntries": 2,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/plugin-sdk",
+      "branch": "main",
+      "before": "4593d47fe72a9960719921c47bfc7a4f2e149e36",
+      "commit": "130c15404d9d31bc691a73a32c6b8af004f99924",
+      "changedEntries": 3,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/AltbaseWallet",
+      "branch": "main",
+      "before": "87ef00dea61dea01f74c240b1a9c36726d305104",
+      "commit": "562dc776693b5e8c226ea8a14000429c3e515351",
+      "changedEntries": 813,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/AltbaseWallet",
+      "branch": "main",
+      "before": "562dc776693b5e8c226ea8a14000429c3e515351",
+      "commit": "eb206f88ac80ab39402a3bc1017fd9d0ba3bc3e4",
+      "changedEntries": 3,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    },
+    {
+      "repository": "AltbaseWallet/module-mining",
+      "branch": "main",
+      "before": "289e037d96d4f840f33a8356a8be046ec618845d",
+      "commit": "4ef63bab627f88b1f76b30bdb4b8e5a4f4a783f5",
+      "changedEntries": 4,
+      "protectedEntriesUnchanged": true,
+      "newProtectedUploads": 0
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "at": "2026-11-13T02:22:28.245101+00:00",
+  "passed": true,
+  "tests": 4,
+  "pinsVerifiedDraftById": true,
+  "untaggedDraftGetsExplicitVersionTag": true,
+  "missingOrChangedAssetBlocksPublication": true,
+  "publishedMatchingReleaseResumes": true,
+  "networkRequests": 0
+}

@@ -1,0 +1,28 @@
+{
+  "at": "2026-11-13T02:37:41.674786+00:00",
+  "passed": true,
+  "tests": 27,
+  "manifestFiles": 88,
+  "version": "0.1.15",
+  "integrityVerified": true,
+  "signatureRequired": false,
+  "compiledOn": "Linux",
+  "cpu": 0,
+  "files": [
+    {
+      "file": "SHA256SUMS",
+      "size": 211,
+      "sha256": "2a92c51247c4d39b7d34438321f8fded61e1f6460a08443738c55ec8ebd2b916"
+    },
+    {
+      "file": "altbase-mining-module-0.1.15.manifest.json",
+      "size": 14551,
+      "sha256": "6e2ed60e9e6c326b6908f6289cd47efe04e98e6700f686d4bc9205db03750091"
+    },
+    {
+      "file": "altbase-mining-module-0.1.15.tar.gz",
+      "size": 1319728,
+      "sha256": "5570ce126b90634d2071f3a669dfe031b9c6924c2ef5f524853a28a7f43b3ac7"
+    }
+  ]
+}

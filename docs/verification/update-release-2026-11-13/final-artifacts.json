@@ -1,0 +1,36 @@
+{
+  "at": "2026-11-12T23:06:15.219825+00:00",
+  "artifacts": [
+    {
+      "file": "Altbase-Wallet-Linux-x64-v0.1.13.tar.gz",
+      "sha256": "9ada52b0c42c8bc333f739d3ec4d1ed9a7a1873725321ea98d88ff244fb32dcb",
+      "size": 230075644
+    },
+    {
+      "file": "Altbase-Wallet-Windows-v0.1.13.zip",
+      "sha256": "7688729fdfa35d4c3f450923a98a50f6f460f47c339a221552c0bfea38e18712",
+      "size": 248190366
+    },
+    {
+      "file": "Altbase-Wallet-Windows-x64-v0.1.13.msi",
+      "sha256": "aa4229c116c4f09b6e388ca4cd3f8b0ba5f85ee29b2076ebbd670b1cd302f0b9",
+      "size": 267410432
+    },
+    {
+      "file": "account-modules-0.1.5/evm-0.1.5.tar.gz",
+      "sha256": "e2253aaf0157dec33b176e3107421121e192c0109d67085fc33324f9b19d8bca",
+      "size": 7724360
+    },
+    {
+      "file": "account-modules-0.1.5/sol-0.1.5.tar.gz",
+      "sha256": "57b59105872e7da969979f11126bdaee3e546ce90645a87fcab46a180fabba8c",
+      "size": 1927700
+    },
+    {
+      "file": "account-modules-0.1.5/trx-0.1.5.tar.gz",
+      "sha256": "7444a6902369e12471d927bd7cac37da875be3c7f283487a3e71fa1c66c35642",
+      "size": 1932799
+    }
+  ],
+  "miningFiles": 88
+}

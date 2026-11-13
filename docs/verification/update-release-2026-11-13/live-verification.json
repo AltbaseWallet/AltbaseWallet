@@ -1,0 +1,103 @@
+{
+  "at": "2026-11-13T02:28:37.935908+00:00",
+  "passed": true,
+  "readOnly": true,
+  "publicUpdateFeed": [
+    {
+      "platform": "windows",
+      "currentVersion": "0.1.9",
+      "latestVersion": "0.1.13",
+      "updateAvailable": true,
+      "required": false
+    },
+    {
+      "platform": "linux",
+      "currentVersion": "0.1.7",
+      "latestVersion": "0.1.13",
+      "updateAvailable": true,
+      "required": false
+    },
+    {
+      "platform": "windows",
+      "currentVersion": "0.1.13",
+      "latestVersion": "0.1.13",
+      "updateAvailable": false,
+      "required": false
+    },
+    {
+      "platform": "macos",
+      "currentVersion": "0.1.9",
+      "latestVersion": "0.1.9",
+      "updateAvailable": false,
+      "required": false
+    }
+  ],
+  "websiteChecksums": [
+    {
+      "platform": "Windows",
+      "file": "Altbase-Wallet-Windows-v0.1.13.zip",
+      "expected": "7688729fdfa35d4c3f450923a98a50f6f460f47c339a221552c0bfea38e18712",
+      "actual": "7688729fdfa35d4c3f450923a98a50f6f460f47c339a221552c0bfea38e18712",
+      "ok": true,
+      "source": "GitHub v0.1.13"
+    },
+    {
+      "platform": "Linux",
+      "file": "Altbase-Wallet-Linux-x64-v0.1.13.tar.gz",
+      "expected": "9ada52b0c42c8bc333f739d3ec4d1ed9a7a1873725321ea98d88ff244fb32dcb",
+      "actual": "9ada52b0c42c8bc333f739d3ec4d1ed9a7a1873725321ea98d88ff244fb32dcb",
+      "ok": true,
+      "source": "GitHub v0.1.13"
+    },
+    {
+      "platform": "MacOS",
+      "file": "Altbase-Wallet-macOS-universal-v0.1.9.zip",
+      "expected": "990d5e083a75938a7d0816501e92130a8f78816cf10c486fcca0d3a1f28cce58",
+      "actual": "990d5e083a75938a7d0816501e92130a8f78816cf10c486fcca0d3a1f28cce58",
+      "ok": true,
+      "source": "GitHub v0.1.9"
+    }
+  ],
+  "walletQuoteCount": 36,
+  "walletQuoteUpdatedAt": 1794536776202,
+  "walletQuoteAgeMs": 135267,
+  "websiteNativeMarkets": [
+    {
+      "id": "ethereum",
+      "priceUsd": 1998.8523036723816,
+      "provider": "CoinPaprika",
+      "lastUpdated": "2026-11-13T02:26:16Z"
+    },
+    {
+      "id": "bsc",
+      "priceUsd": 651.1636960515101,
+      "provider": "CoinPaprika",
+      "lastUpdated": "2026-11-13T02:25:13Z"
+    },
+    {
+      "id": "polygon",
+      "priceUsd": 0.08745845917016033,
+      "provider": "CoinPaprika",
+      "lastUpdated": "2026-11-13T02:23:16Z"
+    },
+    {
+      "id": "arbitrum",
+      "priceUsd": 1998.8523036723816,
+      "provider": "CoinPaprika",
+      "lastUpdated": "2026-11-13T02:26:16Z"
+    },
+    {
+      "id": "solana",
+      "priceUsd": 80.94121015908499,
+      "provider": "CoinPaprika",
+      "lastUpdated": "2026-11-13T02:23:16Z"
+    },
+    {
+      "id": "tron",
+      "priceUsd": 0.31525358333545284,
+      "provider": "CoinPaprika",
+      "lastUpdated": "2026-11-13T02:26:16Z"
+    }
+  ],
+  "realTransfers": 0
+}

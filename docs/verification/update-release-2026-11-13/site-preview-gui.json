@@ -1,0 +1,23 @@
+{
+  "at": "2026-11-13T01:09:49.936Z",
+  "passed": true,
+  "origin": "http://127.0.0.1:4189",
+  "actualGui": true,
+  "languages": [
+    "en",
+    "de",
+    "fr",
+    "zh",
+    "ja",
+    "ru",
+    "uk"
+  ],
+  "newVersion": "0.1.13",
+  "previousMacos": "0.1.9",
+  "logos": 6,
+  "narrowViewportNoOverflow": true,
+  "delistedActiveLinksRemoved": true,
+  "postRequestsAllowed": false,
+  "realTransfers": 0,
+  "evidence": "local-checks/update-release-2026-11-12/site-gui-1794532188514"
+}

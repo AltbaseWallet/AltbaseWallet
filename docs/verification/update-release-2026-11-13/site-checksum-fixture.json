@@ -1,0 +1,29 @@
+{
+  "passed": true,
+  "files": [
+    {
+      "platform": "Windows",
+      "file": "Altbase-Wallet-Windows-v0.1.13.zip",
+      "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "ok": true,
+      "source": "GitHub v0.1.13"
+    },
+    {
+      "platform": "Linux",
+      "file": "Altbase-Wallet-Linux-x64-v0.1.13.tar.gz",
+      "expected": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "actual": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "ok": true,
+      "source": "GitHub v0.1.13"
+    },
+    {
+      "platform": "MacOS",
+      "file": "Altbase-Wallet-macOS-universal-v0.1.9.zip",
+      "expected": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "actual": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "ok": true,
+      "source": "GitHub v0.1.9"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "at": "2026-11-13T01:27:20.732742+00:00",
+  "certificates": [
+    "notAfter=Feb  6 01:51:18 2027 GMT\nsubject=CN = mail.altbase.io",
+    "notAfter=Dec 12 10:36:49 2026 GMT\nsubject=CN = altbase.io",
+    "notAfter=Jan 30 01:47:13 2027 GMT\nsubject=CN = api.altbase.io"
+  ],
+  "renewalErrors": [
+    "Failed to renew certificate altbase.io with error: HTTPSConnectionPool(host='acme-v02.api.letsencrypt.org', port=443): Max retries exceeded with url: /directory (Caused by NameResolutionError(\"<urllib3.connection.HTTPSConnection object at 0x7e4a1b6f4aa0>: Failed to resolve 'acme-v02.api.letsencrypt.org' ([Errno -3] Temporary failure in name resolution)\"))",
+    "All renewals failed. The following certificates could not be renewed:",
+    "  /etc/letsencrypt/live/altbase.io/fullchain.pem (failure)",
+    "1 renew failure(s), 0 parse failure(s)",
+    "certbot.service: Main process exited, code=exited, status=1/FAILURE",
+    "certbot.service: Failed with result 'exit-code'.",
+    "Failed to start certbot.service - Certbot."
+  ]
+}

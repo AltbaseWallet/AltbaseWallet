@@ -1,0 +1,118 @@
+Altbase Wallet 0.1.13 — update repair, publication and deployment
+Completed verification: 2026-11-13T02:40:33.282439+00:00
+Project: /home/user/Documents/AltbaseFullNode
+Clean public source: /home/user/Documents/Altbase_GitHub
+Evidence: docs/verification/update-release-2026-11-13/
+Release: https://github.com/AltbaseWallet/AltbaseWallet/releases/tag/v0.1.13
+
+CORRECTION TO THE EARLIER AUDIT
+The prior full-clean report missed a real regression: checkAppUpdate() had been
+replaced by a local-project stub returning null. No release request was sent.
+The current service restores the production request, a five-second timeout,
+strict stable-version comparison, optional daily dismissal and mandatory notices.
+Same-version or downgrade advertisements cannot create an update offer. Storage
+and network failures leave startup usable. Download handoff permits only official
+HTTPS destinations; an unsuccessful browser launch keeps the notice visible.
+The existing global notice component remains connected to the application.
+
+CURRENT CHECKS
+294 application tests passed; configured TypeScript and full-source ESLint passed.
+27 Mining tests passed again for the separately released optional module 0.1.15.
+The wallet packages were rebuilt on Linux,
+CPU 0, with build parallelism limited to one. The complete clean/native rebuild
+and transfer/cryptography checks are documented in FULL-CLEAN-REBUILD-2026-11-12.txt.
+This report supersedes that report's delivery hashes and no-publication statement.
+
+The corrected packaged application passed actual Linux and native Windows GUI
+checks through its renderer, preload and main IPC: optional/mandatory notices,
+failed external open, daily dismissal, changed release, and offline startup.
+The external browser was intercepted for these fixture checks; no user profile
+was opened and no real transaction was performed. Windows Installer returned 0
+for the final administrative image; all 434 payload files matched independently.
+The Windows portable archive matched 434 files; the Linux archive matched 478.
+Windows independently reread the final shared MSI and ZIP and matched their hashes.
+An offline compatibility check also exercised the prior project's actual update
+consumer with six version/platform combinations against the new backend response.
+
+SOURCE AND RELEASE PUBLICATION
+All 47 module/component repositories have separate published source commits.
+The parent pins 80 module paths through Git submodules. GITHUB-REPOSITORIES.json
+records the repository and exact commit for each source component. English
+CHANGELOG.md and per-module release notes describe the changes.
+The clean export excludes generated app outputs, installed dependencies, private
+configuration and protected wallet source. No protected source was opened, hashed,
+modified or newly uploaded. Existing protected remote Git entries were compared
+only as tree metadata and retained unchanged.
+
+Release transport suffered interrupted large HTTP uploads. Small verified parts
+were assembled on GitHub using its repository token, without checking out wallet
+source or compiling anything. All eight original release files matched their
+local SHA256 and byte count; every temporary transport asset was removed before
+publication. Four offline assembly tests checked exact bytes, corruption rejection,
+resume behavior and path rejection. The release includes a public assembly receipt. The publication helper was also
+corrected to pin that verified draft by ID and explicitly set its version tag;
+four offline publication fixtures passed. The redundant unpublished draft was
+deleted before publishing the verified draft.
+Linux and Windows 0.1.13, EVM/Solana/Tron 0.1.5 packages, Mining 0.1.15 and their
+English notes are published. Account and Mining releases use their own repositories.
+The existing September Mining 0.1.14 release was preserved. The wallet installer
+contains its verified 0.1.14 bootstrap package; the independently versioned
+0.1.15 module is offered through the existing module-update mechanism. A separate
+live engine check downloaded the real GitHub archive and upgraded an isolated
+copy from 0.1.14 to 0.1.15, verified its integrity and started no miner. This
+supplementary engine check is not represented as another GUI test.
+
+BACKEND AND WEBSITE
+Both actual Altbase API services now advertise Windows/Linux 0.1.13. The deployment
+also replaced stale systemd version overrides, which otherwise beat JSON settings.
+Older versions receive updateAvailable=true; current 0.1.13 receives false.
+macOS retains its actual published 0.1.9 metadata and is not offered a mislabeled
+0.1.13 binary. Requests were checked locally on both servers and through public
+HTTPS. Backups and rollback instructions remain in local deployment receipts.
+
+The production website was updated in English, German, French, Chinese, Japanese,
+Russian and Ukrainian. It lists 35 active networks, the six account networks and
+their native logos, current Windows/Linux downloads and SHA256 values. HRC, MYDOGE,
+NNN and BTGS are excluded from active lists; historical detail pages remain.
+Arbitrum's native ETH uses the Ethereum market source. Existing price-provider
+logic was preserved, adding the native account networks through the same mapping.
+The production GUI was checked after deployment; all seven translations and the
+mobile layout passed. Public checksum data was compared to the release assets.
+An earlier DNS failure had left certbot failed. Normal renewal was retried once,
+succeeded and extended the website certificate to February 11, 2027.
+
+EXACT RELEASE PAYLOADS
+aa4229c116c4f09b6e388ca4cd3f8b0ba5f85ee29b2076ebbd670b1cd302f0b9  Altbase-Wallet-Windows-x64-v0.1.13.msi  (267410432 bytes)
+7688729fdfa35d4c3f450923a98a50f6f460f47c339a221552c0bfea38e18712  Altbase-Wallet-Windows-v0.1.13.zip  (248190366 bytes)
+9ada52b0c42c8bc333f739d3ec4d1ed9a7a1873725321ea98d88ff244fb32dcb  Altbase-Wallet-Linux-x64-v0.1.13.tar.gz  (230075644 bytes)
+11e0fc1db3a26021c4903c5554ec12a356179b6149358de71b295eab875e3c1a  SHA256SUMS-v0.1.13.txt  (561 bytes)
+74010628356db131d603a12df136845813ebde2ec3aef6a7775fa1c32db0d66c  RELEASE-NOTES-v0.1.13.txt  (5603 bytes)
+e2253aaf0157dec33b176e3107421121e192c0109d67085fc33324f9b19d8bca  evm-0.1.5.tar.gz  (7724360 bytes)
+57b59105872e7da969979f11126bdaee3e546ce90645a87fcab46a180fabba8c  sol-0.1.5.tar.gz  (1927700 bytes)
+7444a6902369e12471d927bd7cac37da875be3c7f283487a3e71fa1c66c35642  trx-0.1.5.tar.gz  (1932799 bytes)
+
+LIMITS AND SAFETY BOUNDARIES
+No new macOS binary exists. The concrete blocker remains an unstaged compatible
+Darwin vault toolchain (darwin-arm64), plugin-host/account-module compiler and SDK.
+macOS continues to link to the actual older 0.1.9 release.
+The upstream elliptic advisory remains visible to npm audit; the local correction,
+reachable BitGo/CKB/JoyID/Nexa calls and public offline vectors are documented in
+CRYPTO-AUDIT-2026-09-24.md. Passing tests do not imply zero upstream advisories.
+PublicNode restrictions still prevent complete historical/token discovery for
+some networks. A failed/restricted read is not a zero balance. External icon
+sources can lack an arbitrary token image; the deterministic fallback remains.
+The native-coin feed does not provide market prices for every arbitrary token.
+Unreachable legacy Nonsense relays concern a delisted, separate network and are
+not represented as an operational current-wallet network.
+The native Windows installer test used an administrative image, preserving the
+running user installation; normal install/uninstall was checked separately under
+Wine. No native in-place upgrade of the real user installation is claimed.
+No real user phrase was printed, saved in evidence or used for these tests. No
+real user transfer was signed, sent, confirmed, repeated or moved between wallets.
+The tests cover the exercised fixtures and live reads, not every future provider,
+consensus or hardware condition.
+
+CLEANUP
+Own transport copies, obsolete local Mining archive, QA profiles and preview
+cache were removed. Current source, build dependencies, deliverables and real
+profiles remain. Root disk free: 81.78 GiB. Shared drive free: 14.73 GiB.

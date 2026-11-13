@@ -161,7 +161,7 @@
       ],
       "directory": "modules/mining",
       "repository": "AltbaseWallet/module-mining",
-      "commit": "289e037d96d4f840f33a8356a8be046ec618845d"
+      "commit": "4ef63bab627f88b1f76b30bdb4b8e5a4f4a783f5"
     },
     "module-monero": {
       "paths": [

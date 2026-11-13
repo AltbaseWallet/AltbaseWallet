@@ -1,0 +1,63 @@
+{
+  "at": "2026-11-13T02:28:12.230134+00:00",
+  "passed": true,
+  "unit": "altbase-wallet-site.service",
+  "files": [
+    {
+      "file": "index.html",
+      "sha256": "03fcac1f56aa6ab37a3730d7e17775638d0cd301c8c0f0796c542ce5c8019c98"
+    },
+    {
+      "file": "download.html",
+      "sha256": "8b75d57d26dedb4baf3e9f88e2bd525acffce7d2e7a814a0e705281710176558"
+    },
+    {
+      "file": "assets.html",
+      "sha256": "794258df8346d4f46ff41a5bebfda01a415d3d47f11e49748753077c657c6e18"
+    },
+    {
+      "file": "assets/js/main.js",
+      "sha256": "d65e678f56d45016ac06afbc8c9dc1f1a922056dfdebdc6fa710d4a4eafbdb25"
+    },
+    {
+      "file": "assets/js/wallet-demo.js",
+      "sha256": "19edd6e9326baf63bd7a1451162f7fe5008daa797b7fc93999fe8079415c00e6"
+    },
+    {
+      "file": "assets/js/assets.js",
+      "sha256": "e7f7ba13710aee2120289a1497454d15de7700e0709402e8964e8f2136b6102f"
+    },
+    {
+      "file": "server.js",
+      "sha256": "4aa9c4c983f7d730e394f677b35761c2551e4d734461e0f90755ccf61cfcb9c3"
+    },
+    {
+      "file": "assets/img/networks/ethereum.png",
+      "sha256": "455848ff118c0e637aba7553e89baa5b038794207945fdc267d6cb6aa67bcc8c"
+    },
+    {
+      "file": "assets/img/networks/bsc.png",
+      "sha256": "ce8cb287f3c22ee809a8088337a21f0bbea2f857e15957edd4bbdadb71290c8e"
+    },
+    {
+      "file": "assets/img/networks/polygon.png",
+      "sha256": "552e7c7e9dc0ce20784d98b107547fc721a92f6e1cd8427ac0ae8cb1439b1fe6"
+    },
+    {
+      "file": "assets/img/networks/arbitrum.png",
+      "sha256": "b3a56ad6ac4d8e42ccf9202c6083d5843d68fb5258e375529ac72aacc853ee17"
+    },
+    {
+      "file": "assets/img/networks/solana.png",
+      "sha256": "f06cfb9d13d801ec6cf7fc0017d357e9f9faed347702e481b058bf1dcc017856"
+    },
+    {
+      "file": "assets/img/networks/tron.png",
+      "sha256": "a555e30656323127e997a379f8e9c26ac998361e16e3d677aba17017544e33c9"
+    }
+  ],
+  "languages": 7,
+  "newWalletVersion": "0.1.13",
+  "macosVersion": "0.1.9",
+  "atomicBatch": true
+}

@@ -1,0 +1,27 @@
+{
+  "at": "2026-11-13T01:33:37.796254+00:00",
+  "passed": true,
+  "files": [
+    {
+      "name": "Altbase-Wallet-Windows-x64-v0.1.13.msi",
+      "size": 267410432,
+      "sha256": "aa4229c116c4f09b6e388ca4cd3f8b0ba5f85ee29b2076ebbd670b1cd302f0b9"
+    },
+    {
+      "name": "Altbase-Wallet-Windows-v0.1.13.zip",
+      "size": 248190366,
+      "sha256": "7688729fdfa35d4c3f450923a98a50f6f460f47c339a221552c0bfea38e18712"
+    },
+    {
+      "name": "RELEASE-NOTES-v0.1.13.txt",
+      "size": 5603,
+      "sha256": "74010628356db131d603a12df136845813ebde2ec3aef6a7775fa1c32db0d66c"
+    },
+    {
+      "name": "WINDOWS-SHA256SUMS.txt",
+      "size": 206,
+      "sha256": "cb934d0e838c77542c9bb5040bb6fc5dc4b53fd6875643bea7ccfd0203d1f469"
+    }
+  ],
+  "verifiedReadBack": true
+}

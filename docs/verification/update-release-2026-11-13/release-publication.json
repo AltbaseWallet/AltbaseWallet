@@ -1,0 +1,120 @@
+{
+  "at": "2026-11-13T02:34:12.123822+00:00",
+  "releases": [
+    {
+      "repository": "AltbaseWallet/AltbaseWallet",
+      "tag": "v0.1.13",
+      "releaseUrl": "https://github.com/AltbaseWallet/AltbaseWallet/releases/tag/v0.1.13",
+      "commit": "eb206f88ac80ab39402a3bc1017fd9d0ba3bc3e4",
+      "assets": [
+        {
+          "name": "Altbase-Wallet-Windows-x64-v0.1.13.msi",
+          "size": 267410432,
+          "digest": "sha256:aa4229c116c4f09b6e388ca4cd3f8b0ba5f85ee29b2076ebbd670b1cd302f0b9"
+        },
+        {
+          "name": "Altbase-Wallet-Windows-v0.1.13.zip",
+          "size": 248190366,
+          "digest": "sha256:7688729fdfa35d4c3f450923a98a50f6f460f47c339a221552c0bfea38e18712"
+        },
+        {
+          "name": "Altbase-Wallet-Linux-x64-v0.1.13.tar.gz",
+          "size": 230075644,
+          "digest": "sha256:9ada52b0c42c8bc333f739d3ec4d1ed9a7a1873725321ea98d88ff244fb32dcb"
+        },
+        {
+          "name": "SHA256SUMS-v0.1.13.txt",
+          "size": 561,
+          "digest": "sha256:11e0fc1db3a26021c4903c5554ec12a356179b6149358de71b295eab875e3c1a"
+        },
+        {
+          "name": "RELEASE-NOTES-v0.1.13.txt",
+          "size": 5603,
+          "digest": "sha256:74010628356db131d603a12df136845813ebde2ec3aef6a7775fa1c32db0d66c"
+        },
+        {
+          "name": "evm-0.1.5.tar.gz",
+          "size": 7724360,
+          "digest": "sha256:e2253aaf0157dec33b176e3107421121e192c0109d67085fc33324f9b19d8bca"
+        },
+        {
+          "name": "sol-0.1.5.tar.gz",
+          "size": 1927700,
+          "digest": "sha256:57b59105872e7da969979f11126bdaee3e546ce90645a87fcab46a180fabba8c"
+        },
+        {
+          "name": "trx-0.1.5.tar.gz",
+          "size": 1932799,
+          "digest": "sha256:7444a6902369e12471d927bd7cac37da875be3c7f283487a3e71fa1c66c35642"
+        }
+      ],
+      "published": true
+    },
+    {
+      "repository": "AltbaseWallet/module-evm",
+      "tag": "v0.1.5",
+      "releaseUrl": "https://github.com/AltbaseWallet/module-evm/releases/tag/v0.1.5",
+      "commit": "9e0138e5fe9b7d29f04e638f4c5daf859df35c64",
+      "assets": [
+        {
+          "name": "evm-0.1.5.tar.gz",
+          "size": 7724360,
+          "digest": "sha256:e2253aaf0157dec33b176e3107421121e192c0109d67085fc33324f9b19d8bca"
+        }
+      ],
+      "published": true
+    },
+    {
+      "repository": "AltbaseWallet/module-sol",
+      "tag": "v0.1.5",
+      "releaseUrl": "https://github.com/AltbaseWallet/module-sol/releases/tag/v0.1.5",
+      "commit": "6e409bb0e10d8989b03f42724f25ff45e332b904",
+      "assets": [
+        {
+          "name": "sol-0.1.5.tar.gz",
+          "size": 1927700,
+          "digest": "sha256:57b59105872e7da969979f11126bdaee3e546ce90645a87fcab46a180fabba8c"
+        }
+      ],
+      "published": true
+    },
+    {
+      "repository": "AltbaseWallet/module-trx",
+      "tag": "v0.1.5",
+      "releaseUrl": "https://github.com/AltbaseWallet/module-trx/releases/tag/v0.1.5",
+      "commit": "4852a8621dab53e35db1b9dd38dfea5c8b0e1830",
+      "assets": [
+        {
+          "name": "trx-0.1.5.tar.gz",
+          "size": 1932799,
+          "digest": "sha256:7444a6902369e12471d927bd7cac37da875be3c7f283487a3e71fa1c66c35642"
+        }
+      ],
+      "published": true
+    },
+    {
+      "repository": "AltbaseWallet/module-mining",
+      "tag": "v0.1.15",
+      "releaseUrl": "https://github.com/AltbaseWallet/module-mining/releases/tag/v0.1.15",
+      "commit": "4ef63bab627f88b1f76b30bdb4b8e5a4f4a783f5",
+      "assets": [
+        {
+          "name": "SHA256SUMS",
+          "size": 211,
+          "digest": "sha256:2a92c51247c4d39b7d34438321f8fded61e1f6460a08443738c55ec8ebd2b916"
+        },
+        {
+          "name": "altbase-mining-module-0.1.15.manifest.json",
+          "size": 14551,
+          "digest": "sha256:6e2ed60e9e6c326b6908f6289cd47efe04e98e6700f686d4bc9205db03750091"
+        },
+        {
+          "name": "altbase-mining-module-0.1.15.tar.gz",
+          "size": 1319728,
+          "digest": "sha256:5570ce126b90634d2071f3a669dfe031b9c6924c2ef5f524853a28a7f43b3ac7"
+        }
+      ],
+      "published": true
+    }
+  ]
+}

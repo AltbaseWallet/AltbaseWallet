@@ -1,0 +1,38 @@
+Mining runtime bundled as one versioned ESM entry (Node built-ins only).
+Mining frontend synchronized with local assets: /home/user/Documents/AltbaseFullNode/modules/mining/dist/frontend
+Mining 0.1.15: 88 file hashes generated; no signing key required.
+✔ validates a normalized mining job without storing a secret value (1.600231ms)
+✔ rejects unknown fields, remote API binding, URL credentials, and secret option values (0.223697ms)
+✔ compiles Rigel to a direct argument array and redacts pool secrets (0.823837ms)
+✔ renders an XMRig native config and injects secrets only into the runtime file (0.491531ms)
+✔ compiles SRBMiner CPU and GPU jobs without a command shell (0.657289ms)
+✔ compiles QLI Client to one CPU thread with GPU and client auto-update disabled (0.257852ms)
+✔ bundled catalog exposes only locally runnable CPU coins and correct secure pool endpoints (9.846386ms)
+✔ compiles every declared local coin, algorithm, miner, and platform combination (5.168526ms)
+✔ saves and reloads validated jobs atomically (2.307129ms)
+✔ finishes a fully downloaded partial artifact without another network request (3.157804ms)
+✔ verifies an Ed25519-signed catalog and rejects a modified payload (1.473062ms)
+✔ GrandPool inventory covers all nine chains with explicit pool/solo fees (1.102572ms)
+✔ Rigel renders XelisHash v3 and Nexa commands on Linux and Windows (0.581324ms)
+✔ NNN uses official platform executables, selected RPC and public wallet payout (1.922055ms)
+✔ NNN rejects unsupported hardware/platform and unsafe node options (0.962208ms)
+✔ NNN catalog uses upstream GitHub ZIPs and no credentials or local paths (4.220383ms)
+✔ upstream NNN output adapts hashrates across chunks without inventing block acceptance (1.226471ms)
+✔ initialization and zero hashrate never announce successful hashing (0.432054ms)
+✔ NNN selects multiple official CPU processes without an unsupported threads flag (0.205409ms)
+✔ selected NNN workers report aggregate speed and stop as one managed job (5.369649ms)
+✔ stale worker speeds are excluded from the aggregate (2.954158ms)
+✔ a worker crash stops the remaining workers and reports one failed job (0.750283ms)
+✔ partial NNN startup failure cleans up previously launched processes (0.453427ms)
+✔ a process finishing launch during another worker failure is also stopped (3.132214ms)
+✔ invalid NNN group sizes never spawn a process (0.267901ms)
+✔ a warm module update replaces cached adapters and preserves the public runtime API (33.035969ms)
+✔ the packaged runtime launches and stops all three fixture workers (220.160163ms)
+ℹ tests 27
+ℹ suites 0
+ℹ pass 27
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 439.38365

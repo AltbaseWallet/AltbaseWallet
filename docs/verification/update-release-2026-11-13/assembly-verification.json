@@ -1,0 +1,51 @@
+{
+  "at": "2026-11-13T01:47:27.304968+00:00",
+  "passed": true,
+  "draftReleaseId": 443666223,
+  "actionUrl": "https://github.com/AltbaseWallet/AltbaseWallet/actions/runs/43346992191",
+  "originalArtifacts": [
+    {
+      "name": "Altbase-Wallet-Windows-x64-v0.1.13.msi",
+      "size": 267410432,
+      "sha256": "aa4229c116c4f09b6e388ca4cd3f8b0ba5f85ee29b2076ebbd670b1cd302f0b9"
+    },
+    {
+      "name": "Altbase-Wallet-Windows-v0.1.13.zip",
+      "size": 248190366,
+      "sha256": "7688729fdfa35d4c3f450923a98a50f6f460f47c339a221552c0bfea38e18712"
+    },
+    {
+      "name": "Altbase-Wallet-Linux-x64-v0.1.13.tar.gz",
+      "size": 230075644,
+      "sha256": "9ada52b0c42c8bc333f739d3ec4d1ed9a7a1873725321ea98d88ff244fb32dcb"
+    },
+    {
+      "name": "SHA256SUMS-v0.1.13.txt",
+      "size": 561,
+      "sha256": "11e0fc1db3a26021c4903c5554ec12a356179b6149358de71b295eab875e3c1a"
+    },
+    {
+      "name": "RELEASE-NOTES-v0.1.13.txt",
+      "size": 5603,
+      "sha256": "74010628356db131d603a12df136845813ebde2ec3aef6a7775fa1c32db0d66c"
+    },
+    {
+      "name": "evm-0.1.5.tar.gz",
+      "size": 7724360,
+      "sha256": "e2253aaf0157dec33b176e3107421121e192c0109d67085fc33324f9b19d8bca"
+    },
+    {
+      "name": "sol-0.1.5.tar.gz",
+      "size": 1927700,
+      "sha256": "57b59105872e7da969979f11126bdaee3e546ce90645a87fcab46a180fabba8c"
+    },
+    {
+      "name": "trx-0.1.5.tar.gz",
+      "size": 1932799,
+      "sha256": "7444a6902369e12471d927bd7cac37da875be3c7f283487a3e71fa1c66c35642"
+    }
+  ],
+  "temporaryTransportAssetsRemaining": 0,
+  "compiledOnGitHub": false,
+  "sourceCheckoutOnGitHub": false
+}

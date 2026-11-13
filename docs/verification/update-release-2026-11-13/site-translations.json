@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "languages": [
+    "en",
+    "de",
+    "fr",
+    "zh",
+    "ja",
+    "ru",
+    "uk"
+  ],
+  "checkedPhrases": 3
+}

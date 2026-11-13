@@ -1,0 +1,52 @@
+{
+  "at": "2026-11-12T23:03:33.662721+00:00",
+  "passed": true,
+  "linuxGui": {
+    "at": "2026-11-12T22:58:59.452Z",
+    "passed": true,
+    "realRenderer": true,
+    "realPreload": true,
+    "requests": 5,
+    "optionalNotice": true,
+    "failedBrowserOpenKeepsNotice": true,
+    "officialReleaseLink": true,
+    "dailyDismissal": true,
+    "newerReleaseReappears": true,
+    "mandatoryCannotDismiss": true,
+    "offlineStartupAvailable": true,
+    "actualExternalBrowserLaunches": 0,
+    "realUserProfilesOpened": 0,
+    "realTransfers": 0
+  },
+  "nativeWindowsGui": {
+    "at": "2026-11-12T22:57:49.709Z",
+    "passed": true,
+    "platform": "native Windows 11",
+    "actualPackagedApplication": true,
+    "realRenderer": true,
+    "realPreload": true,
+    "realMainIpc": true,
+    "requests": 5,
+    "failedBrowserOpenKeepsNotice": true,
+    "officialDownloadHandoff": true,
+    "dismissalAndRequiredUpdate": true,
+    "offlineStartup": true,
+    "realBrowserLaunches": 0,
+    "realUserProfilesOpened": 0,
+    "realTransfers": 0
+  },
+  "nativeWindowsInstaller": {
+    "filesCompared": 434,
+    "msiExitCode": 0,
+    "passed": true
+  },
+  "applicationTests": 294,
+  "fullSourceLint": true,
+  "cleanExportFrontend": true,
+  "protectedSourceRead": false,
+  "protectedSourceUploadAllowed": false,
+  "verifiedSource": {
+    "src/services/appUpdateService.ts": "dcce0c3a44c618a24fb224aa613e453d10dc43ce77c9b3d8c1513b17c3f174a0",
+    "src/components/wallet/AppUpdateNotice.tsx": "94e5c3b05f46f2877df5e4dc9fe3c60ec9b2f0a8a781dace65367c18790cda0b"
+  }
+}

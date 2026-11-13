@@ -1,6 +1,8 @@
 {
+  "at": "2026-11-13T02:40:33.822814+00:00",
   "version": "0.1.13",
   "protectedSourceIncluded": false,
+  "credentialScanPassed": true,
   "files": [
     {
       "file": "SOURCE-REVIEW.md",
@@ -45,7 +47,7 @@
     {
       "file": "GITHUB-REPOSITORIES.json",
       "size": 11962,
-      "sha256": "ac7de2ddbf116c32259a2c3a6b817ed7bfa142cd8e4b780e9a7233fc9280721e"
+      "sha256": "48463b29f1138ce8aed60072d83249cab16020270541552d912c1229c239a06f"
     },
     {
       "file": "tsconfig.node.json",
@@ -1523,6 +1525,11 @@
       "sha256": "ec8dcc3f7da0816a05b4212911fcc9bac595210561fb38eea3c739e7a889806a"
     },
     {
+      "file": "docs/UPDATE-RELEASE-2026-11-13.txt",
+      "size": 8164,
+      "sha256": "6b5cbc725ab41810f479f735d824b14c9a723795bf837e16596d50f5d68ccdbd"
+    },
+    {
       "file": "docs/PUBLICNODE-CHECKS-2026-09-24.md",
       "size": 7421,
       "sha256": "8b9721cdeec21dd707123f0d7da9f6e4552cf74cb15b169dbdb31c09534030a4"
@@ -1531,6 +1538,221 @@
       "file": "docs/PLUGIN-API.md",
       "size": 11446,
       "sha256": "08e4f9f545624efcb5f49b0a88b5e0848191de032cd14075a895981250b75a59"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/site-production-gui.json",
+      "size": 478,
+      "sha256": "8a632e05abfee5adfb3e0603e8b7f4f298dfcfc00f791ee1ec381681e35b9a3f"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/production-desktop-release.png",
+      "size": 328879,
+      "sha256": "497f167498b9389bca888f1144ec19f4e422e9664e8f481ddc97b78df0ab6bdf"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/native-windows-update-notice.png",
+      "size": 50593,
+      "sha256": "1e6e7a4d536383e121aeeb0c3e7abbd115a185defe0016d141d07e41a1c8e768"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/assembly-action.json",
+      "size": 303,
+      "sha256": "648fa585025c67438a9d7e4cb9f57ffcf6d473c58c66608a7e46d16c6a245651"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/assembly-verification.json",
+      "size": 1622,
+      "sha256": "65fe87b14ca36dfa86d2a4037e4e4ff364a90eb96920794c6592bedd9fae88c6"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/summary.json",
+      "size": 355,
+      "sha256": "d2e80fe7255b9b5eb100b9de14f11241d56bbcbe5dfdf1822b42f1e93791db95"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/mining-0.1.15-tests.log",
+      "size": 2738,
+      "sha256": "c213b4977d053bae51d626f684605dfe56bf1e46dda7f993fa230847c5048225"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/final-lint.log",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/certificate-renewal-retry.json",
+      "size": 220,
+      "sha256": "8d8512db93ddef2a92d1b61204a6fd23588f8e9affe4670f147490654a605ea2"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/site-checksum-fixture.json",
+      "size": 990,
+      "sha256": "d010254c8d7df776a50ae038378c5edd6f2061f34fa344d8f2088022474e6428"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/linux-update-gui.json",
+      "size": 437,
+      "sha256": "a6a5702f58d3607e91b1479d5e7d67b578b6d0594fa41fdae4060a0ddbabf04d"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/final-artifacts.json",
+      "size": 1142,
+      "sha256": "7f31d6a283360a8bd0b4a1c1d49f7fc2010fc4dbcffa7c14016088f4cb60bbd9"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/native-windows-isolation.json",
+      "size": 81,
+      "sha256": "e154d45e651501a62af0fe385e834b4da6b1f54fc6197fc4caef3dfe0a6a29cb"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/site-preview-gui.json",
+      "size": 481,
+      "sha256": "870b4d4ac5202f6986bb8add0b95ce5fd7381f0be6d6862a8a7f1283ca80e4b0"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/final-tests.log",
+      "size": 28888,
+      "sha256": "08c6c637bde72e7e22bc53fa9d0b89598e33dff95d5ce467fd1397f0465269ce"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/native-windows-result.json",
+      "size": 436,
+      "sha256": "cd3d00db34288c63bdbaf77c10d1d2c4ffe3b48a842f13a05881c57f166ad90e"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/live-verification.json",
+      "size": 2794,
+      "sha256": "9efd0e48ea12ef71ee38d7c094aaa51a9d5c3afa63e96213e86441f1b0964979"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/final-cleanup.json",
+      "size": 864,
+      "sha256": "94cfb8040af345ba89197e0912ee6396cc9aa3dfb6e8d9c422374f0e0eb5e663"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/update-tests.log",
+      "size": 742,
+      "sha256": "8e6d06457c4aa3d78e591f539db1cbb5227e0ad6e86c031a377af77ad7c4b8e8"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/windows-zip.json",
+      "size": 326,
+      "sha256": "2fbdb0b74be9f3cde2be303dce6541891e6be2f12bd9222c3b768111c92443d5"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/assembly-dispatch.json",
+      "size": 226,
+      "sha256": "3ef90f316a42584074494ea0535924eaf4ca89df4dbbdd31c71a77e2d13f3f00"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/windows-final-task-cleanup.json",
+      "size": 154,
+      "sha256": "d38596d6cf04fb202c5c1d788cb50825eee1cac9ae9f4d8f0155b1a31c801c36"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/backend-update-tests.log",
+      "size": 313,
+      "sha256": "ac694f3a3f110fa7a4aa5baf68832840347f60f0db6b095e94fcaa1e6cc43dfc"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/linux-update-notice.png",
+      "size": 62740,
+      "sha256": "f1c69d984262adc741afbc2f3ba3de5998c7f92c74dd0f8122dfc3955e54faab"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/assembly-offline-fixture.json",
+      "size": 308,
+      "sha256": "282b421cd7c6879ec5a4a690039546ef1779bffa7464241604888f72f89f03df"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/site-translations.json",
+      "size": 135,
+      "sha256": "b1fcfdcbc457abab9e26b159ae850bfba48aece0f5f89bca5539b23c962b54a3"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/native-windows-installer.json",
+      "size": 65,
+      "sha256": "965605f28f1641cef30ab8b3b843b710df6596e2d8186706857feb422d24fff9"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/website-deployment.json",
+      "size": 1988,
+      "sha256": "7f4f4eb38a8f60f1d599862200be2b6fe0169656f1fcaa73a9d02b2204a5718d"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/windows-delivery-cleanup.json",
+      "size": 667,
+      "sha256": "5ed644e75570a8198ef19a3114153499ab0cc4dc753aa53b032e689b7f06b938"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/linux-archive.json",
+      "size": 98,
+      "sha256": "49531ee206f91b772c5ab51069de49c933ba135793d7e1f2b4d06c036ac59d16"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/site-inventory.json",
+      "size": 98,
+      "sha256": "9107506b9c83e94863db097f8781f111c3bc60872ba6e7a7d83d7f8e38b757fe"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/mining-live-upgrade.json",
+      "size": 365,
+      "sha256": "71b3ef7e19794f4500ac79d7dcb2785eb11301fe788579e08c2e03d88e2c3086"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/shared-delivery.json",
+      "size": 774,
+      "sha256": "0b27de7902444c5d7bb710b0699dfe4817925e682d6d6fa315ec4d6243dc3398"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/publish-fixtures.json",
+      "size": 276,
+      "sha256": "27cafe2f1ef44cf5b9254b995b5fdd73cf4a142f8969dbcc72b30dcbb0b17535"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/mining-0.1.15-verification.json",
+      "size": 731,
+      "sha256": "bc869c181c1c65d09fdb0d86877cb483d153ce6786848c52af46bc0ab971a5b2"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/intermediate-cleanup.json",
+      "size": 881,
+      "sha256": "6e3775c187015cfeb6707089ea3799423bf4e685d7c91dad6f866181e3264ff6"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/publication-gate.json",
+      "size": 1550,
+      "sha256": "3f128ab275e81abb7eea5387bbfdf943bbf92616355beb621ac314d3c7c1fc0c"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/legacy-update-compatibility.json",
+      "size": 736,
+      "sha256": "24ec871d22e34c26d0563bc233507f4a4a9b85de143aedc5619ca71d37d53c7a"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/production-mobile-release.png",
+      "size": 68387,
+      "sha256": "45dc7485b8775b7b267b66ace4085f111ac41a4b8db18d5c5d245b6536747f9a"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/certificate-health.json",
+      "size": 1040,
+      "sha256": "ae3945b80f099125c1c16000bed2d0a80c86bf38a79841fd204af6e66fb2e8be"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/backend-deployment.json",
+      "size": 1531,
+      "sha256": "3aca8202bb063df333129f1f615cd71dbb861c0a111283267b2009c529c34dcf"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/source-publication.json",
+      "size": 15428,
+      "sha256": "4872713851488ced55705494f568148ea1e9203d979ceb742b449ceade1edd9f"
+    },
+    {
+      "file": "docs/verification/update-release-2026-11-13/release-publication.json",
+      "size": 4118,
+      "sha256": "15e2cf93fb4a91d0960bfd415a2c8f9ad1aac2b32ba912d00bdd97a6ac2ff377"
     },
     {
       "file": "electron/trusted-frame.cjs",
@@ -4800,7 +5022,7 @@
     {
       "file": "modules/mining/CHANGELOG.md",
       "size": 5881,
-      "sha256": "7deb98a24f33ad562c1f754a567af110f0bf57808eb02ec0e132d01637f5b043"
+      "sha256": "9f6a39f7a64aa15fb48c21f3e4007ff572d5bb0ed4ed53f1aa75072d2e8d6c2f"
     },
     {
       "file": "modules/mining/tsconfig.json",
@@ -4810,7 +5032,7 @@
     {
       "file": "modules/mining/package.json",
       "size": 356,
-      "sha256": "82b20dc7d1d48bfb1203f5a234b4a6a38eb68ae638f0b4d68d219eb704297a04"
+      "sha256": "5a61118c949a5ff77c613107fff7d041afbae2ced343a112c348685e7e75f63c"
     },
     {
       "file": "modules/mining/package.manifest.json",
@@ -4820,7 +5042,7 @@
     {
       "file": "modules/mining/RELEASE-NOTES-0.1.13.md",
       "size": 660,
-      "sha256": "3dc01a57db485854dd36880464d153fd358c3925b4829bc893a24ff5dcad7614"
+      "sha256": "29e3711b4fb37a2cb1070b0e1fd5340331cdf19732f3350ea3ead93892683d5b"
     },
     {
       "file": "modules/mining/.gitignore",
@@ -4830,7 +5052,7 @@
     {
       "file": "modules/mining/module.json",
       "size": 900,
-      "sha256": "cf1fd5a5f331ff73dccd9407e6595d0dd6185612f139f2a8460071665450ad26"
+      "sha256": "dae0b48f7a7ca4e42d2b404e817cc205163b2dad8ee80c84ed057aed42835b2e"
     },
     {
       "file": "modules/mining/README.md",

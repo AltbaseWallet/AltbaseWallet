@@ -1,0 +1,66 @@
+[
+  {
+    "passed": true,
+    "unit": "altbase-api.service",
+    "previousVersion": "0.1.9",
+    "checks": [
+      {
+        "platform": "windows",
+        "currentVersion": "0.1.9",
+        "latestVersion": "0.1.13",
+        "updateAvailable": true
+      },
+      {
+        "platform": "linux",
+        "currentVersion": "0.1.9",
+        "latestVersion": "0.1.13",
+        "updateAvailable": true
+      },
+      {
+        "platform": "windows",
+        "currentVersion": "0.1.13",
+        "latestVersion": "0.1.13",
+        "updateAvailable": false
+      },
+      {
+        "platform": "macos",
+        "currentVersion": "0.1.9",
+        "latestVersion": "0.1.9",
+        "updateAvailable": false
+      }
+    ],
+    "at": "2026-11-13T02:20:51.261855+00:00"
+  },
+  {
+    "passed": true,
+    "unit": "altbase-api-node2.service",
+    "previousVersion": "0.1.5",
+    "checks": [
+      {
+        "platform": "windows",
+        "currentVersion": "0.1.9",
+        "latestVersion": "0.1.13",
+        "updateAvailable": true
+      },
+      {
+        "platform": "linux",
+        "currentVersion": "0.1.9",
+        "latestVersion": "0.1.13",
+        "updateAvailable": true
+      },
+      {
+        "platform": "windows",
+        "currentVersion": "0.1.13",
+        "latestVersion": "0.1.13",
+        "updateAvailable": false
+      },
+      {
+        "platform": "macos",
+        "currentVersion": "0.1.9",
+        "latestVersion": "0.1.9",
+        "updateAvailable": false
+      }
+    ],
+    "at": "2026-11-13T02:21:09.813102+00:00"
+  }
+]

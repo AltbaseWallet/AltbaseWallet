@@ -1,0 +1,17 @@
+{
+  "at": "2026-11-12T22:58:59.452Z",
+  "passed": true,
+  "realRenderer": true,
+  "realPreload": true,
+  "requests": 5,
+  "optionalNotice": true,
+  "failedBrowserOpenKeepsNotice": true,
+  "officialReleaseLink": true,
+  "dailyDismissal": true,
+  "newerReleaseReappears": true,
+  "mandatoryCannotDismiss": true,
+  "offlineStartupAvailable": true,
+  "actualExternalBrowserLaunches": 0,
+  "realUserProfilesOpened": 0,
+  "realTransfers": 0
+}

@@ -1,0 +1,38 @@
+{
+  "at": "2026-11-13T01:31:45.139Z",
+  "passed": true,
+  "actualPriorProjectConsumer": true,
+  "networkRequests": 0,
+  "checks": [
+    {
+      "platform": "Win32",
+      "currentVersion": "0.1.7",
+      "offered": "0.1.13"
+    },
+    {
+      "platform": "Win32",
+      "currentVersion": "0.1.9",
+      "offered": "0.1.13"
+    },
+    {
+      "platform": "Linux x86_64",
+      "currentVersion": "0.1.9",
+      "offered": "0.1.13"
+    },
+    {
+      "platform": "Win32",
+      "currentVersion": "0.1.13",
+      "offered": null
+    },
+    {
+      "platform": "MacIntel",
+      "currentVersion": "0.1.9",
+      "offered": null
+    },
+    {
+      "platform": "MacIntel",
+      "currentVersion": "0.1.7",
+      "offered": "0.1.9"
+    }
+  ]
+}

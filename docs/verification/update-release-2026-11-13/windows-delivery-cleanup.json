@@ -1,0 +1,23 @@
+{
+  "at": "2026-11-13T01:35:22.7117378Z",
+  "passed": true,
+  "removedOwnQa": [
+    "C:\\Users\\suqua\\AppData\\Local\\AltbaseQA-update-20261112",
+    "AltbaseQA-update-20261112",
+    "AltbaseQA-release-upload-20261113"
+  ],
+  "delivery": [
+    {
+      "sha256": "aa4229c116c4f09b6e388ca4cd3f8b0ba5f85ee29b2076ebbd670b1cd302f0b9",
+      "name": "Altbase-Wallet-Windows-x64-v0.1.13.msi",
+      "size": 267410432
+    },
+    {
+      "sha256": "7688729fdfa35d4c3f450923a98a50f6f460f47c339a221552c0bfea38e18712",
+      "name": "Altbase-Wallet-Windows-v0.1.13.zip",
+      "size": 248190366
+    }
+  ],
+  "activePartUploaderPreserved": true,
+  "realProfilesTouched": false
+}

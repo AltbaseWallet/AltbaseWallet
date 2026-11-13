@@ -1,0 +1,7 @@
+{
+  "at": "2026-11-13T01:28:37.280086+00:00",
+  "dnsResolved": true,
+  "renewalExitCode": 0,
+  "state": "Result=success\nExecMainStatus=0",
+  "certificate": "notAfter=Feb 11 00:30:04 2027 GMT\nsubject=CN = altbase.io"
+}

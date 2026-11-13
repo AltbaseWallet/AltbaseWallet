@@ -1,0 +1,10 @@
+✔ published Linux and Windows updates use the current build without offering downgrades (0.595744ms)
+✔ an unavailable new macOS build retains the actual last published macOS version (0.393356ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 39.785233

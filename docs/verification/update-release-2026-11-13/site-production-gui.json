@@ -1,0 +1,23 @@
+{
+  "at": "2026-11-13T02:29:25.832Z",
+  "passed": true,
+  "origin": "https://altbase.io",
+  "actualGui": true,
+  "languages": [
+    "en",
+    "de",
+    "fr",
+    "zh",
+    "ja",
+    "ru",
+    "uk"
+  ],
+  "newVersion": "0.1.13",
+  "previousMacos": "0.1.9",
+  "logos": 6,
+  "narrowViewportNoOverflow": true,
+  "delistedActiveLinksRemoved": true,
+  "postRequestsAllowed": false,
+  "realTransfers": 0,
+  "evidence": "local-checks/update-release-2026-11-12/site-gui-1794536918032"
+}
