@@ -112,6 +112,10 @@ not represented as an operational current-wallet network.
 The native Windows installer test used an administrative image, preserving the
 running user installation; normal install/uninstall was checked separately under
 Wine. No native in-place upgrade of the real user installation is claimed.
+The earlier unreleased local 0.1.13 build with the null update-check stub
+cannot repair its own checker and must be replaced manually once using the
+corrected MSI or portable ZIP. Public older releases with the original working
+checker can receive the new backend notification.
 No real user phrase was printed, saved in evidence or used for these tests. No
 real user transfer was signed, sent, confirmed, repeated or moved between wallets.
 The tests cover the exercised fixtures and live reads, not every future provider,

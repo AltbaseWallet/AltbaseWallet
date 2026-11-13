@@ -1,5 +1,5 @@
 {
-  "at": "2026-11-13T02:45:40.833169+00:00",
+  "at": "2026-11-13T02:46:45.934936+00:00",
   "version": "0.1.13",
   "protectedSourceIncluded": false,
   "credentialScanPassed": true,
@@ -1526,8 +1526,8 @@
     },
     {
       "file": "docs/UPDATE-RELEASE-2026-11-13.txt",
-      "size": 8561,
-      "sha256": "47eb4219d9db2c9a8b4b94005aabefbe849d3dd4a7e4150d33d81503e7205b56"
+      "size": 8839,
+      "sha256": "57f48942cacf5cd626c49e5c0316c57913c2cb92a5dec2825aa197734d650184"
     },
     {
       "file": "docs/PUBLICNODE-CHECKS-2026-09-24.md",
