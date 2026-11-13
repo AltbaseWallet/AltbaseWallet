@@ -1,3 +1,5 @@
+PACKAGING STATUS UPDATE: macOS 0.1.13 is now published, the Windows ZIP contains the MSI, and account modules 0.1.6 have separate releases. See PACKAGING-CORRECTIONS-2026-11-13.txt for current status. The historical checks below describe the earlier assembly.
+
 Altbase Wallet 0.1.13 — update repair, publication and deployment
 Completed verification: 2026-11-13T02:45:40.651782+00:00
 Project: /home/user/Documents/AltbaseFullNode

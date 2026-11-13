@@ -8,6 +8,9 @@ const cpu = require('./build-limits.cjs').cpu
 const environment = { ...process.env, MAKEFLAGS: '-j1', CMAKE_BUILD_PARALLEL_LEVEL: '1', RAYON_NUM_THREADS: '1', UV_THREADPOOL_SIZE: '1' }
 const electronVersion = require('../node_modules/electron/package.json').version
 const cache = process.env.ALTBASE_MACOS_ELECTRON_ROOT || path.join(os.homedir(), '.cache/altbase-build/electron', `release-${electronVersion}`)
+for (const output of ['local-checks/macos-package/darwin-x64', 'local-checks/macos-package/darwin-arm64', 'artifacts/mac-universal']) {
+  if (fs.existsSync(path.join(root, output))) throw Error('Remove the previous temporary package before building: ' + output)
+}
 function run(program, args, env = environment) {
   const result = spawnSync('taskset', ['-c', cpu, program, ...args], { cwd: root, stdio: 'inherit', env })
   if (result.error) throw result.error
@@ -15,7 +18,6 @@ function run(program, args, env = environment) {
 }
 for (const [target, distribution] of [['darwin-x64', 'unpacked-darwin-x64'], ['darwin-arm64', 'unpacked-darwin-arm64']]) {
   const output = path.join(root, 'local-checks/macos-package', target)
-  if (fs.existsSync(output)) throw Error('Remove the previous temporary architecture package before building: ' + output)
   run(process.execPath, ['scripts/build-plugin-host.cjs', '--target', target])
   run(process.execPath, ['scripts/package-project.cjs', target], { ...environment, ALTBASE_ELECTRON_DIST: path.join(cache, distribution), ALTBASE_PACKAGE_OUTPUT: output })
 }

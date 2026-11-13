@@ -1,0 +1,15 @@
+{
+  "at": "2026-11-13T21:23:16.475040+00:00",
+  "passed": true,
+  "version": "0.1.13",
+  "universal": true,
+  "minimumSystemVersion": "12.0",
+  "machOFiles": 93,
+  "filesCompared": 629,
+  "archive": "Altbase-Wallet-macOS-universal-v0.1.13.zip",
+  "size": 374447085,
+  "sha256": "e78eb660a26bbb37cf3bd76c92a6cc88bef880196ca042e6d30a834811b107d6",
+  "nativeMacosExecution": false,
+  "appleNotarization": false,
+  "protectedSourceIncluded": false
+}

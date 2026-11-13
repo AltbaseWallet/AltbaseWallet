@@ -1,0 +1,72 @@
+{
+  "at": "2026-11-13T21:53:37.565377+00:00",
+  "passed": true,
+  "unit": "altbase-wallet-site.service",
+  "backup": "/var/www/altbase.io/backups/wallet-0.1.13-batch-20261113T215337",
+  "files": [
+    {
+      "file": "index.html",
+      "sha256": "b9ec6575eb8e17f7e106f6056ebbceadf85a29cb66f8f4780f2a86626ee35047"
+    },
+    {
+      "file": "download.html",
+      "sha256": "2c613cb60fad912dc4de3778ed4017e1a6b064338231b5778b5714a3ee835c1a"
+    },
+    {
+      "file": "assets.html",
+      "sha256": "0276611b36cb5255d90976c2c5927d0bdd6de392057dabe8628578898e9fd82d"
+    },
+    {
+      "file": "assets/js/main.js",
+      "sha256": "6e65918a4dd2f17b3b0663e5cd74f28b1438232cdc14b55dec3442240bf2237e"
+    },
+    {
+      "file": "assets/js/wallet-demo.js",
+      "sha256": "ed13ff9ae8b35d0e0ad33917882b0b186772a3981910b5b7a42b33be289783ac"
+    },
+    {
+      "file": "assets/js/assets.js",
+      "sha256": "e7f7ba13710aee2120289a1497454d15de7700e0709402e8964e8f2136b6102f"
+    },
+    {
+      "file": "server.js",
+      "sha256": "b67df7f7645e20d4326b6ccb4ac2d252ca5c83755e8a4b288b360c896841c8c3"
+    },
+    {
+      "file": "assets/img/networks/ethereum.png",
+      "sha256": "455848ff118c0e637aba7553e89baa5b038794207945fdc267d6cb6aa67bcc8c"
+    },
+    {
+      "file": "assets/img/networks/bsc.png",
+      "sha256": "ce8cb287f3c22ee809a8088337a21f0bbea2f857e15957edd4bbdadb71290c8e"
+    },
+    {
+      "file": "assets/img/networks/polygon.png",
+      "sha256": "552e7c7e9dc0ce20784d98b107547fc721a92f6e1cd8427ac0ae8cb1439b1fe6"
+    },
+    {
+      "file": "assets/img/networks/arbitrum.png",
+      "sha256": "b3a56ad6ac4d8e42ccf9202c6083d5843d68fb5258e375529ac72aacc853ee17"
+    },
+    {
+      "file": "assets/img/networks/solana.png",
+      "sha256": "f06cfb9d13d801ec6cf7fc0017d357e9f9faed347702e481b058bf1dcc017856"
+    },
+    {
+      "file": "assets/img/networks/tron.png",
+      "sha256": "a555e30656323127e997a379f8e9c26ac998361e16e3d677aba17017544e33c9"
+    },
+    {
+      "file": "assets/css/wallet-demo.css",
+      "sha256": "2f7bcf7b5d5487436dcd4174ce918d3f32aac811e5d1f2d45b403a7897cd14da"
+    },
+    {
+      "file": "demo-prices.cjs",
+      "sha256": "6bce4c67663d2e0df736e557b7386d37389a4faac91c17804f2e6736e0aa58f2"
+    }
+  ],
+  "languages": 7,
+  "newWalletVersion": "0.1.13",
+  "macosVersion": "0.1.13",
+  "atomicBatch": true
+}

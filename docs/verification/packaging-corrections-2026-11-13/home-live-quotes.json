@@ -1,0 +1,292 @@
+{
+  "at": "2026-11-13T21:50:55.993410+00:00",
+  "passed": true,
+  "nativeFeedMatched": 35,
+  "quotes": [
+    {
+      "coin": "ethereum",
+      "priceUsd": 1922.8368273580527,
+      "quoteAt": 1794606387087,
+      "sameNativeTimestamp": true,
+      "nativePriceUsd": 1922.8368273580527
+    },
+    {
+      "coin": "bsc",
+      "priceUsd": 629.8084569487761,
+      "quoteAt": 1794606388479,
+      "sameNativeTimestamp": true,
+      "nativePriceUsd": 629.8084569487761
+    },
+    {
+      "coin": "polygon",
+      "priceUsd": 0.08567902568701788,
+      "quoteAt": 1794606388738,
+      "sameNativeTimestamp": true,
+      "nativePriceUsd": 0.08567902568701788
+    },
+    {
+      "coin": "solana",
+      "priceUsd": 78.68639383867355,
+      "quoteAt": 1794606388997,
+      "sameNativeTimestamp": true,
+      "nativePriceUsd": 78.68639383867355
+    },
+    {
+      "coin": "tron",
+      "priceUsd": 0.3127886790818839,
+      "quoteAt": 1794606389256,
+      "sameNativeTimestamp": true,
+      "nativePriceUsd": 0.3127886790818839
+    },
+    {
+      "coin": "bitcoincash",
+      "priceUsd": 222.61758104573784,
+      "quoteAt": 1794606389516,
+      "sameNativeTimestamp": true,
+      "nativePriceUsd": 222.61758104573784
+    },
+    {
+      "coin": "digibyte",
+      "priceUsd": 0.0030224829302249053,
+      "quoteAt": 1794606389785,
+      "sameNativeTimestamp": true,
+      "nativePriceUsd": 0.0030224829302249053
+    },
+    {
+      "coin": "peercoin",
+      "priceUsd": 0.25027564930665763,
+      "quoteAt": 1794606390053,
+      "sameNativeTimestamp": true,
+      "nativePriceUsd": 0.25027564930665763
+    },
+    {
+      "coin": "zcash",
+      "priceUsd": 935.567434276517,
+      "quoteAt": 1794606390314,
+      "sameNativeTimestamp": true,
+      "nativePriceUsd": 935.567434276517
+    },
+    {
+      "coin": "mwc",
+      "priceUsd": 7.524623708222805,
+      "quoteAt": 1794606390574,
+      "sameNativeTimestamp": true,
+      "nativePriceUsd": 7.524623708222805
+    },
+    {
+      "coin": "nexa",
+      "priceUsd": 5.330049258925529e-07,
+      "quoteAt": 1794606390837,
+      "sameNativeTimestamp": true,
+      "nativePriceUsd": 5.330049258925529e-07
+    },
+    {
+      "coin": "xelis",
+      "priceUsd": 0.11808970753405777,
+      "quoteAt": 1794606391098,
+      "sameNativeTimestamp": true,
+      "nativePriceUsd": 0.11808970753405777
+    },
+    {
+      "coin": "bitcoin",
+      "priceUsd": 68157.82344404714,
+      "quoteAt": 1794606391357,
+      "sameNativeTimestamp": true,
+      "nativePriceUsd": 68157.82344404714
+    },
+    {
+      "coin": "bitcoin2",
+      "priceUsd": 0.0838705079952418,
+      "quoteAt": 1794606391618,
+      "sameNativeTimestamp": true,
+      "nativePriceUsd": 0.0838705079952418
+    },
+    {
+      "coin": "bitcoincashii",
+      "priceUsd": 0.024754757333310326,
+      "quoteAt": 1794606391878,
+      "sameNativeTimestamp": true,
+      "nativePriceUsd": 0.024754757333310326
+    },
+    {
+      "coin": "firo",
+      "priceUsd": 0.713587475556212,
+      "quoteAt": 1794606392138,
+      "sameNativeTimestamp": true,
+      "nativePriceUsd": 0.713587475556212
+    },
+    {
+      "coin": "pepecoin",
+      "priceUsd": 6.900357037706566e-05,
+      "quoteAt": 1794606392398,
+      "sameNativeTimestamp": true,
+      "nativePriceUsd": 6.900357037706566e-05
+    },
+    {
+      "coin": "kerrigan",
+      "priceUsd": 0.01829492901012602,
+      "quoteAt": 1794606392660,
+      "sameNativeTimestamp": true,
+      "nativePriceUsd": 0.01829492901012602
+    },
+    {
+      "coin": "scash",
+      "priceUsd": 0.018609932434639105,
+      "quoteAt": 1794606392924,
+      "sameNativeTimestamp": true,
+      "nativePriceUsd": 0.018609932434639105
+    },
+    {
+      "coin": "terracoin",
+      "priceUsd": 0.009009025200820892,
+      "quoteAt": 1794606393459,
+      "sameNativeTimestamp": true,
+      "nativePriceUsd": 0.009009025200820892
+    },
+    {
+      "coin": "junkcoin",
+      "priceUsd": 0.00883466031530112,
+      "quoteAt": 1794606393721,
+      "sameNativeTimestamp": true,
+      "nativePriceUsd": 0.00883466031530112
+    },
+    {
+      "coin": "raptoreum",
+      "priceUsd": 3.910352219529626e-05,
+      "quoteAt": 1794606393984,
+      "sameNativeTimestamp": true,
+      "nativePriceUsd": 3.910352219529626e-05
+    },
+    {
+      "coin": "epic",
+      "priceUsd": 0.88096,
+      "quoteAt": 1794606395386,
+      "sameNativeTimestamp": true,
+      "nativePriceUsd": 0.88096
+    },
+    {
+      "coin": "zano",
+      "priceUsd": 3.5118,
+      "quoteAt": 1794606394971,
+      "sameNativeTimestamp": true,
+      "nativePriceUsd": 3.5118
+    },
+    {
+      "coin": "capstash",
+      "priceUsd": 0.0048551,
+      "quoteAt": 1794606394909,
+      "sameNativeTimestamp": true,
+      "nativePriceUsd": 0.0048551
+    },
+    {
+      "coin": "litecoinii",
+      "priceUsd": 0.00098108,
+      "quoteAt": 1794606396399,
+      "sameNativeTimestamp": true,
+      "nativePriceUsd": 0.00098108
+    },
+    {
+      "coin": "xgr",
+      "priceUsd": 0.0001142,
+      "quoteAt": 1794606396569,
+      "sameNativeTimestamp": true,
+      "nativePriceUsd": 0.0001142
+    },
+    {
+      "coin": "pearl",
+      "priceUsd": 1.99,
+      "quoteAt": 1794606396882,
+      "sameNativeTimestamp": true,
+      "nativePriceUsd": 1.99
+    },
+    {
+      "coin": "neoxa",
+      "priceUsd": 0.00010831063205905336,
+      "quoteAt": 1794606396947,
+      "sameNativeTimestamp": true,
+      "nativePriceUsd": 0.00010831063205905336
+    },
+    {
+      "coin": "monero",
+      "priceUsd": 531.51,
+      "quoteAt": 1794606397093,
+      "sameNativeTimestamp": true,
+      "nativePriceUsd": 531.51
+    },
+    {
+      "coin": "quai",
+      "priceUsd": 0.00643517,
+      "quoteAt": 1794606397093,
+      "sameNativeTimestamp": true,
+      "nativePriceUsd": 0.00643517
+    },
+    {
+      "coin": "kaspa",
+      "priceUsd": 0.02854619,
+      "quoteAt": 1794606397093,
+      "sameNativeTimestamp": true,
+      "nativePriceUsd": 0.02854619
+    },
+    {
+      "coin": "qubic",
+      "priceUsd": 3.5878e-07,
+      "quoteAt": 1794606397093,
+      "sameNativeTimestamp": true,
+      "nativePriceUsd": 3.5878e-07
+    },
+    {
+      "coin": "ckb",
+      "priceUsd": 0.00092051,
+      "quoteAt": 1794606397093,
+      "sameNativeTimestamp": true,
+      "nativePriceUsd": 0.00092051
+    },
+    {
+      "coin": "arbitrum",
+      "priceUsd": 1922.8368273580527,
+      "quoteAt": 1794606387087,
+      "sameNativeTimestamp": true,
+      "nativePriceUsd": 1922.8368273580527
+    }
+  ],
+  "existingWebsiteMarketReferences": [
+    {
+      "coin": "bitcoin",
+      "demoPriceUsd": 68157.82344404714,
+      "referencePriceUsd": 68251.81286804995,
+      "deviationPercent": 0.1377,
+      "provider": "CoinPaprika",
+      "referenceUpdatedAt": "2026-11-13T21:49:15Z"
+    },
+    {
+      "coin": "ethereum",
+      "demoPriceUsd": 1922.8368273580527,
+      "referencePriceUsd": 1920.6165679154676,
+      "deviationPercent": 0.1156,
+      "provider": "CoinPaprika",
+      "referenceUpdatedAt": "2026-11-13T21:45:13Z"
+    },
+    {
+      "coin": "solana",
+      "demoPriceUsd": 78.68639383867355,
+      "referencePriceUsd": 78.84806113884603,
+      "deviationPercent": 0.205,
+      "provider": "CoinPaprika",
+      "referenceUpdatedAt": "2026-11-13T21:48:13Z"
+    }
+  ],
+  "httpChecks": [
+    {
+      "path": "/demo-prices.cjs",
+      "method": "GET",
+      "http": 404
+    },
+    {
+      "path": "/api/wallet-demo-prices",
+      "method": "POST",
+      "http": 405
+    }
+  ],
+  "newThirdPartyProviders": 0,
+  "walletTransactions": 0
+}

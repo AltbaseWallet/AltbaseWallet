@@ -1,0 +1,13 @@
+{
+  "at": "2026-11-13T21:55:57.419268+00:00",
+  "passed": true,
+  "applicationTests": 296,
+  "miningTestsPreviouslyPassed": 27,
+  "websitePriceTests": 5,
+  "staticWebsitePathVectors": 14,
+  "offlinePromotionFixtures": 5,
+  "eslintPassedAfterCorrection": true,
+  "typescriptPassed": true,
+  "nativeMacosExecution": false,
+  "realTransactions": 0
+}

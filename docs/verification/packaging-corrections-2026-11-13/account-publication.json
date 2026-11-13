@@ -1,0 +1,38 @@
+[
+  {
+    "repository": "AltbaseWallet/module-evm",
+    "id": 444754183,
+    "url": "https://github.com/AltbaseWallet/module-evm/releases/tag/v0.1.6",
+    "assets": [
+      {
+        "name": "evm-0.1.6.tar.gz",
+        "size": 15614759,
+        "digest": "sha256:0de1bee3f66c7adef7e13da75b9d48296ae5368ffc893b4b70e26ddd83163851"
+      }
+    ]
+  },
+  {
+    "repository": "AltbaseWallet/module-sol",
+    "id": 444756457,
+    "url": "https://github.com/AltbaseWallet/module-sol/releases/tag/v0.1.6",
+    "assets": [
+      {
+        "name": "sol-0.1.6.tar.gz",
+        "size": 3900078,
+        "digest": "sha256:93c2bf922283c0b6660dc99f16a01cb968ea88a178225a7464546e49e5fbf057"
+      }
+    ]
+  },
+  {
+    "repository": "AltbaseWallet/module-trx",
+    "id": 444756791,
+    "url": "https://github.com/AltbaseWallet/module-trx/releases/tag/v0.1.6",
+    "assets": [
+      {
+        "name": "trx-0.1.6.tar.gz",
+        "size": 3905146,
+        "digest": "sha256:03d9e346007c94117785717cdcb67c56123229dcd7b798fd4b5baf4259b46c31"
+      }
+    ]
+  }
+]

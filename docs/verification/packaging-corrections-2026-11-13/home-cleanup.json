@@ -1,0 +1,16 @@
+{
+  "at": "2026-11-13T21:56:35.293087+00:00",
+  "passed": true,
+  "removedDirectories": [
+    "/home/user/Documents/AltbaseFullNode/local-checks/home-demo-2026-11-13/gui-production-1794606818474/profile",
+    "/home/user/Documents/AltbaseFullNode/local-checks/home-demo-2026-11-13/gui-preview-1794606739695/profile",
+    "/home/user/Documents/AltbaseFullNode/local-checks/home-demo-2026-11-13/gui-production-1794606629992/profile",
+    "/home/user/Documents/AltbaseFullNode/local-checks/home-demo-2026-11-13/gui-preview-1794606451126/profile",
+    "/home/user/Documents/AltbaseFullNode/local-checks/home-demo-2026-11-13/cache"
+  ],
+  "freeBytesBefore": 82182344704,
+  "freeBytesAfter": 82219610112,
+  "userProfilesTouched": false,
+  "protectedSourceAccessed": false,
+  "localPreviewStopped": true
+}

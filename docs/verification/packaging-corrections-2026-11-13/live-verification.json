@@ -1,0 +1,171 @@
+{
+  "at": "2026-11-13T21:33:07.671633+00:00",
+  "passed": true,
+  "readOnly": true,
+  "servers": [
+    {
+      "host": "212.43.147.158",
+      "checks": [
+        {
+          "platform": "windows",
+          "installed": "0.1.9",
+          "latest": "0.1.13",
+          "updateAvailable": true,
+          "file": "https://github.com/AltbaseWallet/AltbaseWallet/releases/download/v0.1.13/Altbase-Wallet-Windows-v0.1.13.zip"
+        },
+        {
+          "platform": "windows",
+          "installed": "0.1.13",
+          "latest": "0.1.13",
+          "updateAvailable": false,
+          "file": "https://github.com/AltbaseWallet/AltbaseWallet/releases/download/v0.1.13/Altbase-Wallet-Windows-v0.1.13.zip"
+        },
+        {
+          "platform": "windows",
+          "installed": "0.1.14",
+          "latest": "0.1.13",
+          "updateAvailable": false,
+          "file": "https://github.com/AltbaseWallet/AltbaseWallet/releases/download/v0.1.13/Altbase-Wallet-Windows-v0.1.13.zip"
+        },
+        {
+          "platform": "linux",
+          "installed": "0.1.9",
+          "latest": "0.1.13",
+          "updateAvailable": true,
+          "file": "https://github.com/AltbaseWallet/AltbaseWallet/releases/download/v0.1.13/Altbase-Wallet-Linux-x64-v0.1.13.tar.gz"
+        },
+        {
+          "platform": "linux",
+          "installed": "0.1.13",
+          "latest": "0.1.13",
+          "updateAvailable": false,
+          "file": "https://github.com/AltbaseWallet/AltbaseWallet/releases/download/v0.1.13/Altbase-Wallet-Linux-x64-v0.1.13.tar.gz"
+        },
+        {
+          "platform": "linux",
+          "installed": "0.1.14",
+          "latest": "0.1.13",
+          "updateAvailable": false,
+          "file": "https://github.com/AltbaseWallet/AltbaseWallet/releases/download/v0.1.13/Altbase-Wallet-Linux-x64-v0.1.13.tar.gz"
+        },
+        {
+          "platform": "macos",
+          "installed": "0.1.9",
+          "latest": "0.1.13",
+          "updateAvailable": true,
+          "file": "https://github.com/AltbaseWallet/AltbaseWallet/releases/download/v0.1.13/Altbase-Wallet-macOS-universal-v0.1.13.zip"
+        },
+        {
+          "platform": "macos",
+          "installed": "0.1.13",
+          "latest": "0.1.13",
+          "updateAvailable": false,
+          "file": "https://github.com/AltbaseWallet/AltbaseWallet/releases/download/v0.1.13/Altbase-Wallet-macOS-universal-v0.1.13.zip"
+        },
+        {
+          "platform": "macos",
+          "installed": "0.1.14",
+          "latest": "0.1.13",
+          "updateAvailable": false,
+          "file": "https://github.com/AltbaseWallet/AltbaseWallet/releases/download/v0.1.13/Altbase-Wallet-macOS-universal-v0.1.13.zip"
+        }
+      ]
+    },
+    {
+      "host": "188.137.235.140",
+      "checks": [
+        {
+          "platform": "windows",
+          "installed": "0.1.9",
+          "latest": "0.1.13",
+          "updateAvailable": true,
+          "file": "https://github.com/AltbaseWallet/AltbaseWallet/releases/download/v0.1.13/Altbase-Wallet-Windows-v0.1.13.zip"
+        },
+        {
+          "platform": "windows",
+          "installed": "0.1.13",
+          "latest": "0.1.13",
+          "updateAvailable": false,
+          "file": "https://github.com/AltbaseWallet/AltbaseWallet/releases/download/v0.1.13/Altbase-Wallet-Windows-v0.1.13.zip"
+        },
+        {
+          "platform": "windows",
+          "installed": "0.1.14",
+          "latest": "0.1.13",
+          "updateAvailable": false,
+          "file": "https://github.com/AltbaseWallet/AltbaseWallet/releases/download/v0.1.13/Altbase-Wallet-Windows-v0.1.13.zip"
+        },
+        {
+          "platform": "linux",
+          "installed": "0.1.9",
+          "latest": "0.1.13",
+          "updateAvailable": true,
+          "file": "https://github.com/AltbaseWallet/AltbaseWallet/releases/download/v0.1.13/Altbase-Wallet-Linux-x64-v0.1.13.tar.gz"
+        },
+        {
+          "platform": "linux",
+          "installed": "0.1.13",
+          "latest": "0.1.13",
+          "updateAvailable": false,
+          "file": "https://github.com/AltbaseWallet/AltbaseWallet/releases/download/v0.1.13/Altbase-Wallet-Linux-x64-v0.1.13.tar.gz"
+        },
+        {
+          "platform": "linux",
+          "installed": "0.1.14",
+          "latest": "0.1.13",
+          "updateAvailable": false,
+          "file": "https://github.com/AltbaseWallet/AltbaseWallet/releases/download/v0.1.13/Altbase-Wallet-Linux-x64-v0.1.13.tar.gz"
+        },
+        {
+          "platform": "macos",
+          "installed": "0.1.9",
+          "latest": "0.1.13",
+          "updateAvailable": true,
+          "file": "https://github.com/AltbaseWallet/AltbaseWallet/releases/download/v0.1.13/Altbase-Wallet-macOS-universal-v0.1.13.zip"
+        },
+        {
+          "platform": "macos",
+          "installed": "0.1.13",
+          "latest": "0.1.13",
+          "updateAvailable": false,
+          "file": "https://github.com/AltbaseWallet/AltbaseWallet/releases/download/v0.1.13/Altbase-Wallet-macOS-universal-v0.1.13.zip"
+        },
+        {
+          "platform": "macos",
+          "installed": "0.1.14",
+          "latest": "0.1.13",
+          "updateAvailable": false,
+          "file": "https://github.com/AltbaseWallet/AltbaseWallet/releases/download/v0.1.13/Altbase-Wallet-macOS-universal-v0.1.13.zip"
+        }
+      ]
+    }
+  ],
+  "websiteChecksums": [
+    {
+      "platform": "Windows",
+      "file": "Altbase-Wallet-Windows-v0.1.13.zip",
+      "expected": "df3c9dfb9c3b4b42ff97ad98b28444c0afc7ee7c468809e93eafe68036b31f27",
+      "actual": "df3c9dfb9c3b4b42ff97ad98b28444c0afc7ee7c468809e93eafe68036b31f27",
+      "ok": true,
+      "source": "GitHub v0.1.13"
+    },
+    {
+      "platform": "Linux",
+      "file": "Altbase-Wallet-Linux-x64-v0.1.13.tar.gz",
+      "expected": "9ada52b0c42c8bc333f739d3ec4d1ed9a7a1873725321ea98d88ff244fb32dcb",
+      "actual": "9ada52b0c42c8bc333f739d3ec4d1ed9a7a1873725321ea98d88ff244fb32dcb",
+      "ok": true,
+      "source": "GitHub v0.1.13"
+    },
+    {
+      "platform": "MacOS",
+      "file": "Altbase-Wallet-macOS-universal-v0.1.13.zip",
+      "expected": "e78eb660a26bbb37cf3bd76c92a6cc88bef880196ca042e6d30a834811b107d6",
+      "actual": "e78eb660a26bbb37cf3bd76c92a6cc88bef880196ca042e6d30a834811b107d6",
+      "ok": true,
+      "source": "GitHub v0.1.13"
+    }
+  ],
+  "publicMacosUpdate": true,
+  "realTransfers": 0
+}

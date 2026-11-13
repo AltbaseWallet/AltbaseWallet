@@ -1,0 +1,257 @@
+{
+  "at": "2026-11-13T21:54:10.037Z",
+  "passed": true,
+  "origin": "https://altbase.io",
+  "actualGui": true,
+  "nonzeroBalances": 35,
+  "liveQuotes": 35,
+  "total": 15995.866252929909,
+  "perCoinArithmetic": true,
+  "totalArithmetic": true,
+  "languages": [
+    "en",
+    "de",
+    "fr",
+    "zh",
+    "ja",
+    "ru",
+    "uk"
+  ],
+  "widths": [
+    {
+      "width": 390,
+      "page": 375,
+      "wallet": 347,
+      "list": 215.421875
+    },
+    {
+      "width": 320,
+      "page": 305,
+      "wallet": 277,
+      "list": 189.171875
+    }
+  ],
+  "menuViews": 8,
+  "networkExpansion": true,
+  "balancePrivacy": true,
+  "swapDisabled": true,
+  "offlineAndStaleChecked": false,
+  "realTransactions": 0,
+  "rows": [
+    {
+      "id": "btc",
+      "quantity": 0.042,
+      "price": 68259.34132864772,
+      "fiat": 2866.8923358032043
+    },
+    {
+      "id": "ethereum",
+      "quantity": 1.24,
+      "price": 1925.4,
+      "fiat": 2387.496
+    },
+    {
+      "id": "bsc",
+      "quantity": 3.6,
+      "price": 630.6287681598318,
+      "fiat": 2270.2635653753946
+    },
+    {
+      "id": "solana",
+      "quantity": 24.5,
+      "price": 78.65380043802122,
+      "fiat": 1927.01811073152
+    },
+    {
+      "id": "tron",
+      "quantity": 3400,
+      "price": 0.312866119299584,
+      "fiat": 1063.7448056185856
+    },
+    {
+      "id": "bc2",
+      "quantity": 12430,
+      "price": 0.08392855353876627,
+      "fiat": 1043.2319204868647
+    },
+    {
+      "id": "arbitrum",
+      "quantity": 0.48,
+      "price": 1925.4,
+      "fiat": 924.192
+    },
+    {
+      "id": "xmr",
+      "quantity": 1.25,
+      "price": 532.75,
+      "fiat": 665.9375
+    },
+    {
+      "id": "zec",
+      "quantity": 0.32,
+      "price": 937.5345031827239,
+      "fiat": 300.01104101847164
+    },
+    {
+      "id": "scash",
+      "quantity": 14300,
+      "price": 0.018614214005980297,
+      "fiat": 266.18326028551826
+    },
+    {
+      "id": "mwc",
+      "quantity": 35,
+      "price": 7.535831282682707,
+      "fiat": 263.7540948938948
+    },
+    {
+      "id": "bch2",
+      "quantity": 9840,
+      "price": 0.024841791959868624,
+      "fiat": 244.44323288510725
+    },
+    {
+      "id": "xel",
+      "quantity": 1700,
+      "price": 0.11811492662658796,
+      "fiat": 200.79537526519954
+    },
+    {
+      "id": "dgb",
+      "quantity": 58000,
+      "price": 0.0030190466166799797,
+      "fiat": 175.10470376743882
+    },
+    {
+      "id": "bch",
+      "quantity": 0.72,
+      "price": 223.12575065389953,
+      "fiat": 160.65054047080767
+    },
+    {
+      "id": "neox",
+      "quantity": 1400000,
+      "price": 0.00010834749935666615,
+      "fiat": 151.68649909933262
+    },
+    {
+      "id": "jkc",
+      "quantity": 16000,
+      "price": 0.008836693803965569,
+      "fiat": 141.3871008634491
+    },
+    {
+      "id": "prl",
+      "quantity": 64,
+      "price": 1.99,
+      "fiat": 127.36
+    },
+    {
+      "id": "ppc",
+      "quantity": 450,
+      "price": 0.2503332300126184,
+      "fiat": 112.6499535056783
+    },
+    {
+      "id": "polygon",
+      "quantity": 1250,
+      "price": 0.0857123904101365,
+      "fiat": 107.14048801267062
+    },
+    {
+      "id": "nexa",
+      "quantity": 180000000,
+      "price": 5.351297375979183e-7,
+      "fiat": 96.3233527676253
+    },
+    {
+      "id": "firo",
+      "quantity": 125,
+      "price": 0.7112113094808458,
+      "fiat": 88.90141368510572
+    },
+    {
+      "id": "zano",
+      "quantity": 18.42,
+      "price": 3.5118,
+      "fiat": 64.68735600000001
+    },
+    {
+      "id": "pep",
+      "quantity": 840000,
+      "price": 0.00007042187302875981,
+      "fiat": 59.15437334415824
+    },
+    {
+      "id": "trc",
+      "quantity": 5800,
+      "price": 0.009011585696805342,
+      "fiat": 52.26719704147098
+    },
+    {
+      "id": "epic",
+      "quantity": 54,
+      "price": 0.87757,
+      "fiat": 47.38878
+    },
+    {
+      "id": "ckb",
+      "quantity": 50000,
+      "price": 0.00092138,
+      "fiat": 46.068999999999996
+    },
+    {
+      "id": "caps",
+      "quantity": 9120,
+      "price": 0.0048551,
+      "fiat": 44.278512
+    },
+    {
+      "id": "kas",
+      "quantity": 1250,
+      "price": 0.02856167,
+      "fiat": 35.7020875
+    },
+    {
+      "id": "quai",
+      "quantity": 3200,
+      "price": 0.0064357,
+      "fiat": 20.59424
+    },
+    {
+      "id": "ker",
+      "quantity": 760,
+      "price": 0.01798425347998004,
+      "fiat": 13.66803264478483
+    },
+    {
+      "id": "qubic",
+      "quantity": 25000000,
+      "price": 3.58416e-7,
+      "fiat": 8.9604
+    },
+    {
+      "id": "lc2",
+      "quantity": 8900,
+      "price": 0.00098351,
+      "fiat": 8.753238999999999
+    },
+    {
+      "id": "rtm",
+      "quantity": 220000,
+      "price": 0.000039112458471031404,
+      "fiat": 8.604740863626908
+    },
+    {
+      "id": "xgr",
+      "quantity": 5000,
+      "price": 0.0001142,
+      "fiat": 0.571
+    }
+  ],
+  "screenshots": [
+    "desktop-wallet.png",
+    "mobile-wallet.png"
+  ],
+  "evidence": "/home/user/Documents/AltbaseFullNode/local-checks/home-demo-2026-11-13/gui-production-1794606818474"
+}

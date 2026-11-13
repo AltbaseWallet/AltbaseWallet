@@ -1,0 +1,70 @@
+[
+  {
+    "host": "212.43.147.158",
+    "passed": true,
+    "unit": "altbase-api.service",
+    "backup": "/opt/altbase-backups/releases/wallet-0.1.13-20261113T213122",
+    "previousVersion": "0.1.13",
+    "checks": [
+      {
+        "platform": "windows",
+        "currentVersion": "0.1.9",
+        "latestVersion": "0.1.13",
+        "updateAvailable": true
+      },
+      {
+        "platform": "linux",
+        "currentVersion": "0.1.9",
+        "latestVersion": "0.1.13",
+        "updateAvailable": true
+      },
+      {
+        "platform": "windows",
+        "currentVersion": "0.1.13",
+        "latestVersion": "0.1.13",
+        "updateAvailable": false
+      },
+      {
+        "platform": "macos",
+        "currentVersion": "0.1.9",
+        "latestVersion": "0.1.13",
+        "updateAvailable": true
+      }
+    ],
+    "at": "2026-11-13T21:31:23.668831+00:00"
+  },
+  {
+    "host": "188.137.235.140",
+    "passed": true,
+    "unit": "altbase-api-node2.service",
+    "backup": "/opt/altbase-backups/releases/wallet-0.1.13-20261113T213135",
+    "previousVersion": "0.1.13",
+    "checks": [
+      {
+        "platform": "windows",
+        "currentVersion": "0.1.9",
+        "latestVersion": "0.1.13",
+        "updateAvailable": true
+      },
+      {
+        "platform": "linux",
+        "currentVersion": "0.1.9",
+        "latestVersion": "0.1.13",
+        "updateAvailable": true
+      },
+      {
+        "platform": "windows",
+        "currentVersion": "0.1.13",
+        "latestVersion": "0.1.13",
+        "updateAvailable": false
+      },
+      {
+        "platform": "macos",
+        "currentVersion": "0.1.9",
+        "latestVersion": "0.1.13",
+        "updateAvailable": true
+      }
+    ],
+    "at": "2026-11-13T21:31:37.541807+00:00"
+  }
+]

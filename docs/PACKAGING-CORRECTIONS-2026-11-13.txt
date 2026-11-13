@@ -1,0 +1,109 @@
+ALTBASE WALLET 0.1.13 — PACKAGING AND WEBSITE CORRECTIONS
+Verified: 2026-11-13T21:55:57.419268+00:00
+
+This report supersedes earlier statements that macOS 0.1.13 is unavailable and
+that the Windows ZIP is a portable application. It supplements the earlier
+transfer, Linux and native Windows GUI verification without claiming new live
+transactions or a native Mac run.
+
+PUBLISHED APPLICATION FILES
+https://github.com/AltbaseWallet/AltbaseWallet/releases/tag/v0.1.13
+
+The Windows ZIP contains exactly Altbase-Wallet-Windows-x64-v0.1.13.msi. Its CRC,
+embedded installer hash and reproducible recipe were verified. The MSI payload
+itself is unchanged from the previously verified installation/GUI tests.
+The old portable ZIP was replaced. Linux payload bytes are unchanged.
+
+The full macOS ZIP contains the universal Intel/Apple Silicon .app (macOS 12+),
+not a single test DLL. The vault and plugin host were compiled on Linux for both
+CPUs using one core. The fresh vault links pinned OpenSSL 3.5.9 LTS. Existing
+prebuilt coin engines remain legacy dependencies; this is not a claim that all
+their embedded dependencies were rebuilt. Darwin vault naming, loader paths,
+foreign-addon exclusion, universal runtime metadata, icon packaging and nested
+ad-hoc signing were corrected. The published app has the Altbase icon.
+
+All 93 Mach-O files, 629 ordinary archive members, CRCs,
+per-file SHA-256, CPU slices and deployment minimums were verified. Resource
+seals were independently checked against 600 stored resource hashes. Official
+Electron 43.8.3 distributions and OpenSSL source matched their upstream hashes.
+The complete build recipe is documented in docs/MACOS-BUILD.md.
+
+SHA-256 of current application payloads:
+9ada52b0c42c8bc333f739d3ec4d1ed9a7a1873725321ea98d88ff244fb32dcb  Altbase-Wallet-Linux-x64-v0.1.13.tar.gz
+e78eb660a26bbb37cf3bd76c92a6cc88bef880196ca042e6d30a834811b107d6  Altbase-Wallet-macOS-universal-v0.1.13.zip
+df3c9dfb9c3b4b42ff97ad98b28444c0afc7ee7c468809e93eafe68036b31f27  Altbase-Wallet-Windows-v0.1.13.zip
+aa4229c116c4f09b6e388ca4cd3f8b0ba5f85ee29b2076ebbd670b1cd302f0b9  Altbase-Wallet-Windows-x64-v0.1.13.msi
+
+INDEPENDENT MODULES
+EVM, Solana and Tron each retain one repository and their own release assets.
+Their archives were removed from the main wallet release. Version 0.1.6 adds
+universal macOS native module programs alongside Linux .so and Windows .dll:
+https://github.com/AltbaseWallet/module-evm/releases/tag/v0.1.6
+https://github.com/AltbaseWallet/module-sol/releases/tag/v0.1.6
+https://github.com/AltbaseWallet/module-trx/releases/tag/v0.1.6
+
+DELISTINGS, NETWORKS AND UPDATE FEEDS
+English GitHub notes and visible site notices name Hypercoin (HRC), Mydogecoin
+(MYDOGE), Nonsense (NNN) and BTGS as delisted. Source repositories are retained.
+Ethereum, BNB Smart Chain, Polygon, Arbitrum One, Solana and Tron are explicitly
+listed with their independent module repositories. Website notices work in
+English, German, French, Chinese, Japanese, Russian and Ukrainian.
+
+Both Altbase API servers advertise Windows/Linux/macOS 0.1.13. Eighteen local
+feed cases passed: old versions receive an optional update, equal/newer clients
+do not receive an update or downgrade. The public macOS feed also passed.
+The site's three application checksum rows match the published asset digests.
+The temporary transfer relay, nginx include, draft release and Windows QA tasks
+were removed. Production coin services and real wallet profiles were preserved.
+
+HOMEPAGE WALLET PREVIEW
+The homepage preview now follows the actual application's dark dashboard,
+sidebar, portfolio card, coin rows, history, Mining/Modules pages, disabled Swap,
+balance visibility and collapsible network token controls. It has 35 positive
+initial sample balances and clearly labels them as demonstration quantities.
+Real receiving addresses, keys, signatures and broadcasts are never used.
+
+All former hardcoded market prices were removed. A read-only same-origin route
+uses the existing Altbase wallet price feed, retaining per-coin timestamps.
+Refreshes are coalesced, timed out and repeated every minute, on visibility and
+on demand. Invalid/future/expired quotes are excluded. Missing prices show a
+dash, and only currently priced balances contribute to known market value.
+No new external provider or registration was introduced.
+
+Production GUI checks passed for 35 positive balances and 35 live quotes,
+per-coin multiplication and the portfolio sum, search, favorites, visibility,
+network expansion, eight menu views, seven languages and 390/320 px widths.
+Preview fixtures also passed for offline and stale quote responses without
+presenting them as verified zero values. Five quote-service regressions and
+14 static path vectors passed. The helper source returns HTTP 404 publicly;
+the quote route rejects POST with HTTP 405.
+
+Independent existing-site market comparisons (CoinPaprika):
+bitcoin: wallet quote 68157.82344404714 USD; reference 68251.81286804995 USD; deviation 0.1377%; reference timestamp 2026-11-13T21:49:15Z.
+ethereum: wallet quote 1922.8368273580527 USD; reference 1920.6165679154676 USD; deviation 0.1156%; reference timestamp 2026-11-13T21:45:13Z.
+solana: wallet quote 78.68639383867355 USD; reference 78.84806113884603 USD; deviation 0.205%; reference timestamp 2026-11-13T21:48:13Z.
+
+VERIFICATION AND PRECISE LIMITS
+296 application tests passed. The corrected full ESLint and TypeScript runs
+passed after the initial unused-import lint failure was fixed. The existing
+27 mining tests remain applicable. Five offline promotion fixtures passed,
+including corrupt data/no-public-mutation and no credential forwarding to the
+public binary relay. New website tests are separate from those application
+counts. No real user transfers were executed.
+
+There is no native Mac available. The universal .app has valid checked ad-hoc
+code-page hashes; it is not Apple-notarized or Developer ID signed. Native Mac
+installation, GUI behavior, Gatekeeper assessment and actual macOS module
+loading remain unverified. Static validation cannot substitute for that run.
+Token discovery remains subject to public RPC limits documented by the wallet;
+the website network panels are an interface preview, not a token indexer.
+
+The owner-maintained protected wallet implementation was never opened, modified
+or uploaded by this work. The Linux compiler processed it unchanged where
+needed. Existing protected remote Git entries were preserved by tree-metadata
+comparison, with zero new protected source uploads.
+
+COMPACT EVIDENCE
+See docs/verification/packaging-corrections-2026-11-13/ and
+ops/website/README.md. Current binaries are in artifacts/ and the shared delivery
+folder. Current public source is mirrored in /home/user/Documents/Altbase_GitHub.

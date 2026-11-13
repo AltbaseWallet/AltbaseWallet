@@ -1,0 +1,27 @@
+[
+  {
+    "name": "core",
+    "repository": "AltbaseWallet/core",
+    "commit": "dc370c5ffe07ee0bf67b23c150154b9d91bd42f1"
+  },
+  {
+    "name": "plugin-host",
+    "repository": "AltbaseWallet/plugin-host",
+    "commit": "1eb50d74a0a75b92937e71008e03a491f1a08548"
+  },
+  {
+    "name": "module-evm",
+    "repository": "AltbaseWallet/module-evm",
+    "commit": "378213ff930ddf9c48165d7c6ec9002aca461c7d"
+  },
+  {
+    "name": "module-sol",
+    "repository": "AltbaseWallet/module-sol",
+    "commit": "dd2d0dd96787179566a5d01f39a6cacdf1032426"
+  },
+  {
+    "name": "module-trx",
+    "repository": "AltbaseWallet/module-trx",
+    "commit": "8111a148971034be802a0bfc016ac5cc1ad466bc"
+  }
+]

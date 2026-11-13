@@ -1,5 +1,5 @@
 {
-  "at": "2026-11-13T21:25:05.455357+00:00",
+  "at": "2026-11-13T21:56:36.209198+00:00",
   "version": "0.1.13",
   "protectedSourceIncluded": false,
   "credentialScanPassed": true,
@@ -1421,8 +1421,8 @@
     },
     {
       "file": "scripts/package-macos.cjs",
-      "size": 1716,
-      "sha256": "7346802853dffa6114da6e3e349902e4016ca537a366ae12e8391ea6b01b268d"
+      "size": 1858,
+      "sha256": "082a90bf8bc1b63369faead38fef9df2636d1b1b2b8cbcb059b970571fef0553"
     },
     {
       "file": "scripts/check-publicnode.cjs",
@@ -1561,8 +1561,18 @@
     },
     {
       "file": "docs/UPDATE-RELEASE-2026-11-13.txt",
-      "size": 8839,
-      "sha256": "57f48942cacf5cd626c49e5c0316c57913c2cb92a5dec2825aa197734d650184"
+      "size": 9100,
+      "sha256": "94ad61bc09d03ee2e31e0b69cf0921ee7630d8560e01b861e24757480ad90d06"
+    },
+    {
+      "file": "docs/MACOS-BUILD.md",
+      "size": 2234,
+      "sha256": "592d41a67cece4a825b15ed52140861083afed60db6c8c6b059129c3598f030a"
+    },
+    {
+      "file": "docs/PACKAGING-CORRECTIONS-2026-11-13.txt",
+      "size": 6758,
+      "sha256": "6e39e68cf0da6f771fedf0749c7715b5a36ccd02366aa1d136fe3fcb21274718"
     },
     {
       "file": "docs/PUBLICNODE-CHECKS-2026-09-24.md",
@@ -1798,6 +1808,131 @@
       "file": "docs/verification/update-release-2026-11-13/release-publication.json",
       "size": 4118,
       "sha256": "15e2cf93fb4a91d0960bfd415a2c8f9ad1aac2b32ba912d00bdd97a6ac2ff377"
+    },
+    {
+      "file": "docs/verification/packaging-corrections-2026-11-13/component-publication.json",
+      "size": 683,
+      "sha256": "31f834b1f24e33f4eb39abde9bee81d564d0a3e0eaa0e3c422ba426f344d6700"
+    },
+    {
+      "file": "docs/verification/packaging-corrections-2026-11-13/mac-minimum-os.json",
+      "size": 181,
+      "sha256": "44281ece056fb5410ecf64b158109dfc980efe54cc1762d597a792f8b080a7ed"
+    },
+    {
+      "file": "docs/verification/packaging-corrections-2026-11-13/macos-archive.json",
+      "size": 446,
+      "sha256": "e880457498c3615773180502e9b28d47a141c05c881f81dfc13d3c608fd9d2af"
+    },
+    {
+      "file": "docs/verification/packaging-corrections-2026-11-13/mac-dependencies.json",
+      "size": 8045,
+      "sha256": "addddfa6004230c86627b7a51a4dfc3a5fa6ae9566ad578c966adfc1dc624584"
+    },
+    {
+      "file": "docs/verification/packaging-corrections-2026-11-13/windows-zip-project-check.json",
+      "size": 289,
+      "sha256": "4c770fb043db3478e2b34e0fbc6f96425211a71c3b548062d7c1ace05f22131c"
+    },
+    {
+      "file": "docs/verification/packaging-corrections-2026-11-13/validation.json",
+      "size": 347,
+      "sha256": "562878d669900d39c4998a79f4432b3e041e41caa374a536ae154e5cfd40e783"
+    },
+    {
+      "file": "docs/verification/packaging-corrections-2026-11-13/site-path-vectors.json",
+      "size": 1092,
+      "sha256": "9a408feb7d56c4acb0b88c747f3eb6ca0f2d09a67a1613b08260b22afb7c149d"
+    },
+    {
+      "file": "docs/verification/packaging-corrections-2026-11-13/account-publication.json",
+      "size": 1039,
+      "sha256": "c54cfeb691edfa094270ff067dcdfa92f0b2728ed2205ba35106d24e32d90429"
+    },
+    {
+      "file": "docs/verification/packaging-corrections-2026-11-13/openssl-builds.json",
+      "size": 976,
+      "sha256": "c304eb4dfe39497a7a8d167f000367807078196529cf413365ff9199a2502d56"
+    },
+    {
+      "file": "docs/verification/packaging-corrections-2026-11-13/home-cleanup.json",
+      "size": 799,
+      "sha256": "a257655de02cc08385a282903bf9cb5f35d94bbac4be2811cd274378c0568a4c"
+    },
+    {
+      "file": "docs/verification/packaging-corrections-2026-11-13/official-electron-downloads.json",
+      "size": 563,
+      "sha256": "28a1d977aedb3c5bcdac435db24beadb1c54ad53662ec5e08994808ed3003066"
+    },
+    {
+      "file": "docs/verification/packaging-corrections-2026-11-13/home-preview-gui.json",
+      "size": 5066,
+      "sha256": "25543bd7ebc323c5b591d635b096bfa72627e6a4f212a048c066355f8eabd180"
+    },
+    {
+      "file": "docs/verification/packaging-corrections-2026-11-13/live-verification.json",
+      "size": 6378,
+      "sha256": "893c12925fa4e326e8e14e5edb61b86eaa6e43bea0953eebafafc3ec235ea14d"
+    },
+    {
+      "file": "docs/verification/packaging-corrections-2026-11-13/mac-resource-seals.json",
+      "size": 131,
+      "sha256": "64328f3776771e33b0b439106f7af3b6018175a361cc9ed7ffe4db079cc1a165"
+    },
+    {
+      "file": "docs/verification/packaging-corrections-2026-11-13/transport-cleanup.json",
+      "size": 167,
+      "sha256": "916c41f3cfbccef574bda79777997b4e18842777a4427a65608c3509082744f5"
+    },
+    {
+      "file": "docs/verification/packaging-corrections-2026-11-13/home-desktop-wallet.png",
+      "size": 104660,
+      "sha256": "8accaa8218e035ad4b0f5f8f8d700c3e4fd8254a45178c930351def8083e2ed4"
+    },
+    {
+      "file": "docs/verification/packaging-corrections-2026-11-13/home-production-gui.json",
+      "size": 5067,
+      "sha256": "93da4e3e0ced7bf1e004915cdc320cf021f7be80b1063ee71a9d8eec913d7c80"
+    },
+    {
+      "file": "docs/verification/packaging-corrections-2026-11-13/backend-update-deployment.json",
+      "size": 1748,
+      "sha256": "9d4ccbeaeb51700d9ac4823b5dbd5dfff57097532212dd770225ec98de9fd51a"
+    },
+    {
+      "file": "docs/verification/packaging-corrections-2026-11-13/website-deployment.json",
+      "size": 2337,
+      "sha256": "87dec5713550b58325c8a0d7c685076431e36f60468b4da834ac94c82463b58f"
+    },
+    {
+      "file": "docs/verification/packaging-corrections-2026-11-13/promotion-runs.json",
+      "size": 329,
+      "sha256": "4165f6bc4812c7b620373b99128cbd29697f33e407a95b3998790ab7733a94db"
+    },
+    {
+      "file": "docs/verification/packaging-corrections-2026-11-13/windows-task-cleanup.json",
+      "size": 163,
+      "sha256": "f2ec196ff1019c459b8eb461a6be50dcacc7a21dc02a25c0ded114824b3dd68b"
+    },
+    {
+      "file": "docs/verification/packaging-corrections-2026-11-13/home-mobile-wallet.png",
+      "size": 91722,
+      "sha256": "2b5fdf12c81c0d8989cf7d691ef21b30a10f9bbcfaf625f5e8256e35cdb9e9b3"
+    },
+    {
+      "file": "docs/verification/packaging-corrections-2026-11-13/home-live-quotes.json",
+      "size": 7459,
+      "sha256": "5cf96241852f9d71ab65a740b72fc16be101e7242b04b713bf5365ddd7ebe889"
+    },
+    {
+      "file": "docs/verification/packaging-corrections-2026-11-13/published-assets.json",
+      "size": 1438,
+      "sha256": "93d11805980576b040ea34423f2a0049a82996e0cfdeace8d173d832e3a98819"
+    },
+    {
+      "file": "docs/verification/packaging-corrections-2026-11-13/delivery-cleanup.json",
+      "size": 1926,
+      "sha256": "1a17a6a0d03536e88e9a4b19134ebe6de84edb8d18023dee7d36b9581c4bb1f6"
     },
     {
       "file": "electron/trusted-frame.cjs",
@@ -3106,8 +3241,8 @@
     },
     {
       "file": "ops/backend/UPDATE-FEED.md",
-      "size": 2579,
-      "sha256": "f28702712b9add99d11c0d3ceafa601f1dbce523672af74b9be566a52416e93e"
+      "size": 2553,
+      "sha256": "8ee81d2f29b7c73c0fc67c1f1e80873fb7e8760b82bc617148b18d1c4bdcbcb7"
     },
     {
       "file": "ops/backend/patch-grandpool-mempool.cjs",
@@ -3158,6 +3293,41 @@
       "file": "ops/backend/audit-2026-10-25/manifest.json",
       "size": 1236,
       "sha256": "e019add233fbcf5bcde66eeb39c2507f2627964cd281f77e90dc000fe560a589"
+    },
+    {
+      "file": "ops/website/demo-prices.test.cjs",
+      "size": 1945,
+      "sha256": "786564de509c1de3d309a4d81507a4049df27dbaf737668402f58b3e6be8c5a7"
+    },
+    {
+      "file": "ops/website/demo-prices.cjs",
+      "size": 1768,
+      "sha256": "6bce4c67663d2e0df736e557b7386d37389a4faac91c17804f2e6736e0aa58f2"
+    },
+    {
+      "file": "ops/website/README.md",
+      "size": 1584,
+      "sha256": "041962ea918647129aad853bafbef4688c43064d76d1a2bbdc798a6e5ecfdb31"
+    },
+    {
+      "file": "ops/website/public/index.html",
+      "size": 33997,
+      "sha256": "b9ec6575eb8e17f7e106f6056ebbceadf85a29cb66f8f4780f2a86626ee35047"
+    },
+    {
+      "file": "ops/website/public/assets/js/wallet-demo.js",
+      "size": 29638,
+      "sha256": "ed13ff9ae8b35d0e0ad33917882b0b186772a3981910b5b7a42b33be289783ac"
+    },
+    {
+      "file": "ops/website/public/assets/js/main.js",
+      "size": 629808,
+      "sha256": "6e65918a4dd2f17b3b0663e5cd74f28b1438232cdc14b55dec3442240bf2237e"
+    },
+    {
+      "file": "ops/website/public/assets/css/wallet-demo.css",
+      "size": 17558,
+      "sha256": "2f7bcf7b5d5487436dcd4174ce918d3f32aac811e5d1f2d45b403a7897cd14da"
     },
     {
       "file": "ops/release/assemble_transport.py",

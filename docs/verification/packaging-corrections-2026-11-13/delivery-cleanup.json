@@ -1,0 +1,53 @@
+{
+  "at": "2026-11-13T21:34:11.107780+00:00",
+  "passed": true,
+  "files": [
+    {
+      "name": "Altbase-Wallet-Windows-x64-v0.1.13.msi",
+      "sha256": "aa4229c116c4f09b6e388ca4cd3f8b0ba5f85ee29b2076ebbd670b1cd302f0b9",
+      "size": 267410432
+    },
+    {
+      "name": "Altbase-Wallet-Windows-v0.1.13.zip",
+      "sha256": "df3c9dfb9c3b4b42ff97ad98b28444c0afc7ee7c468809e93eafe68036b31f27",
+      "size": 267410606
+    },
+    {
+      "name": "Altbase-Wallet-Linux-x64-v0.1.13.tar.gz",
+      "sha256": "9ada52b0c42c8bc333f739d3ec4d1ed9a7a1873725321ea98d88ff244fb32dcb",
+      "size": 230075644
+    },
+    {
+      "name": "Altbase-Wallet-macOS-universal-v0.1.13.zip",
+      "sha256": "e78eb660a26bbb37cf3bd76c92a6cc88bef880196ca042e6d30a834811b107d6",
+      "size": 374447085
+    },
+    {
+      "name": "RELEASE-NOTES-v0.1.13.txt",
+      "sha256": "381859c54dba92b02a4bccfc97be1e830589b828297236bd1dec668114783830",
+      "size": 7372
+    },
+    {
+      "name": "SHA256SUMS-v0.1.13.txt",
+      "sha256": "7567691ba4428038b29bc701b4bc9d2626db2416b869f80d896ea5d6662d6105",
+      "size": 421
+    },
+    {
+      "name": "PACKAGING-RECEIPT-v0.1.13.json",
+      "sha256": "529a8008e589f644b67b318d1ac970a5a30b6ba889e6d4c52001fc45303a8a83",
+      "size": 2236
+    }
+  ],
+  "removedTemporaryDirectories": [
+    "/home/user/Documents/AltbaseFullNode/artifacts/account-modules-0.1.5",
+    "/home/user/Documents/AltbaseFullNode/local-checks/macos-package/darwin-x64",
+    "/home/user/Documents/AltbaseFullNode/local-checks/macos-package/darwin-arm64",
+    "/media/sf_re/Altbase Crypt/qa-macos-electron-20261113",
+    "/media/sf_re/Altbase Crypt/qa-release-repair-20261113",
+    "/home/user/Documents/AltbaseFullNode/local-checks/release-corrections-2026-11-13/site-gui-1794605474992/profile"
+  ],
+  "freeBytesBefore": 80793485312,
+  "freeBytesAfter": 82236948480,
+  "userProfilesTouched": false,
+  "protectedSourceAccessed": false
+}
