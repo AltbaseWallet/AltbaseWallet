@@ -19,7 +19,7 @@
     "test": "node scripts/test-project.cjs",
     "dist:linux": "node scripts/package-project.cjs linux-x64",
     "dist:win": "node scripts/package-project.cjs win32-x64",
-    "dist:mac": "node scripts/package-project.cjs darwin-arm64",
+    "dist:mac": "node scripts/package-macos.cjs",
     "test:gui": "electron scripts/qa-plugin-gui.cjs",
     "build:fixtures": "node scripts/build-plugin-fixtures.cjs",
     "test:mining": "node scripts/test-mining.cjs",
@@ -160,6 +160,7 @@
       "artifactName": "Altbase-Wallet-Linux-${arch}.${ext}"
     },
     "mac": {
+      "icon": "build/icon.icns",
       "category": "public.app-category.finance",
       "minimumSystemVersion": "12.0",
       "extendInfo": {

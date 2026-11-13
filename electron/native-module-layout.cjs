@@ -4,7 +4,10 @@ function nativeModuleLayout(directory) {
   const root = fs.realpathSync(directory), shared = path.join(root, '_core')
   const metadata = JSON.parse(fs.readFileSync(path.join(shared, 'runtime-package.json'), 'utf8'))
   const executable = 'altbase_core_bridge' + (process.platform === 'win32' ? '.exe' : '')
-  if (metadata.schemaVersion !== 1 || metadata.target !== `${process.platform}-${process.arch}`
+  const universalMac = process.platform === 'darwin' && ['x64', 'arm64'].includes(process.arch)
+    && metadata.target === 'darwin-universal' && Array.isArray(metadata.targets) && metadata.targets.length === 2
+    && ['darwin-x64', 'darwin-arm64'].every(target => metadata.targets.includes(target))
+  if (metadata.schemaVersion !== 1 || (!universalMac && metadata.target !== `${process.platform}-${process.arch}`)
     || metadata.bridge !== executable || !Array.isArray(metadata.libraryDirectories)) throw Error('Native module installation does not match this platform')
   const folders = [shared, ...metadata.libraryDirectories.map(id => {
     if (typeof id !== 'string' || !/^[a-z][a-z0-9-]{1,63}$/.test(id) || /wallet[ _-]?secret/i.test(id)) throw Error('Invalid native module directory')

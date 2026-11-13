@@ -13,3 +13,9 @@ const result = spawnSync('taskset', ['-c', require('./build-limits.cjs').cpu, 'p
 } })
 if (result.error) throw result.error
 process.exitCode = result.status ?? 1
+if (result.status === 0) {
+  const zip = spawnSync('taskset', ['-c', require('./build-limits.cjs').cpu, 'python3',
+    'scripts/package-windows-zip.py'], { cwd: root, stdio: 'inherit', env: process.env })
+  if (zip.error) throw zip.error
+  process.exitCode = zip.status ?? 1
+}

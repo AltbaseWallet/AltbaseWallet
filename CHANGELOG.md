@@ -2,11 +2,20 @@
 
 ## 0.1.13
 
+### Delisted coins
+- Hypercoin (HRC), Mydogecoin (MYDOGE), Nonsense (NNN) and BTGS are removed from the current GUI and Mining catalog. Use an older wallet version if you need these coins. Their source repositories are retained.
+
+### New independent network modules
+- **EVM:** Ethereum (ETH), BNB Smart Chain (BNB/BSC), Polygon (POL) and Arbitrum One (native ETH). Repository: https://github.com/AltbaseWallet/module-evm.
+- **Solana:** SOL and its tokens. Repository: https://github.com/AltbaseWallet/module-sol.
+- **Tron:** TRX and its tokens. Repository: https://github.com/AltbaseWallet/module-trx.
+- Each module has its own repository and release assets. Module archives are distributed from those repositories.
+
 ### Application updates
 - Restore the production application-update request and the visible update notice. The former local-project placeholder no longer suppresses release checks.
 - Compare the installed and advertised versions, preserve daily optional dismissal, always show mandatory updates, and keep startup usable when the feed is unavailable.
 - Keep the notice visible when the external browser cannot open. Accept download links only from the official website or the official wallet release repository.
-- Keep platform update metadata aligned with published binaries; macOS remains on its last available build until a new macOS package exists.
+- Keep platform update metadata aligned with the actual Windows, Linux and universal macOS binaries.
 
 ### Transfers, balances and privacy wallets
 - Submit PEARL transactions with one constant-size raw-hex POST instead of JSON followed by a long GET URL. Never retry an uncertain broadcast through another route.
@@ -27,8 +36,11 @@
 - Delist Hypercoin (HRC), Mydogecoin (MYDOGE), Nonsense (NNN) and BTGS from the current GUI and mining catalog, with an accessible delisting notice. Retain their source repositories.
 
 ### Packaging, mining and dependencies
+- Restore the macOS cross-build pipeline with osxcross and the macOS SDK. Fix Darwin vault-library naming, loader paths and universal runtime metadata.
+- Link the newly compiled macOS vault against pinned OpenSSL 3.5.9 LTS. Preserve the supplied private implementation unchanged and retain existing prebuilt coin-engine dependencies.
+- Publish EVM, Solana and Tron package 0.1.6 with Linux, Windows and universal macOS binaries in their own repositories.
 - Build the vault from the owner-maintained local implementation without altering its contents. Keep the existing risk acknowledgement and encrypted profile behavior.
-- Fix Windows MSI packaging, executable branding and platform resource selection; exclude Linux native addons from Windows packages.
+- Fix Windows MSI packaging, executable branding and platform resource selection. The Windows ZIP contains exactly the MSI installer; it is not a portable application archive. Exclude foreign native addons from cross-platform packages.
 - Provide a portable Linux launcher that uses the Chromium sandbox without silently disabling it or archiving a machine-specific helper link.
 - Allow unsigned locally modified Mining packages while retaining integrity hashes. Retain explicit miner downloads, process supervision and module update checks.
 - Preserve the elliptic nonce-length and CCC/JoyID caller-binding corrections; verify BitGo, CKB, JoyID and Nexa with public offline vectors.
@@ -44,7 +56,7 @@
 - Compile on Linux with one CPU. Run the application tests, mining tests and TypeScript/ESLint checks.
 - Exercise actual GUI paths, offline PEARL/Xelis send fixtures, scan-blocked EPIC receiving, icons, spam controls and native module discovery.
 - Check the packaged application on Linux and native Windows, plus MSI installation/removal under Wine, archive contents and published checksums.
-- Linux x64 and Windows x64 builds are supplied. A new macOS build is not supplied because the Darwin native toolchain and compatibility inputs are not staged.
+- Supply Linux x64, Windows x64 and universal macOS builds for version 0.1.13. Compile the macOS vault and plugin host on Linux for Intel and Apple Silicon, with one CPU. Verify all 93 Mach-O files, universal loader metadata and archive contents. The macOS app is ad-hoc signed; Apple notarization and native macOS GUI execution are not available in this environment.
 - No live user transactions are part of release verification. Protected wallet source is excluded from this source export and all new upload operations.
 
 ## Earlier public release: 0.1.9

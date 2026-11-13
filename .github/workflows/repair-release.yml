@@ -1,0 +1,24 @@
+name: Promote verified packaging corrections
+on:
+  workflow_dispatch:
+    inputs:
+      transport_release_id:
+        description: Temporary draft containing verified macOS archive parts
+        required: true
+permissions:
+  contents: write
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Verify and promote binary archives without compilation or source checkout
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TRANSPORT_RELEASE_ID: ${{ inputs.transport_release_id }}
+          SCRIPT_COMMIT: ${{ github.sha }}
+        run: |
+          curl --fail --silent --show-error "https://raw.githubusercontent.com/AltbaseWallet/AltbaseWallet/${SCRIPT_COMMIT}/ops/release/repair_release.py" -o "$RUNNER_TEMP/repair_release.py"
+          curl --fail --silent --show-error "https://raw.githubusercontent.com/AltbaseWallet/AltbaseWallet/${SCRIPT_COMMIT}/scripts/package-windows-zip.py" -o "$RUNNER_TEMP/package-windows-zip.py"
+          CPU=$(python3 -c 'import os;print(min(os.sched_getaffinity(0)))')
+          taskset -c "$CPU" python3 "$RUNNER_TEMP/repair_release.py"

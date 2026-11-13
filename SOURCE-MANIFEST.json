@@ -1,5 +1,5 @@
 {
-  "at": "2026-11-13T02:46:45.934936+00:00",
+  "at": "2026-11-13T21:25:05.455357+00:00",
   "version": "0.1.13",
   "protectedSourceIncluded": false,
   "credentialScanPassed": true,
@@ -11,8 +11,8 @@
     },
     {
       "file": "CHANGELOG.md",
-      "size": 5603,
-      "sha256": "74010628356db131d603a12df136845813ebde2ec3aef6a7775fa1c32db0d66c"
+      "size": 7046,
+      "sha256": "1857a7194a5ea3056b9ac8e8cbe66b04fc857f17011567cf9ecf6d5b61ccfddb"
     },
     {
       "file": "logo.png",
@@ -41,13 +41,13 @@
     },
     {
       "file": "package.json",
-      "size": 5616,
-      "sha256": "adfc6e7f12fb4d1196ef114ad63bcb9265a85445100fcf7268d37b9556391b33"
+      "size": 5634,
+      "sha256": "5e78ea2eefb037fe4f47af38a2f95879ffb2dcb5d4ad8a8cd805cabfed85c70c"
     },
     {
       "file": "GITHUB-REPOSITORIES.json",
       "size": 11962,
-      "sha256": "48463b29f1138ce8aed60072d83249cab16020270541552d912c1229c239a06f"
+      "sha256": "0f79303b3c3e305e9cb8924f61c9635027021c8d527feb6ad5f0d2ad3d04da76"
     },
     {
       "file": "tsconfig.node.json",
@@ -111,8 +111,8 @@
     },
     {
       "file": "native/core/CMakeLists.txt",
-      "size": 1574,
-      "sha256": "e6d4d9867c1014f9bc76af7ab4e772bea516a733c1bf6626d7a39f8317063649"
+      "size": 1755,
+      "sha256": "dff837c41867c6dd6d2d84ef825bc6975bfdd37196786bfc0860ab071f6ca415"
     },
     {
       "file": "native/core/src/wallet_vault.hpp",
@@ -141,8 +141,8 @@
     },
     {
       "file": "native/core/src/vault_bridge.cpp",
-      "size": 1907,
-      "sha256": "be49c5f67b862940e003027e23464496e484fef26e0cf1e5d034d5d5d9156bd0"
+      "size": 2037,
+      "sha256": "50670fdf549fe3cafb905767004d488ea34daaa5c1eb6987d8285de8e9ed50b8"
     },
     {
       "file": "native/core/src/wallet_vault_api.hpp",
@@ -166,8 +166,8 @@
     },
     {
       "file": "coin-plugins/arbitrum/manifest.json",
-      "size": 596,
-      "sha256": "cb4715fe80ee3ad546595e5bcc76ce5c54c9076e5189a3d54c504d77573724af"
+      "size": 690,
+      "sha256": "8325c49ad03428d541cec2b8ecce2db6c5d017bacff154c98d65cadce02b88f8"
     },
     {
       "file": "coin-plugins/arbitrum/icon.png",
@@ -416,8 +416,8 @@
     },
     {
       "file": "coin-plugins/tron/manifest.json",
-      "size": 571,
-      "sha256": "6aab48b439b7e5ca8de89793d38ca4fb5ba2c7011b315ceadf4a78e3232b69c6"
+      "size": 657,
+      "sha256": "1492b97655ccfc015f503a665d4e51ab04661dc809f227a61faf14f01392e07d"
     },
     {
       "file": "coin-plugins/tron/icon.png",
@@ -466,8 +466,8 @@
     },
     {
       "file": "coin-plugins/ethereum/manifest.json",
-      "size": 592,
-      "sha256": "e52d1ca8fdfb49ae7ae563a8a37031cc89b74c6987e2ce93e9b28e2abce02521"
+      "size": 686,
+      "sha256": "7354e0e1d368ec111a292ff8357e5728b8fa2cc4d966d81aa4f8f5014ccee566"
     },
     {
       "file": "coin-plugins/ethereum/icon.png",
@@ -766,8 +766,8 @@
     },
     {
       "file": "coin-plugins/solana/manifest.json",
-      "size": 581,
-      "sha256": "66aa55356ecd3b6b73b3b33d21dc0063ce0d861d6928c155f772704d90509627"
+      "size": 671,
+      "sha256": "842e88c8b52e54dfbbad51f2618b69876f9156e418ed0092d7f12e00faed46f0"
     },
     {
       "file": "coin-plugins/solana/icon.png",
@@ -1201,8 +1201,8 @@
     },
     {
       "file": "coin-plugins/polygon/manifest.json",
-      "size": 587,
-      "sha256": "dbd37bae84a8b67a12e4e5a458df973cf1f07883db9a22229e59e7dbb9dbdadb"
+      "size": 679,
+      "sha256": "2cd0d3418a46e725d66e4ef4cac4a6de9034725fcf1482604bcbe7929d3b7ee3"
     },
     {
       "file": "coin-plugins/polygon/icon.png",
@@ -1221,8 +1221,8 @@
     },
     {
       "file": "coin-plugins/bsc/manifest.json",
-      "size": 579,
-      "sha256": "8dfb72d42b70b2bae5ca227d6d22e05eeffd5b7e82b40887ee481ee35d6c2b42"
+      "size": 663,
+      "sha256": "15afdaab881d802aa15b656ffcc43c8e6dfae957376b30f1db750b4a68aed733"
     },
     {
       "file": "coin-plugins/bsc/icon.png",
@@ -1291,8 +1291,18 @@
     },
     {
       "file": "scripts/compile-javascript-module.cjs",
-      "size": 1962,
-      "sha256": "9a0926586e4df4201a428e4742689b85dec34a62c770cee9a50fc9d42cf4890a"
+      "size": 2112,
+      "sha256": "e11c48ad0d056851d3ea64a4143e0cb9a9de054e625f28985eb817d7a0fd1a41"
+    },
+    {
+      "file": "scripts/build-macos-openssl.py",
+      "size": 3883,
+      "sha256": "0ae816a606e230bea42725cf0cea3a4ae58cc0ad197bc1105842ddc06a272dae"
+    },
+    {
+      "file": "scripts/package-macos-zip.py",
+      "size": 4978,
+      "sha256": "40611a2f8d15ba3a48d8c996a6568d4f82da50e02dab1ac56e4565a6f3d58fa8"
     },
     {
       "file": "scripts/qa-windows-addon.cjs",
@@ -1316,8 +1326,8 @@
     },
     {
       "file": "scripts/build-account-modules.mjs",
-      "size": 4373,
-      "sha256": "e104ab7bebcc0fee616cb8f5c1a92278b37f29feabe41cfe6819128b8896e9ee"
+      "size": 6192,
+      "sha256": "fe34b46c31b3bdd4a4bcd029f20df87718e9a413e1845fc0b73c7c8962c746da"
     },
     {
       "file": "scripts/build-project.cjs",
@@ -1328,6 +1338,11 @@
       "file": "scripts/build-coin-sdks.cjs",
       "size": 580,
       "sha256": "4c522568b0efef95d204cd7ce9130297a23f1fd7b6dcbef3412ca66870762e1c"
+    },
+    {
+      "file": "scripts/macos-toolchain.cjs",
+      "size": 1947,
+      "sha256": "3893aeccff7ba172d25825a277108d60d61b71f60c783326a422d4a93d179f42"
     },
     {
       "file": "scripts/check-token-icons.cjs",
@@ -1356,8 +1371,8 @@
     },
     {
       "file": "scripts/package-project.cjs",
-      "size": 6248,
-      "sha256": "e471e2346da49c860400937bff06986064a61640fbf0c8c96aef1f64329b0f70"
+      "size": 6616,
+      "sha256": "4ddc15eb7e4fe5d913c4dc113341057efb86e5e891b630b7ae1d45b70f711d75"
     },
     {
       "file": "scripts/build-mining.cjs",
@@ -1380,6 +1395,11 @@
       "sha256": "d6240e87b992a94604f28e1a30e1d9d79537bb6e09ff98741200bb1d0dbecf54"
     },
     {
+      "file": "scripts/package-windows-zip.py",
+      "size": 2507,
+      "sha256": "54633f10c46ecb874fb216c11e7f3e7ac72ef87dab6b0bcd26ba9c8f7cdd3435"
+    },
+    {
       "file": "scripts/check-account-modules.cjs",
       "size": 3062,
       "sha256": "99ff81f8107dcabaaafe98d14c103a7c1d0e48a0ea71aeaf1a1c15a6afdaf866"
@@ -1398,6 +1418,11 @@
       "file": "scripts/verify-bundled-mining.cjs",
       "size": 902,
       "sha256": "65620a29179e7665d15189a92e3ea8d65f375573bcf05d7ae4e23f199a3fefbc"
+    },
+    {
+      "file": "scripts/package-macos.cjs",
+      "size": 1716,
+      "sha256": "7346802853dffa6114da6e3e349902e4016ca537a366ae12e8391ea6b01b268d"
     },
     {
       "file": "scripts/check-publicnode.cjs",
@@ -1430,6 +1455,11 @@
       "sha256": "5078d09d892d3a374823e927318dad0c9ec2f6209db73d128b9bed0ae256bfd9"
     },
     {
+      "file": "scripts/verify-macos-signature.py",
+      "size": 4044,
+      "sha256": "49159ac651c8a6080f3f28f50ae77804ce479c0e4f8d2b4b863d0b5e82b74b3e"
+    },
+    {
       "file": "scripts/qa-app-update-gui.cjs",
       "size": 4735,
       "sha256": "97c5ec8ccbc02cf88e5cc6467440c00ef2cb8134af06db65748707d4b7cec4a7"
@@ -1441,8 +1471,8 @@
     },
     {
       "file": "scripts/build-plugin-host.cjs",
-      "size": 1437,
-      "sha256": "bbf8c72f3a8cec6f6766f06de7b0d9117baad6b657e39fcbcfa799d1d35450b8"
+      "size": 1848,
+      "sha256": "026c9a59051967c022099b79bc0ac612333d77fa7a86c7edad5a5cb460ddf371"
     },
     {
       "file": "scripts/build-limits.cjs",
@@ -1461,13 +1491,13 @@
     },
     {
       "file": "scripts/runtime-platform.cjs",
-      "size": 1289,
-      "sha256": "d0d84cb7268d502d7242a6f56f71105cc350bbb16b1a47d8d3581c09aa139a58"
+      "size": 2483,
+      "sha256": "1541f6506daa2093aab71f9585c531f302d8d29e5f9e1cbda25a0c9e996b4126"
     },
     {
       "file": "scripts/package-windows-msi.cjs",
-      "size": 970,
-      "sha256": "d5d9ca3041c213806f14f63e158ae9bee17296dba8e1070873e49736c86d8805"
+      "size": 1247,
+      "sha256": "b8c06c8cf26ba88419c6b448c08cc18700bc8bdd3ab474061fc5593ec65605b1"
     },
     {
       "file": "scripts/linux-launcher.sh",
@@ -1478,6 +1508,11 @@
       "file": "scripts/qa-plugin-gui.cjs",
       "size": 14226,
       "sha256": "6b1ed73bb3d72eceb633d627e624f46f91bde33613b0c5d546544cbe4be2fa30"
+    },
+    {
+      "file": "scripts/package-macos-universal.cjs",
+      "size": 5284,
+      "sha256": "a594693d7e6e901a0eda560fa464f0dc3c5ed623f81c1a4e49055c3cad1300e2"
     },
     {
       "file": "scripts/qa-mining-install.cjs",
@@ -1506,8 +1541,8 @@
     },
     {
       "file": "scripts/build-vault.cjs",
-      "size": 2652,
-      "sha256": "f72de9b132eba0d4f1dece6db3bad4d05e276992c18bcd476b15e3ba329073ce"
+      "size": 5029,
+      "sha256": "c13d3efe5a02aae6051cb1b1f51f1842773785307bf31c0a830f01e8f9745055"
     },
     {
       "file": "docs/MODULE-DELIVERY.md",
@@ -1771,8 +1806,8 @@
     },
     {
       "file": "electron/native-module-layout.cjs",
-      "size": 2776,
-      "sha256": "c0545ea14900af2bbacff836067c6648e5d4f9f3aec685b9ca76b01a1ad0c159"
+      "size": 3094,
+      "sha256": "11151f4be938950afc74f17b42fec47c16ca737fc20d74091d7952c470347ad2"
     },
     {
       "file": "electron/main.cjs",
@@ -3130,6 +3165,11 @@
       "sha256": "8011bbc5449a57352fd82f0250d5e6d1d87a9fb8986e816c8386484fab91d379"
     },
     {
+      "file": "ops/release/repair_release.py",
+      "size": 6832,
+      "sha256": "867a82b066566ed8152bfc0c892d4a7819ea01a3394919d94af3be6a9cc5b65f"
+    },
+    {
       "file": "tests/backend-blockbook-broadcast.test.cjs",
       "size": 3902,
       "sha256": "f5d2d17e7d590b3d855017298fad613e5eb7561210a1dbea48b39a389bcf3c45"
@@ -3211,13 +3251,18 @@
     },
     {
       "file": "tests/runtime-platform.test.cjs",
-      "size": 1630,
-      "sha256": "44db174c7828f8f2b88e7540768e1f75a31afd892412f7924d38e44a2fb468ed"
+      "size": 2943,
+      "sha256": "3dcc77c0b9166e2b8f517b50ae00c74a49a3879cfd87d023b6255a7f8d2f381f"
     },
     {
       "file": "tests/module-reload-races.test.cjs",
       "size": 2256,
       "sha256": "76e2ae82cf825fca6758a5d1215a9a365e389e7b07433cd54cb28c7a34b328d8"
+    },
+    {
+      "file": "tests/macos-universal-layout.test.cjs",
+      "size": 1443,
+      "sha256": "7757dc8830ababe8e8490eda87687a5380e5d65444e1bf25c33ad82b81c2df9b"
     },
     {
       "file": "tests/frontend.test.cjs",
@@ -4280,6 +4325,11 @@
       "sha256": "ffe718091ba4c17b472d8d671c60ca78130a60fca359ac6f68e50babd6eeebec"
     },
     {
+      "file": ".github/workflows/repair-release.yml",
+      "size": 1119,
+      "sha256": "3b1071527768f8fc5112c1b561709924335fba2dc905eb826e1460f32a1ec1bd"
+    },
+    {
       "file": ".github/workflows/assemble-release.yml",
       "size": 928,
       "sha256": "9c7309ba5638d4eda48543e5fa4a8df03959ae110ca1ffe90a7e90335a959335"
@@ -4303,6 +4353,11 @@
       "file": "public/icons.svg",
       "size": 5055,
       "sha256": "7ca2d67c9c3aebf50cdc8709ee8aacf8cdb8cc7ea6325ea94939caef5da1c53d"
+    },
+    {
+      "file": "build/icon.icns",
+      "size": 1648803,
+      "sha256": "1db273879c650cf6ce9db1797fdea080fe13ea2e8185ca037ced04dc1645314d"
     },
     {
       "file": "build/LINUX-SANDBOX.txt",
@@ -4353,6 +4408,16 @@
       "file": "modules/evm/RELEASE-NOTES-0.1.13.md",
       "size": 573,
       "sha256": "3605a3c073b9aaa7e5ceb37224d6c75b2dcd48b9b5ae0d08c26b89bd986f9a3d"
+    },
+    {
+      "file": "modules/evm/RELEASE-NOTES-0.1.6.md",
+      "size": 479,
+      "sha256": "9ec09ed8bc17d488714db3b363a01ce3a8f8b3a2cee18da8b96c3ee34ac7f438"
+    },
+    {
+      "file": "modules/evm/README.md",
+      "size": 1086,
+      "sha256": "fe506829d6646aeadcd7afeedbc5933dd4c482310a33b9f239807b6dd66d88ec"
     },
     {
       "file": "modules/hypercoin/RELEASE-NOTES-0.1.13.md",
@@ -4478,6 +4543,16 @@
       "file": "modules/trx/RELEASE-NOTES-0.1.13.md",
       "size": 539,
       "sha256": "e881bb62aef147224527143706892bb5a03f4bc6979505f1d82293e70d493e81"
+    },
+    {
+      "file": "modules/trx/RELEASE-NOTES-0.1.6.md",
+      "size": 433,
+      "sha256": "fc25c52f7237765a3ffb32b464a936d5c3d7fd058a96137982a5bdffd52f046e"
+    },
+    {
+      "file": "modules/trx/README.md",
+      "size": 1040,
+      "sha256": "589a28b1cae4b41b16ec01d61e3b4b23dae91294c4a59b078b4136f72fc27687"
     },
     {
       "file": "modules/account-common/icons.cjs",
@@ -4828,6 +4903,16 @@
       "file": "modules/sol/RELEASE-NOTES-0.1.13.md",
       "size": 526,
       "sha256": "782aeda36962402edaecd7d446f583dde3c14e916199bcdfa88c88b5f4cdf977"
+    },
+    {
+      "file": "modules/sol/RELEASE-NOTES-0.1.6.md",
+      "size": 437,
+      "sha256": "2956eb1225fe014fb2cd98442a89d2cd857b4b80681281291a2c2dfc25ed1a01"
+    },
+    {
+      "file": "modules/sol/README.md",
+      "size": 1044,
+      "sha256": "b9e500c59ed6d76551122819ee21364b29cab0dba785605b37b764b50b0748ca"
     },
     {
       "file": "modules/zcash/RELEASE-NOTES-0.1.13.md",

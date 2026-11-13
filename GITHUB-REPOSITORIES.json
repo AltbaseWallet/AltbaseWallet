@@ -99,7 +99,7 @@
       ],
       "directory": "modules/evm",
       "repository": "AltbaseWallet/module-evm",
-      "commit": "9e0138e5fe9b7d29f04e638f4c5daf859df35c64"
+      "commit": "378213ff930ddf9c48165d7c6ec9002aca461c7d"
     },
     "module-firo": {
       "paths": [
@@ -286,7 +286,7 @@
       ],
       "directory": "modules/sol",
       "repository": "AltbaseWallet/module-sol",
-      "commit": "6e409bb0e10d8989b03f42724f25ff45e332b904"
+      "commit": "dd2d0dd96787179566a5d01f39a6cacdf1032426"
     },
     "module-terracoin": {
       "paths": [
@@ -303,7 +303,7 @@
       ],
       "directory": "modules/trx",
       "repository": "AltbaseWallet/module-trx",
-      "commit": "4852a8621dab53e35db1b9dd38dfea5c8b0e1830"
+      "commit": "8111a148971034be802a0bfc016ac5cc1ad466bc"
     },
     "module-xelis": {
       "paths": [
@@ -395,7 +395,7 @@
       ],
       "directory": "native/core",
       "repository": "AltbaseWallet/core",
-      "commit": "a3a0f72325aee94c5f76230922fb068526cb3f7b"
+      "commit": "dc370c5ffe07ee0bf67b23c150154b9d91bd42f1"
     },
     "plugin-sdk": {
       "paths": [

@@ -14,8 +14,8 @@ const [platform, arch] = targets[target]
 const executable = target.startsWith('win32') ? '.exe' : ''
 const requireBinary = file => require('./runtime-platform.cjs').requireBinary(file, target)
 const stagedCore = path.join(root, 'native-core-stage', target)
-const core = fs.existsSync(stagedCore) ? stagedCore : path.join(root, 'native-core')
 require('./build-vault.cjs').buildVault(target)
+const core = fs.existsSync(stagedCore) ? stagedCore : path.join(root, 'native-core')
 const moduleStage = require('./stage-coin-binaries.cjs').stageCoinBinaries(target).directory
 const host = `native-plugin-host/bin/${target}/altbase_plugin_host${executable}`
 requireBinary(path.join(root, host))
@@ -38,14 +38,15 @@ const config = {
   ...(process.env.ALTBASE_PACKAGE_OUTPUT ? { directories: { ...require('../package.json').build.directories, output: path.resolve(process.env.ALTBASE_PACKAGE_OUTPUT) } } : {}),
   // A Linux build/Release addon takes precedence over prebuilds in node-gyp-build.
   // Never ship it into a cross-compiled Windows application.
-  files: [...require('../package.json').build.files, '!electron/coin-sdks/**/*', ...(platform === 'win' ? ['!node_modules/secp256k1/build/**/*', '!node_modules/secp256k1/prebuilds/linux-*/**/*', '!node_modules/secp256k1/prebuilds/darwin-*/**/*'] : [])],
+  files: [...require('../package.json').build.files, '!electron/coin-sdks/**/*', ...(platform === 'win' ? ['!node_modules/secp256k1/build/**/*', '!node_modules/secp256k1/prebuilds/linux-*/**/*', '!node_modules/secp256k1/prebuilds/darwin-*/**/*'] : platform === 'mac' ? ['!node_modules/secp256k1/build/**/*', '!node_modules/secp256k1/prebuilds/linux-*/**/*', '!node_modules/secp256k1/prebuilds/win32-*/**/*'] : [])],
+  ...(platform === 'mac' ? { mac: { ...require('../package.json').build.mac, identity: null, hardenedRuntime: false, notarize: false } } : {}),
   extraResources: require('../package.json').build.extraResources.filter(resource => !['native-core', 'coin-runtimes-stage'].includes(resource.from)).map(resource => resource.from === 'coin-plugins'
     ? { ...resource, from: moduleStage }
     : resource.from === 'native-plugin-host/bin' ? { ...resource, filter: [`${target}/**/*`] } : resource),
 }
 if (process.env.ALTBASE_ELECTRON_DIST) {
   const distribution = path.resolve(process.env.ALTBASE_ELECTRON_DIST)
-  requireBinary(path.join(distribution, `electron${executable}`))
+  requireBinary(path.join(distribution, platform === 'mac' ? 'Electron.app/Contents/MacOS/Electron' : `electron${executable}`))
   const version = fs.readFileSync(path.join(distribution, 'version'), 'utf8').trim()
   if (version !== require('../node_modules/electron/package.json').version) throw Error('Staged Electron version differs from the locked dependency')
   config.electronDist = distribution

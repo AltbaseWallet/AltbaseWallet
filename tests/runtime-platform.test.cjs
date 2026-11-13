@@ -24,3 +24,25 @@ test('the cross-compiled x64 Windows plugin host has a complete PE32+ header', (
   if (fs.existsSync(file)) assert.doesNotThrow(() => requireBinary(file, 'win32-x64'))
   assert.throws(() => requireBinary(file, 'linux-x64'))
 })
+test('universal Mach-O validates each actual CPU slice and rejects forged bounds', t => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'altbase-macho-'))
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }))
+  const file = path.join(directory, 'fixture.dylib'), original = Buffer.alloc(256)
+  original.writeUInt32BE(0xcafebabe, 0); original.writeUInt32BE(2, 4)
+  for (const [i, cpu] of [0x1000007, 0x100000c].entries()) {
+    const at = 8 + i * 20, offset = 64 + i * 96
+    original.writeUInt32BE(cpu, at); original.writeUInt32BE(offset, at + 8); original.writeUInt32BE(96, at + 12)
+    original.writeUInt32LE(0xfeedfacf, offset); original.writeUInt32LE(cpu, offset + 4)
+  }
+  fs.writeFileSync(file, original)
+  for (const target of ['darwin-x64', 'darwin-arm64']) assert.doesNotThrow(() => requireBinary(file, target))
+  for (const kind of ['inner-cpu', 'bounds', 'table', 'magic']) {
+    const bytes = Buffer.from(original)
+    if (kind === 'inner-cpu') bytes.writeUInt32LE(0x1000007, 164)
+    if (kind === 'bounds') bytes.writeUInt32BE(240, 36)
+    if (kind === 'table') bytes.writeUInt32BE(0xffffffff, 4)
+    if (kind === 'magic') bytes.writeUInt32LE(0, 160)
+    fs.writeFileSync(file, bytes)
+    assert.throws(() => requireBinary(file, 'darwin-arm64'), undefined, kind)
+  }
+})
