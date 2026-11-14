@@ -1,0 +1,153 @@
+{
+  "at": "2026-11-14T01:03:49.532Z",
+  "passed": true,
+  "actualBrowser": "Google Chrome headless",
+  "origin": "https://altbase.io",
+  "tlsVerificationDisabled": false,
+  "publicPages": [
+    "/",
+    "/assets",
+    "/download",
+    "/security",
+    "/support",
+    "/terms",
+    "/coin-request",
+    "/risk",
+    "/cookies",
+    "/dev",
+    "/privacy",
+    "/faq",
+    "/legal",
+    "/dev/local-engines",
+    "/dev/privacy-cache",
+    "/dev/upstream-apis",
+    "/dev/wallet-api"
+  ],
+  "assetProfiles": [
+    "bitcoin",
+    "bitcoin2",
+    "bitcoincashii",
+    "firo",
+    "capstash",
+    "pepecoin",
+    "kerrigan",
+    "scash",
+    "litecoinii",
+    "neoxa",
+    "terracoin",
+    "raptoreum",
+    "quai",
+    "pearl",
+    "junkcoin",
+    "zano",
+    "epiccash",
+    "qubic",
+    "nervos",
+    "kaspa",
+    "monero",
+    "xgr",
+    "bitcoincash",
+    "digibyte",
+    "peercoin",
+    "zcash",
+    "nexa",
+    "xelis",
+    "mwc",
+    "ethereum",
+    "bsc",
+    "polygon",
+    "arbitrum",
+    "solana",
+    "tron"
+  ],
+  "prices": 35,
+  "marqueeAssets": 35,
+  "marqueeCards": 70,
+  "languages": [
+    "en",
+    "de",
+    "fr",
+    "zh",
+    "ja",
+    "ru",
+    "uk"
+  ],
+  "translationIdleMutations": 0,
+  "widths": [
+    {
+      "width": 1920,
+      "page": 1905,
+      "client": 1905
+    },
+    {
+      "width": 1600,
+      "page": 1585,
+      "client": 1585
+    },
+    {
+      "width": 1280,
+      "page": 1265,
+      "client": 1265
+    },
+    {
+      "width": 1024,
+      "page": 1009,
+      "client": 1009
+    },
+    {
+      "width": 800,
+      "page": 785,
+      "client": 785
+    },
+    {
+      "width": 600,
+      "page": 585,
+      "client": 585
+    },
+    {
+      "width": 390,
+      "page": 375,
+      "client": 375
+    },
+    {
+      "width": 320,
+      "page": 305,
+      "client": 305
+    }
+  ],
+  "newNetworkMarkets": [
+    {
+      "id": "ethereum",
+      "price": "$1,930.584498",
+      "calculator": "$3,861.17"
+    },
+    {
+      "id": "bsc",
+      "price": "$630.636778",
+      "calculator": "$1,261.27"
+    },
+    {
+      "id": "polygon",
+      "price": "$0.085203",
+      "calculator": "$0.17"
+    },
+    {
+      "id": "arbitrum",
+      "price": "$1,930.584498",
+      "calculator": "$3,861.17"
+    },
+    {
+      "id": "solana",
+      "price": "$77.654521",
+      "calculator": "$155.31"
+    },
+    {
+      "id": "tron",
+      "price": "$0.312073",
+      "calculator": "$0.62"
+    }
+  ],
+  "writeRequests": 0,
+  "realTransactions": 0,
+  "evidence": "/home/user/Documents/AltbaseFullNode/local-checks/site-completeness-2026-11-13/chrome-1794617784225"
+}

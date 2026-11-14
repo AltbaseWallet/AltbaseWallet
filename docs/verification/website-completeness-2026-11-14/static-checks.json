@@ -1,0 +1,112 @@
+{
+  "passed": true,
+  "activeAssets": 35,
+  "archivedExcluded": 4,
+  "publicPages": [
+    {
+      "page": "index.html",
+      "newNetworks": 6,
+      "sharedCatalog": true,
+      "activeMarqueeEntries": 70
+    },
+    {
+      "page": "assets.html",
+      "newNetworks": 6,
+      "sharedCatalog": true,
+      "activeMarqueeEntries": 0
+    },
+    {
+      "page": "download.html",
+      "newNetworks": 6,
+      "sharedCatalog": true,
+      "activeMarqueeEntries": 0
+    },
+    {
+      "page": "security.html",
+      "newNetworks": 6,
+      "sharedCatalog": true,
+      "activeMarqueeEntries": 0
+    },
+    {
+      "page": "support.html",
+      "newNetworks": 6,
+      "sharedCatalog": true,
+      "activeMarqueeEntries": 0
+    },
+    {
+      "page": "terms.html",
+      "newNetworks": 6,
+      "sharedCatalog": true,
+      "activeMarqueeEntries": 0
+    },
+    {
+      "page": "coin-request.html",
+      "newNetworks": 6,
+      "sharedCatalog": true,
+      "activeMarqueeEntries": 0
+    },
+    {
+      "page": "risk.html",
+      "newNetworks": 6,
+      "sharedCatalog": true,
+      "activeMarqueeEntries": 0
+    },
+    {
+      "page": "cookies.html",
+      "newNetworks": 6,
+      "sharedCatalog": true,
+      "activeMarqueeEntries": 0
+    },
+    {
+      "page": "dev.html",
+      "newNetworks": 6,
+      "sharedCatalog": true,
+      "activeMarqueeEntries": 0
+    },
+    {
+      "page": "privacy.html",
+      "newNetworks": 6,
+      "sharedCatalog": true,
+      "activeMarqueeEntries": 0
+    },
+    {
+      "page": "faq.html",
+      "newNetworks": 6,
+      "sharedCatalog": true,
+      "activeMarqueeEntries": 0
+    },
+    {
+      "page": "legal.html",
+      "newNetworks": 6,
+      "sharedCatalog": true,
+      "activeMarqueeEntries": 0
+    },
+    {
+      "page": "dev/local-engines.html",
+      "newNetworks": 6,
+      "sharedCatalog": true,
+      "activeMarqueeEntries": 0
+    },
+    {
+      "page": "dev/privacy-cache.html",
+      "newNetworks": 6,
+      "sharedCatalog": true,
+      "activeMarqueeEntries": 0
+    },
+    {
+      "page": "dev/upstream-apis.html",
+      "newNetworks": 6,
+      "sharedCatalog": true,
+      "activeMarqueeEntries": 0
+    },
+    {
+      "page": "dev/wallet-api.html",
+      "newNetworks": 6,
+      "sharedCatalog": true,
+      "activeMarqueeEntries": 0
+    }
+  ],
+  "marqueeUniqueAssets": 35,
+  "marqueeTotalCards": 70,
+  "syntaxChecked": 4
+}

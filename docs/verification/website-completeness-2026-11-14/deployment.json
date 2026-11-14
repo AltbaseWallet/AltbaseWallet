@@ -1,0 +1,144 @@
+{
+  "at": "2026-11-14T00:38:36.907426+00:00",
+  "passed": true,
+  "unit": "altbase-wallet-site.service",
+  "backup": "/var/www/altbase.io/backups/wallet-0.1.13-batch-20261114T003836",
+  "files": [
+    {
+      "file": "index.html",
+      "sha256": "b30380fc6f755bc73c3a24c2259ac96381618c6166e3f35c96c7611ae47f01af"
+    },
+    {
+      "file": "download.html",
+      "sha256": "8727612db996907e3864170d262e66ea9624a58332e291bbe0a3c70b9c6f058d"
+    },
+    {
+      "file": "assets.html",
+      "sha256": "67a8641cb9ca83349fe20d2fec55472ff561dca6ace131e1be3d8fead37999af"
+    },
+    {
+      "file": "assets/js/main.js",
+      "sha256": "db5a20463ab7515bcd1aa65a85b7c9550a8696d25db03525b07cd282b85db4fc"
+    },
+    {
+      "file": "assets/js/wallet-demo.js",
+      "sha256": "627556291f853069bc52b4e77ee046aa1b5ac9ef065dec5f941a11cc7ec83402"
+    },
+    {
+      "file": "assets/js/assets.js",
+      "sha256": "6f6e910be5dbb0789a698b792c5195e7fbee6e0412b1a54c2052f05ec010d486"
+    },
+    {
+      "file": "server.js",
+      "sha256": "c7c4647a3ef3d223dab05d173127c216de0805b3c71495d3ca19c8f0970bcb62"
+    },
+    {
+      "file": "assets/img/networks/ethereum.png",
+      "sha256": "455848ff118c0e637aba7553e89baa5b038794207945fdc267d6cb6aa67bcc8c"
+    },
+    {
+      "file": "assets/img/networks/bsc.png",
+      "sha256": "ce8cb287f3c22ee809a8088337a21f0bbea2f857e15957edd4bbdadb71290c8e"
+    },
+    {
+      "file": "assets/img/networks/polygon.png",
+      "sha256": "552e7c7e9dc0ce20784d98b107547fc721a92f6e1cd8427ac0ae8cb1439b1fe6"
+    },
+    {
+      "file": "assets/img/networks/arbitrum.png",
+      "sha256": "b3a56ad6ac4d8e42ccf9202c6083d5843d68fb5258e375529ac72aacc853ee17"
+    },
+    {
+      "file": "assets/img/networks/solana.png",
+      "sha256": "f06cfb9d13d801ec6cf7fc0017d357e9f9faed347702e481b058bf1dcc017856"
+    },
+    {
+      "file": "assets/img/networks/tron.png",
+      "sha256": "a555e30656323127e997a379f8e9c26ac998361e16e3d677aba17017544e33c9"
+    },
+    {
+      "file": "assets/css/wallet-demo.css",
+      "sha256": "d3004ed660962df0a762ca2b56d765aea61dec127edded242590076975353241"
+    },
+    {
+      "file": "demo-prices.cjs",
+      "sha256": "6bce4c67663d2e0df736e557b7386d37389a4faac91c17804f2e6736e0aa58f2"
+    },
+    {
+      "file": "security.html",
+      "sha256": "cc2932721383cfc9e1dbfdfd2898080cbed52f7c9af89f1c4221d2245691cbd8"
+    },
+    {
+      "file": "support.html",
+      "sha256": "54606f8b30601df8e5b26d8ef4da1b6ac30e8851aa1378a02fc748827ef6930d"
+    },
+    {
+      "file": "terms.html",
+      "sha256": "fad813c86e8fcfa26a235a33611b3ddf4d54b4b10ed943a9c032513588dc16b6"
+    },
+    {
+      "file": "coin-request.html",
+      "sha256": "405f9f643e7f259d007c967c98b958a9f4b5852a1002b414f7f77dece7e238a7"
+    },
+    {
+      "file": "risk.html",
+      "sha256": "48e4b5becc8555a241f2aca9bcf1196efbe6d66f2f60362c31221a7634fc3eff"
+    },
+    {
+      "file": "cookies.html",
+      "sha256": "f9bd3c0e258fe3496d39f99cbc0556911e5ccb0b018bc9abb892e11075a23759"
+    },
+    {
+      "file": "dev.html",
+      "sha256": "acfab47ccf8d9cd162ac8992973505d011098dd9f2ac501db6ccbe9c1e3fa3ce"
+    },
+    {
+      "file": "privacy.html",
+      "sha256": "617cc3f58be6256e5850e55470f9985ab593919bac6c658b7c4334e41b3185b7"
+    },
+    {
+      "file": "faq.html",
+      "sha256": "f8731795bf3f48eca8a2c5b6f8635b3cda86ee06c75e732c5ef5ed6badd367f9"
+    },
+    {
+      "file": "legal.html",
+      "sha256": "95228dce6cbf4d95c25aa4cde7ed76dbf150c7f120aa3e919d187e7a702e9175"
+    },
+    {
+      "file": "assets/js/asset-catalog.js",
+      "sha256": "724be9c09a98d60bf960504e18ef7cb8c20444052daaeafcca84d28a00050f24"
+    },
+    {
+      "file": "assets/css/site-assets.css",
+      "sha256": "147a068bcf78dbca5d384a5b74dfa92fed568aeedd3502c5521c9b2e3fef68cb"
+    },
+    {
+      "file": "dev/local-engines.html",
+      "sha256": "db0b1b6076b7e1b8724063e6ba9936074d6e97d870fb26f4f7b8ebabef2f3619"
+    },
+    {
+      "file": "dev/privacy-cache.html",
+      "sha256": "b7d271ad1b17695d691a2b18a91e41e62be82c60db6f26d392a9eae54756e147"
+    },
+    {
+      "file": "dev/upstream-apis.html",
+      "sha256": "42dfb8c0d8bb23d936c87e6f1e34abfaccb2daa87ee33f012d8afc87f83c1c61"
+    },
+    {
+      "file": "dev/wallet-api.html",
+      "sha256": "85df653b8909c3844e397ca10251fc8de536d6719831861e82195b3e6804897a"
+    },
+    {
+      "file": "market-fallback.cjs",
+      "sha256": "f3a89db5f872e929a7553753cffdadd70a5a6d801228c6c47cd91eef7d3fd6b7"
+    },
+    {
+      "file": "assets/data/asset-catalog.json",
+      "sha256": "70680a9dd669a8a5be1066b9ce6b20ca9f8756c602724a03b00f2f3801ec81b4"
+    }
+  ],
+  "languages": 7,
+  "newWalletVersion": "0.1.13",
+  "macosVersion": "0.1.13",
+  "atomicBatch": true
+}

@@ -1,0 +1,72 @@
+{
+  "at": "2026-11-14T00:56:59.226Z",
+  "passed": true,
+  "cases": [
+    {
+      "path": "/market-fallback.cjs",
+      "http": 404
+    },
+    {
+      "path": "/assets/%2e%2e%2fmarket-fallback.cjs",
+      "http": 404
+    },
+    {
+      "path": "/demo-prices.cjs",
+      "http": 404
+    },
+    {
+      "path": "/assets/%2e%2e%2fdemo-prices.cjs",
+      "http": 404
+    },
+    {
+      "path": "/server.js",
+      "http": 404
+    },
+    {
+      "path": "/assets/%2e%2e%2fserver.js",
+      "http": 404
+    },
+    {
+      "path": "/assets/%2e%2e%2fdata/tickets.json",
+      "http": 404
+    },
+    {
+      "path": "/assets/%2e%2e%2f.env",
+      "http": 404
+    },
+    {
+      "path": "/assets/%2e%2e%2fpackage.json",
+      "http": 404
+    },
+    {
+      "path": "/assets/%2F..%2Fserver.js",
+      "http": 404
+    },
+    {
+      "path": "/server.js.release.tmp",
+      "http": 404
+    },
+    {
+      "path": "/assets/%00/logo.png",
+      "http": 400
+    },
+    {
+      "path": "/assets/%ZZ",
+      "http": 400
+    },
+    {
+      "path": "/assets/%5cserver.js",
+      "http": 400
+    },
+    {
+      "path": "/assets/logo.png",
+      "http": 200
+    },
+    {
+      "path": "/",
+      "http": 200
+    }
+  ],
+  "privateFileReads": 0,
+  "networkRequests": 0
+}

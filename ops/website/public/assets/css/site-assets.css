@@ -1,0 +1,22 @@
+/* Shared active-network navigation; generated from the same catalog as Assets. */
+.footer-networks { max-width:1280px; margin:20px auto; padding:18px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+.footer-networks > strong { display:block; margin-bottom:12px; color:var(--text); font-size:13px; }
+.footer-networks > div { display:flex; flex-wrap:wrap; gap:12px 22px; }
+.footer-networks > div > a { display:flex; align-items:center; gap:7px; min-height:32px; font-size:13px; }
+.footer-networks img { object-fit:contain; border-radius:50%; }
+.footer-networks small { color:var(--muted); font-size:10px; }
+.footer-networks > a { display:inline-block; margin-top:13px; font-size:12px; color:var(--aqua-dark); text-decoration:underline; text-underline-offset:3px; }
+@media (max-width:700px) { .footer-networks {margin:18px 0;} .footer-networks > div {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;} .footer-networks > div > a {font-size:11px;} .footer-networks small {font-size:9px;} }
+/* Collapse navigation before its links overflow tablet widths. */
+@media (max-width:1180px) {
+ .site-header .nav {gap:12px;}
+ .site-header .menu-toggle {display:inline-block;}
+ .site-header .nav-links {position:absolute;left:16px;right:16px;top:72px;display:none;flex-direction:column;align-items:stretch;gap:0;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--card);box-shadow:var(--shadow);}
+ .site-header .nav-links.open {display:flex;}
+ .site-header .nav-links a {padding:12px;}
+ .site-header .nav-actions {flex:0 0 auto;gap:8px;}
+ .site-header .nav-actions > .button {display:none;}
+}
+
+/* Contain the full-bleed carousel inside the page viewport. */
+.asset-showcase-band {overflow-x:clip;}

@@ -23,3 +23,29 @@ using this patch. `main.js` includes all seven supported interface languages.
 
 The preview can be deployed independently of wallet releases; it does not modify
 installed desktop applications, modules or wallet profiles.
+
+The single active-asset catalog is `asset-catalog.json`. The directory and demo
+read its generated browser payload directly. After changing metadata, run
+`node ops/website/build-catalog.cjs` to regenerate the runtime payload, all public
+network footers and the three duplicated homepage marquee tracks. Run it with
+`--check` to reject missing or stale surfaces. The catalog matches all 35 active
+wallet module IDs; archive metadata is excluded from current listings.
+
+The demo has separate readable unit-price fields in both Portfolio and Coins.
+Dated quotes may be restored from the browser's public-price cache, then refreshed.
+Expired entries are rejected. The language selector updates only changed DOM
+values, so translation observation settles instead of scheduling endless full-page
+passes. Regression: `node --test ops/website/i18n-idle.test.cjs`.
+
+The public patch also includes every public developer page and shared network
+navigation. The retired Nonsense/Hypercoin/Mydogecoin/BTGS adapters are excluded
+from current-engine tables. EVM, Solana and Tron use PublicNode directly; wallet
+pricing remains supplied by the Altbase backend. Existing base styles and coin
+images are still required from the complete website installation.
+
+`market-fallback.cjs` bounds slow market-statistic requests and can retain a fresh
+native quote from the same wallet feed. Fallback results identify their source
+and date; unavailable volume, capitalization, history and venue counts are not
+invented. Both HTTP and browser price-only caches use a 30-second lifetime. The
+client retries selected incomplete markets and bounds network waits. The source
+registry for this helper is generated at `public/assets/data/asset-catalog.json`.

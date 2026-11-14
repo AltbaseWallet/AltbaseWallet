@@ -1,0 +1,182 @@
+{
+  "templates": [
+    {
+      "page": "security.html",
+      "privateInterface": false,
+      "outdatedVersion": false,
+      "oldCoinMentions": [],
+      "outdatedCount": false
+    },
+    {
+      "page": "support.html",
+      "privateInterface": false,
+      "outdatedVersion": false,
+      "oldCoinMentions": [],
+      "outdatedCount": false
+    },
+    {
+      "page": "terms.html",
+      "privateInterface": false,
+      "outdatedVersion": false,
+      "oldCoinMentions": [],
+      "outdatedCount": false
+    },
+    {
+      "page": "index.html",
+      "privateInterface": false,
+      "outdatedVersion": false,
+      "oldCoinMentions": [
+        "Hypercoin",
+        "Mydogecoin",
+        "Nonsense",
+        "BTGS",
+        "BTGS"
+      ],
+      "outdatedCount": false
+    },
+    {
+      "page": "coin-request.html",
+      "privateInterface": false,
+      "outdatedVersion": false,
+      "oldCoinMentions": [],
+      "outdatedCount": false
+    },
+    {
+      "page": "risk.html",
+      "privateInterface": false,
+      "outdatedVersion": false,
+      "oldCoinMentions": [],
+      "outdatedCount": false
+    },
+    {
+      "page": "admin.html",
+      "privateInterface": true,
+      "outdatedVersion": false,
+      "oldCoinMentions": [],
+      "outdatedCount": false
+    },
+    {
+      "page": "download.html",
+      "privateInterface": false,
+      "outdatedVersion": false,
+      "oldCoinMentions": [
+        "Hypercoin",
+        "Mydogecoin",
+        "Nonsense",
+        "BTGS",
+        "BTGS"
+      ],
+      "outdatedCount": false
+    },
+    {
+      "page": "cookies.html",
+      "privateInterface": false,
+      "outdatedVersion": false,
+      "oldCoinMentions": [],
+      "outdatedCount": false
+    },
+    {
+      "page": "assets.html",
+      "privateInterface": false,
+      "outdatedVersion": false,
+      "oldCoinMentions": [
+        "Hypercoin",
+        "Mydogecoin",
+        "Nonsense",
+        "BTGS",
+        "BTGS"
+      ],
+      "outdatedCount": true
+    },
+    {
+      "page": "dev.html",
+      "privateInterface": false,
+      "outdatedVersion": true,
+      "oldCoinMentions": [],
+      "outdatedCount": true
+    },
+    {
+      "page": "privacy.html",
+      "privateInterface": false,
+      "outdatedVersion": false,
+      "oldCoinMentions": [],
+      "outdatedCount": false
+    },
+    {
+      "page": "faq.html",
+      "privateInterface": false,
+      "outdatedVersion": false,
+      "oldCoinMentions": [],
+      "outdatedCount": false
+    },
+    {
+      "page": "tickets.html",
+      "privateInterface": true,
+      "outdatedVersion": false,
+      "oldCoinMentions": [],
+      "outdatedCount": false
+    },
+    {
+      "page": "ticket.html",
+      "privateInterface": true,
+      "outdatedVersion": false,
+      "oldCoinMentions": [],
+      "outdatedCount": false
+    },
+    {
+      "page": "legal.html",
+      "privateInterface": false,
+      "outdatedVersion": false,
+      "oldCoinMentions": [],
+      "outdatedCount": false
+    },
+    {
+      "page": "dev/privacy-cache.html",
+      "privateInterface": false,
+      "outdatedVersion": false,
+      "oldCoinMentions": [
+        "Nonsense"
+      ],
+      "outdatedCount": false
+    },
+    {
+      "page": "dev/local-engines.html",
+      "privateInterface": false,
+      "outdatedVersion": false,
+      "oldCoinMentions": [
+        "Hypercoin",
+        "Mydogecoin",
+        "BTGS",
+        "Nonsense",
+        "Nonsense",
+        "Hypercoin",
+        "Mydogecoin",
+        "BTGS",
+        "Nonsense"
+      ],
+      "outdatedCount": false
+    },
+    {
+      "page": "dev/wallet-api.html",
+      "privateInterface": false,
+      "outdatedVersion": false,
+      "oldCoinMentions": [],
+      "outdatedCount": false
+    },
+    {
+      "page": "dev/upstream-apis.html",
+      "privateInterface": false,
+      "outdatedVersion": false,
+      "oldCoinMentions": [
+        "Nonsense",
+        "BTGS",
+        "Hypercoin",
+        "Mydogecoin",
+        "BTGS",
+        "Nonsense",
+        "Nonsense"
+      ],
+      "outdatedCount": false
+    }
+  ]
+}

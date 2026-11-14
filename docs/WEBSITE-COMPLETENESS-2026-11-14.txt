@@ -1,0 +1,66 @@
+WEBSITE ASSET COMPLETENESS AND PRICE VISIBILITY
+Verified: 2026-11-14T02:07:28.540743+01:00 (Europe/Zurich)
+Production: https://altbase.io/
+
+COMPLETED CHANGES
+- Use one public catalog for all 35 active wallet modules. Directory, calculator,
+  homepage demo, three animated marquee rows and every public network footer
+  match that catalog. Each marquee track has an identical inaccessible duplicate
+  for continuous animation: 35 distinct assets, 70 cards total.
+- Include Ethereum, BNB Smart Chain, Polygon, Arbitrum One, Solana and Tron in
+  every relevant surface. Network badges link to their actual asset profiles.
+  Remove HRC/MYDOGE/NNN/BTGS from active listings and current-adapter tables.
+- Update all 17 public HTML pages, including the four nested developer pages.
+  Remove the obsolete 33-coin count and the old source-release version. Describe
+  direct PublicNode reads for EVM/Solana/Tron and keep the three module repos.
+- Give all 35 demo coins a separate readable Price field, including the Coins
+  management view. Preserve positive initial sample balances and dated live USD
+  quotes. Restore only still-valid public quote cache values on revisit.
+- Fix the language-selector feedback loop: unchanged selector state writes no
+  DOM values, and static selector mutations do not schedule body translations.
+  The rendered page settles after language changes.
+- Prevent tablet navigation and full-bleed marquees from overflowing the page.
+- Recover native prices when market-statistic providers fail, return empty
+  prices or exceed the bounded wait. Keep actual complete provider data when
+  available. A price-only fallback identifies its source and timestamp; volume,
+  capitalization and venue counts remain unavailable. Browser price-only caches
+  expire after 30 seconds and selected incomplete markets are retried. Invalid
+  or expired native quotes are rejected rather than replaced with zero.
+
+VERIFICATION
+- Actual Google Chrome GUI rendering against production HTTPS passed: 17 public
+  pages, 35 individual asset profiles, 35 visible native prices, seven languages,
+  loaded marquee icons and the matching 35-entry directory/calculator.
+- All six new networks displayed a market price and calculated the value of two
+  native coins in the GUI. Arbitrum uses native ETH pricing, not the ARB token.
+- Widths 320, 390, 600, 800, 1024, 1280, 1600 and 1920 px passed strict document
+  overflow and untruncated-price checks. The translator settled to fewer than
+  30 body mutations during the 750 ms observation window.
+- The live Node service returned HTTP 200 for all 52 page/profile routes and
+  39 referenced resources. Every active module ID matched a website price ID.
+- Six native-price/i18n regressions, four market-fallback regressions and 16
+  private-path vectors passed. Catalog generation and regeneration checks passed.
+- Thirty-five prices matched the existing wallet feed; BTC/ETH/SOL were also
+  compared with configured website market references. No provider was added.
+- Earlier Electron-based attempts included navigation timeouts. They are not
+  counted as passes. The final complete browser run is recorded separately in
+  chrome-production-gui.json; TLS verification remained enabled throughout.
+
+NEW-NETWORK GUI VALUES AT CHECK TIME
+ethereum: unit price $1,930.584498; two-coin calculator $3,861.17.
+bsc: unit price $630.636778; two-coin calculator $1,261.27.
+polygon: unit price $0.085203; two-coin calculator $0.17.
+arbitrum: unit price $1,930.584498; two-coin calculator $3,861.17.
+solana: unit price $77.654521; two-coin calculator $155.31.
+tron: unit price $0.312073; two-coin calculator $0.62.
+
+LIMITS
+Prices and charts remain dependent on upstream availability and are dated
+snapshots. Statistics or history are not fabricated when providers cannot
+supply them. Demonstration quantities and activity are sample data; no real
+wallet addresses, secrets, signing or transactions were used for these checks.
+
+EVIDENCE
+See docs/verification/website-completeness-2026-11-14/ for deployment hashes,
+route checks, quote checks, browser assertions and screenshots. The frontend
+and helper source is mirrored under ops/website and in the clean source export.

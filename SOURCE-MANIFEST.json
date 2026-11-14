@@ -1,5 +1,5 @@
 {
-  "at": "2026-11-13T21:56:36.209198+00:00",
+  "at": "2026-11-14T01:08:54.984806+00:00",
   "version": "0.1.13",
   "protectedSourceIncluded": false,
   "credentialScanPassed": true,
@@ -11,8 +11,8 @@
     },
     {
       "file": "CHANGELOG.md",
-      "size": 7046,
-      "sha256": "1857a7194a5ea3056b9ac8e8cbe66b04fc857f17011567cf9ecf6d5b61ccfddb"
+      "size": 7609,
+      "sha256": "ab4e8b8a0186f395594afd9181da94454481070944c1b6297999d9a18daa7154"
     },
     {
       "file": "logo.png",
@@ -1550,6 +1550,11 @@
       "sha256": "a3143c4a834a613d8086b0404b30761116963c7b16dce05c544234871c01a38e"
     },
     {
+      "file": "docs/WEBSITE-COMPLETENESS-2026-11-14.txt",
+      "size": 4201,
+      "sha256": "0773098a944657ac9a52745c56f7702e4406ce170049bd8bdbc0283620485cb7"
+    },
+    {
       "file": "docs/CRYPTO-AUDIT-2026-09-24.md",
       "size": 13625,
       "sha256": "f851ff2e1cf27eef5aae06c9e36058445964dc1a8a30dece350bda0a6d8a6967"
@@ -1583,6 +1588,76 @@
       "file": "docs/PLUGIN-API.md",
       "size": 11446,
       "sha256": "08e4f9f545624efcb5f49b0a88b5e0848191de032cd14075a895981250b75a59"
+    },
+    {
+      "file": "docs/verification/website-completeness-2026-11-14/recursive-template-scan.json",
+      "size": 4015,
+      "sha256": "5738b5dae059f3beb4f031250a08f91977e17ae1279c2156174922df6cc6b512"
+    },
+    {
+      "file": "docs/verification/website-completeness-2026-11-14/mobile.png",
+      "size": 94605,
+      "sha256": "824a907bc8f86f7167964291d8180900a72600ff02873ba5084f14fe50e727eb"
+    },
+    {
+      "file": "docs/verification/website-completeness-2026-11-14/static-path-vectors.json",
+      "size": 1246,
+      "sha256": "5742c64373a8feb261ce11218d4cf80352cf973d1d54ec336267a25d05b6ed0b"
+    },
+    {
+      "file": "docs/verification/website-completeness-2026-11-14/marquees.png",
+      "size": 274219,
+      "sha256": "852798195c36422be01ba22a1408576c3a8f280ac6d3f69293137ee6e4a18789"
+    },
+    {
+      "file": "docs/verification/website-completeness-2026-11-14/deployment.json",
+      "size": 4686,
+      "sha256": "45b56a43adaf62a69689dcb06bc014f5c6073b1af2d4865d62340cdd1b7659ae"
+    },
+    {
+      "file": "docs/verification/website-completeness-2026-11-14/cleanup.json",
+      "size": 1483,
+      "sha256": "adb9dae3029b25595e986d095859ccfb1f24e088e386c5ba23ec53ac47b40d74"
+    },
+    {
+      "file": "docs/verification/website-completeness-2026-11-14/chrome-production-gui.json",
+      "size": 2576,
+      "sha256": "4b8a96ede5c4cc3edc93dbdcad6e68872c0a6a0db57e30861b7140c7a16a2a0e"
+    },
+    {
+      "file": "docs/verification/website-completeness-2026-11-14/catalog-regeneration.json",
+      "size": 180,
+      "sha256": "323018fd64e1ef374f82b74c141fa0b33e6e2bfdb4413af1715f333d2ce9f12c"
+    },
+    {
+      "file": "docs/verification/website-completeness-2026-11-14/wallet-catalog-parity.json",
+      "size": 1134,
+      "sha256": "8b250140646a1297bceffca1d82ea8061504929d2a63dde7c56efc500d7cbbaf"
+    },
+    {
+      "file": "docs/verification/website-completeness-2026-11-14/prices.png",
+      "size": 434422,
+      "sha256": "358d8b514ed0b4c68e959e168a073123f18599ed6a04faba9b8fe220a6cbac70"
+    },
+    {
+      "file": "docs/verification/website-completeness-2026-11-14/static-checks.json",
+      "size": 2372,
+      "sha256": "4d355192621c72eed648bcffa98550b69b23ba1fcff69f1b50814bf11c4a0b9a"
+    },
+    {
+      "file": "docs/verification/website-completeness-2026-11-14/all-template-scan.json",
+      "size": 2037,
+      "sha256": "ab8acdb7e693f6bd05407c84f8ed0c57b965f7959ae74c22140964c0b7d60ec3"
+    },
+    {
+      "file": "docs/verification/website-completeness-2026-11-14/server-route-verification.json",
+      "size": 15649,
+      "sha256": "eae25b1057bc0409cc4417ced9360817a75bfed9e60c46d2759211cfac1e8699"
+    },
+    {
+      "file": "docs/verification/website-completeness-2026-11-14/live-quotes.json",
+      "size": 7406,
+      "sha256": "b70c040809e740a780342a86cad8beaf5eaa2e55a61d33f2465c94b068690a57"
     },
     {
       "file": "docs/verification/update-release-2026-11-13/site-production-gui.json",
@@ -3295,6 +3370,26 @@
       "sha256": "e019add233fbcf5bcde66eeb39c2507f2627964cd281f77e90dc000fe560a589"
     },
     {
+      "file": "ops/website/i18n-idle.test.cjs",
+      "size": 1678,
+      "sha256": "5fedd37f8c759039889a8571c01ee51914d6eaf6dbc31c4295ec2518a312c653"
+    },
+    {
+      "file": "ops/website/asset-catalog.json",
+      "size": 39121,
+      "sha256": "70680a9dd669a8a5be1066b9ce6b20ca9f8756c602724a03b00f2f3801ec81b4"
+    },
+    {
+      "file": "ops/website/market-fallback.cjs",
+      "size": 1968,
+      "sha256": "f3a89db5f872e929a7553753cffdadd70a5a6d801228c6c47cd91eef7d3fd6b7"
+    },
+    {
+      "file": "ops/website/build-catalog.cjs",
+      "size": 5099,
+      "sha256": "b71016be5cc2688a9866d7f1a77973ec37c3e29aa28991998788d42a8c65af95"
+    },
+    {
       "file": "ops/website/demo-prices.test.cjs",
       "size": 1945,
       "sha256": "786564de509c1de3d309a4d81507a4049df27dbaf737668402f58b3e6be8c5a7"
@@ -3306,28 +3401,133 @@
     },
     {
       "file": "ops/website/README.md",
-      "size": 1584,
-      "sha256": "041962ea918647129aad853bafbef4688c43064d76d1a2bbdc798a6e5ecfdb31"
+      "size": 3311,
+      "sha256": "5f69d636b3ff83310817ca5f5439a223c8231226ccb03ede8e18cd7cd2848a66"
+    },
+    {
+      "file": "ops/website/market-fallback.test.cjs",
+      "size": 1719,
+      "sha256": "d16a65e1f9ff42d4bf7e638e72005b0d347c8cc943d0ba9a175d24d339aed760"
+    },
+    {
+      "file": "ops/website/public/privacy.html",
+      "size": 8088,
+      "sha256": "617cc3f58be6256e5850e55470f9985ab593919bac6c658b7c4334e41b3185b7"
+    },
+    {
+      "file": "ops/website/public/coin-request.html",
+      "size": 7682,
+      "sha256": "405f9f643e7f259d007c967c98b958a9f4b5852a1002b414f7f77dece7e238a7"
+    },
+    {
+      "file": "ops/website/public/dev.html",
+      "size": 8943,
+      "sha256": "acfab47ccf8d9cd162ac8992973505d011098dd9f2ac501db6ccbe9c1e3fa3ce"
+    },
+    {
+      "file": "ops/website/public/assets.html",
+      "size": 10701,
+      "sha256": "67a8641cb9ca83349fe20d2fec55472ff561dca6ace131e1be3d8fead37999af"
+    },
+    {
+      "file": "ops/website/public/cookies.html",
+      "size": 6127,
+      "sha256": "f9bd3c0e258fe3496d39f99cbc0556911e5ccb0b018bc9abb892e11075a23759"
+    },
+    {
+      "file": "ops/website/public/legal.html",
+      "size": 5827,
+      "sha256": "95228dce6cbf4d95c25aa4cde7ed76dbf150c7f120aa3e919d187e7a702e9175"
+    },
+    {
+      "file": "ops/website/public/faq.html",
+      "size": 6884,
+      "sha256": "f8731795bf3f48eca8a2c5b6f8635b3cda86ee06c75e732c5ef5ed6badd367f9"
+    },
+    {
+      "file": "ops/website/public/risk.html",
+      "size": 6514,
+      "sha256": "48e4b5becc8555a241f2aca9bcf1196efbe6d66f2f60362c31221a7634fc3eff"
     },
     {
       "file": "ops/website/public/index.html",
-      "size": 33997,
-      "sha256": "b9ec6575eb8e17f7e106f6056ebbceadf85a29cb66f8f4780f2a86626ee35047"
+      "size": 37150,
+      "sha256": "b30380fc6f755bc73c3a24c2259ac96381618c6166e3f35c96c7611ae47f01af"
+    },
+    {
+      "file": "ops/website/public/support.html",
+      "size": 6758,
+      "sha256": "54606f8b30601df8e5b26d8ef4da1b6ac30e8851aa1378a02fc748827ef6930d"
+    },
+    {
+      "file": "ops/website/public/terms.html",
+      "size": 7141,
+      "sha256": "fad813c86e8fcfa26a235a33611b3ddf4d54b4b10ed943a9c032513588dc16b6"
+    },
+    {
+      "file": "ops/website/public/security.html",
+      "size": 6989,
+      "sha256": "cc2932721383cfc9e1dbfdfd2898080cbed52f7c9af89f1c4221d2245691cbd8"
+    },
+    {
+      "file": "ops/website/public/download.html",
+      "size": 13016,
+      "sha256": "8727612db996907e3864170d262e66ea9624a58332e291bbe0a3c70b9c6f058d"
+    },
+    {
+      "file": "ops/website/public/dev/privacy-cache.html",
+      "size": 10395,
+      "sha256": "b7d271ad1b17695d691a2b18a91e41e62be82c60db6f26d392a9eae54756e147"
+    },
+    {
+      "file": "ops/website/public/dev/local-engines.html",
+      "size": 14225,
+      "sha256": "db0b1b6076b7e1b8724063e6ba9936074d6e97d870fb26f4f7b8ebabef2f3619"
+    },
+    {
+      "file": "ops/website/public/dev/wallet-api.html",
+      "size": 12534,
+      "sha256": "85df653b8909c3844e397ca10251fc8de536d6719831861e82195b3e6804897a"
+    },
+    {
+      "file": "ops/website/public/dev/upstream-apis.html",
+      "size": 24083,
+      "sha256": "42dfb8c0d8bb23d936c87e6f1e34abfaccb2daa87ee33f012d8afc87f83c1c61"
+    },
+    {
+      "file": "ops/website/public/assets/data/asset-catalog.json",
+      "size": 39121,
+      "sha256": "70680a9dd669a8a5be1066b9ce6b20ca9f8756c602724a03b00f2f3801ec81b4"
     },
     {
       "file": "ops/website/public/assets/js/wallet-demo.js",
-      "size": 29638,
-      "sha256": "ed13ff9ae8b35d0e0ad33917882b0b186772a3981910b5b7a42b33be289783ac"
+      "size": 31097,
+      "sha256": "627556291f853069bc52b4e77ee046aa1b5ac9ef065dec5f941a11cc7ec83402"
+    },
+    {
+      "file": "ops/website/public/assets/js/asset-catalog.js",
+      "size": 39231,
+      "sha256": "724be9c09a98d60bf960504e18ef7cb8c20444052daaeafcca84d28a00050f24"
     },
     {
       "file": "ops/website/public/assets/js/main.js",
-      "size": 629808,
-      "sha256": "6e65918a4dd2f17b3b0663e5cd74f28b1438232cdc14b55dec3442240bf2237e"
+      "size": 656921,
+      "sha256": "db5a20463ab7515bcd1aa65a85b7c9550a8696d25db03525b07cd282b85db4fc"
+    },
+    {
+      "file": "ops/website/public/assets/js/assets.js",
+      "size": 36547,
+      "sha256": "6f6e910be5dbb0789a698b792c5195e7fbee6e0412b1a54c2052f05ec010d486"
     },
     {
       "file": "ops/website/public/assets/css/wallet-demo.css",
-      "size": 17558,
-      "sha256": "2f7bcf7b5d5487436dcd4174ce918d3f32aac811e5d1f2d45b403a7897cd14da"
+      "size": 20077,
+      "sha256": "d3004ed660962df0a762ca2b56d765aea61dec127edded242590076975353241"
+    },
+    {
+      "file": "ops/website/public/assets/css/site-assets.css",
+      "size": 1756,
+      "sha256": "147a068bcf78dbca5d384a5b74dfa92fed568aeedd3502c5521c9b2e3fef68cb"
     },
     {
       "file": "ops/release/assemble_transport.py",

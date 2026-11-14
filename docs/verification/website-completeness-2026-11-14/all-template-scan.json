@@ -1,0 +1,98 @@
+[
+  {
+    "page": "security.html",
+    "coinMarquees": 0,
+    "explicitAssetProfiles": 0,
+    "outdatedSupportedCount": false
+  },
+  {
+    "page": "support.html",
+    "coinMarquees": 0,
+    "explicitAssetProfiles": 0,
+    "outdatedSupportedCount": false
+  },
+  {
+    "page": "terms.html",
+    "coinMarquees": 0,
+    "explicitAssetProfiles": 0,
+    "outdatedSupportedCount": false
+  },
+  {
+    "page": "index.html",
+    "coinMarquees": 10,
+    "explicitAssetProfiles": 58,
+    "outdatedSupportedCount": false
+  },
+  {
+    "page": "coin-request.html",
+    "coinMarquees": 0,
+    "explicitAssetProfiles": 0,
+    "outdatedSupportedCount": false
+  },
+  {
+    "page": "risk.html",
+    "coinMarquees": 0,
+    "explicitAssetProfiles": 0,
+    "outdatedSupportedCount": false
+  },
+  {
+    "page": "admin.html",
+    "coinMarquees": 0,
+    "explicitAssetProfiles": 0,
+    "outdatedSupportedCount": false
+  },
+  {
+    "page": "download.html",
+    "coinMarquees": 0,
+    "explicitAssetProfiles": 0,
+    "outdatedSupportedCount": false
+  },
+  {
+    "page": "cookies.html",
+    "coinMarquees": 0,
+    "explicitAssetProfiles": 0,
+    "outdatedSupportedCount": false
+  },
+  {
+    "page": "assets.html",
+    "coinMarquees": 0,
+    "explicitAssetProfiles": 0,
+    "outdatedSupportedCount": true
+  },
+  {
+    "page": "dev.html",
+    "coinMarquees": 0,
+    "explicitAssetProfiles": 4,
+    "outdatedSupportedCount": true
+  },
+  {
+    "page": "privacy.html",
+    "coinMarquees": 0,
+    "explicitAssetProfiles": 0,
+    "outdatedSupportedCount": false
+  },
+  {
+    "page": "faq.html",
+    "coinMarquees": 0,
+    "explicitAssetProfiles": 0,
+    "outdatedSupportedCount": false
+  },
+  {
+    "page": "tickets.html",
+    "coinMarquees": 0,
+    "explicitAssetProfiles": 0,
+    "outdatedSupportedCount": false
+  },
+  {
+    "page": "ticket.html",
+    "coinMarquees": 0,
+    "explicitAssetProfiles": 0,
+    "outdatedSupportedCount": false
+  },
+  {
+    "page": "legal.html",
+    "coinMarquees": 0,
+    "explicitAssetProfiles": 0,
+    "outdatedSupportedCount": false
+  }
+]

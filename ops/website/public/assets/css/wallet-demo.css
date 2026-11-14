@@ -70,7 +70,7 @@
 .wallet-demo .wallet-coin-row .demo-coin-identity > span { display:block; min-width:0; text-align:left; }
 .wallet-demo .wallet-coin-row .demo-coin-identity strong { font-weight:600; color:#f8fafc; font-size:10px; }
 .wallet-demo .wallet-coin-row .demo-coin-identity small { display:block; font-size:8px; color:#94a3b8; margin-top:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.wallet-demo .wallet-coin-row > div { grid-area:auto !important; }
+.wallet-demo .wallet-view[data-wallet-panel=portfolio] .wallet-coin-row > div { grid-area:auto; }
 .wallet-demo .demo-coin-amount { display:flex; flex-direction:column; align-items:flex-start; gap:4px; overflow:hidden; }
 .wallet-demo .wallet-view[data-wallet-panel=portfolio] .wallet-coin-row b { grid-area:auto; font-size:9px; color:#f8fafc; font-weight:600; width:100%; text-align:left; }
 .wallet-demo .wallet-view[data-wallet-panel=portfolio] .wallet-coin-row em { grid-area:auto; font-size:8px; color:#64748b; text-align:left; }
@@ -162,3 +162,28 @@
 .wallet-demo .wallet-pills > span { width:auto; }
 .wallet-demo .wallet-pills > span > span { width:auto; }
 .wallet-demo .portfolio-actions { display:flex; width:auto; flex-wrap:nowrap; }
+/* Unit prices are a visible field rather than faint ticker metadata. */
+.wallet-demo .wallet-view[data-wallet-panel=portfolio] .wallet-coin-row { grid-template-columns:minmax(0,1.1fr) minmax(96px,.8fr) minmax(82px,.8fr) auto auto; min-height:67px; }
+.wallet-demo .demo-coin-price { display:flex; flex-direction:column; gap:5px; min-width:0; }
+.wallet-demo .wallet-coin-row .demo-coin-price > span { font-size:9px; color:#94a3b8; }
+.wallet-demo .wallet-view[data-wallet-panel=portfolio] .wallet-coin-row .demo-coin-price > b { font-size:12px; color:#f8fafc; font-variant-numeric:tabular-nums; font-weight:650; white-space:nowrap; }
+.wallet-demo .wallet-coin-row .demo-coin-identity strong { font-size:11px; }
+.wallet-demo .wallet-coin-row .demo-coin-identity small { font-size:9px; }
+.wallet-demo .demo-manage-price { display:block; color:#94a3b8; margin-top:6px; font-size:11px; }
+.wallet-demo .demo-manage-price b { color:#f8fafc; margin-left:7px; font-size:13px; }
+.wallet-demo .wallet-manage-row > div { min-width:0; }
+@media (max-width:1350px) and (min-width:601px) { .wallet-demo .wallet-coin-row > .demo-coin-status {display:none;} .wallet-demo .wallet-view[data-wallet-panel=portfolio] .wallet-coin-row {grid-template-columns:minmax(0,1fr) minmax(96px,.8fr) minmax(82px,.8fr) auto;} }
+@media (max-width:600px) {
+ .wallet-demo .wallet-view[data-wallet-panel=portfolio] .wallet-coin-row {grid-template-columns:minmax(0,1fr) minmax(78px,.65fr) auto;row-gap:9px;min-height:85px;}
+ .wallet-demo .wallet-coin-row > .demo-coin-identity {grid-column:1;grid-row:1;}
+ .wallet-demo .wallet-coin-row > .demo-coin-amount {grid-column:2;grid-row:1;}
+ .wallet-demo .wallet-coin-row > .demo-coin-actions {grid-column:3;grid-row:1;}
+ .wallet-demo .wallet-coin-row > .demo-coin-price {grid-column:1 / -1;grid-row:2;flex-direction:row;align-items:center;padding-top:7px;border-top:1px solid #ffffff12;gap:9px;}
+ .wallet-demo .wallet-coin-row .demo-coin-price > span {font-size:10px;}
+ .wallet-demo .wallet-view[data-wallet-panel=portfolio] .wallet-coin-row .demo-coin-price > b {font-size:12px;width:auto;}
+}
+@media (max-width:600px) {
+ .wallet-demo .wallet-view[data-wallet-panel=portfolio] .wallet-coin-row > .demo-coin-price {grid-area:2 / 1 / 3 / -1;}
+ .wallet-demo .wallet-view[data-wallet-panel=portfolio] .wallet-coin-row > .demo-coin-amount {grid-area:1 / 2 / 2 / 3;}
+ .wallet-demo .wallet-view[data-wallet-panel=portfolio] .wallet-coin-row > .demo-coin-actions {grid-area:1 / 3 / 2 / 4;}
+}

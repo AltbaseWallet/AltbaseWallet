@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="API transparency for Altbase Wallet.">
+    <title>Developer API Transparency | Altbase Wallet</title>
+    <link rel="icon" href="/assets/img/favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" href="/assets/img/favicon-32.png" sizes="32x32">
+    <link rel="apple-touch-icon" href="/assets/img/favicon-180.png">
+    <link rel="stylesheet" href="/assets/css/styles.css?v=20260713a">
+  <link rel="stylesheet" href="/assets/css/site-assets.css?v=20261114-complete-e">
+</head>
+  <body class="dev-page">
+    <header class="site-header">
+      <nav class="nav">
+        <a class="brand" href="/"><span class="brand-mark"><img src="/assets/img/logo.png" alt=""></span><span>Altbase Wallet</span></a>
+        <div class="nav-links"><a href="/assets">Assets</a><a href="/security">Security</a><a href="/download">Download</a><a href="/faq">FAQ</a><a href="/support">Support</a><a href="/dev">API</a><a href="https://github.com/AltbaseWallet/AltbaseWallet" target="_blank" rel="noopener noreferrer">GitHub</a></div>
+        <div class="nav-actions"><button class="theme-toggle" type="button" aria-label="Switch theme">Dark</button><a class="button" href="/download">Download</a><button class="menu-toggle" type="button" aria-label="Open menu"><span></span><span></span><span></span></button></div>
+      </nav>
+    </header>
+
+    <main>
+      <section class="page-hero">
+        <div class="section">
+          <div>
+            <span class="eyebrow">Local engines</span>
+            <h1>Local Wallet Engines</h1>
+            <p class="lead">Wallet engines decide how a coin derives addresses, obtains balances, signs transactions, and broadcasts. Sensitive operations are local.</p>
+          </div>
+          <div class="stats-strip">
+            <div class="stat"><strong>UTXO</strong><span>Engine</span></div>
+            <div class="stat"><strong>Quai</strong><span>Engine</span></div>
+            <div class="stat"><strong>XMR/EPIC/ZANO/XEL/MWC</strong><span>Privacy cache</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="band">
+        <div class="section dev-doc">
+          <div class="dev-nav">
+            <a href="/dev/wallet-api">Wallet API</a>
+            <a href="/dev/local-engines">Local engines</a>
+            <a href="/dev/upstream-apis">Upstream APIs</a>
+            <a href="/dev/privacy-cache">Privacy cache</a>
+          </div>
+          <div class="dev-table-wrap">
+            <table class="dev-table">
+              <thead>
+                <tr><th>Engine</th><th>Coins</th><th>What it does locally</th><th>What it asks the API for</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>utxo</code></td><td>Bitcoin, Bitcoin Cash, DigiByte, Peercoin, Bitcoin2, BCH2, Firo, Capstash, Pepecoin, Kerrigan, SCash, LitecoinII, Neoxa, Terracoin, Junkcoin, Raptoreum</td><td>Derives addresses, selects UTXOs, builds and signs raw transactions.</td><td>Network, fee, address validation, balance, UTXOs, history, mempool, broadcast.</td></tr>
+                <tr><td><code>pearl-utxo</code></td><td>Pearl</td><td>Uses UTXO signing locally, with Pearl-specific address and server profile behavior.</td><td>Blockbook-style balance, UTXO, history, fee, and broadcast endpoints.</td></tr>
+                <tr><td><code>quai-account</code></td><td>Quai</td><td>Derives Quai account key, prepares and signs the account transaction locally.</td><td>Balance, gas price, gas estimate, nonce, chain ID, transaction history, and broadcast.</td></tr>
+                <tr><td><code>qubic-account</code></td><td>Qubic</td><td>Derives the Qubic seed and identity, selects a target tick, and signs the encoded transaction locally.</td><td>Balance, current tick, target tick context, identity history, pending state, and broadcast.</td></tr>
+                <tr><td><code>kaspa-utxo</code></td><td>Kaspa</td><td>Derives Kaspa addresses and private keys, selects UTXOs, and signs DAG transactions locally.</td><td>DAG state, balance, UTXOs, fee estimate, full transaction history, pending state, and broadcast.</td></tr>
+                <tr><td><code>ckb-cell</code></td><td>Nervos (CKB)</td><td>Derives the CKB address, selects empty live cells, and signs CKB transactions locally.</td><td>Tip header, explorer balance and history, indexed live cells, pending state, default fee rate, and broadcast.</td></tr>
+                <tr><td><code>zcash</code></td><td>Zcash</td><td>Derives addresses, selects UTXOs, builds and signs raw transactions.</td><td>Network, fee, address validation, balance, UTXOs, history, mempool, broadcast.</td></tr>
+                <tr><td><code>nexa</code></td><td>Nexa</td><td>Derives addresses, selects UTXOs, builds and signs raw transactions.</td><td>Network, fee, address validation, balance, UTXOs, history, mempool, broadcast.</td></tr>
+                <tr><td><code>xelis</code></td><td>Xelis</td><td>Scans outputs and prepares private transactions locally with resumable encrypted state.</td><td>Node status and scan data through the Altbase API.</td></tr>
+                <tr><td><code>mwc</code></td><td>MimbleWimbleCoin</td><td>Scans outputs and prepares private transactions locally with resumable encrypted state.</td><td>Node status and scan data through the Altbase API.</td></tr>
+                <tr><td><code>zano-light</code></td><td>Zano</td><td>Runs local privacy wallet scan/spend logic through the native core.</td><td>Compact scan data and node proxy data required by the local light wallet.</td></tr>
+                <tr><td><code>epic-light</code></td><td>Epic Cash</td><td>Runs local Epic wallet logic, Epicbox slate exchange, output scan, and spend creation.</td><td>Epic node status/proxy data and optional encrypted cache storage.</td></tr>
+                <tr><td><code>xgr-account</code></td><td>XGR</td><td>Derives XGR accounts and signs account transactions locally (chain ID 1643).</td><td>Balance, nonce, gas, receipts, history and broadcast.</td></tr>
+                <tr><td><code>monero-light</code></td><td>Monero</td><td>Scans outputs and prepares private transactions locally with resumable encrypted state.</td><td>Node status and scan/proxy data for the local Monero wallet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="section-head nested">
+            <h2>Coin Read Profiles</h2>
+            <p class="lead">UTXO coins are grouped by how the API server reads balances, UTXOs, and history. This keeps coin-specific RPC differences out of the general wallet UI.</p>
+          </div>
+          <div class="dev-table-wrap compact">
+            <table class="dev-table">
+              <thead>
+                <tr><th>Profile</th><th>Coins in source</th><th>How data is read</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>scan-utxo</code></td><td>Bitcoin2, BCH2, Capstash, LitecoinII, SCash</td><td>Uses node UTXO scanning and transaction lookup when address-index RPC is not available or not reliable.</td></tr>
+                <tr><td><code>address-index</code></td><td>Firo, Kerrigan, Terracoin, Raptoreum</td><td>Uses address-index RPC methods such as address balance, address UTXO, address mempool, and address transaction IDs.</td></tr>
+                <tr><td><code>local-index</code></td><td>Pepecoin, Junkcoin</td><td>Uses server-side indexing helpers around node RPC where direct wallet-style address APIs are not enough.</td></tr>
+                <tr><td><code>blockbook</code></td><td>Neoxa, Pearl</td><td>Uses a Blockbook-compatible REST API for status, address, UTXO, history, fee, and broadcast data.</td></tr>
+                <tr><td><code>quai-rpc</code></td><td>Quai</td><td>Uses Quai JSON-RPC plus explorer history fallback for account-based balance, nonce, gas, and transaction history.</td></tr>
+                <tr><td><code>qubic-api</code></td><td>Qubic</td><td>Uses Qubic network APIs for balance, current tick, transaction status, history, and broadcast.</td></tr>
+                <tr><td><code>kaspa-api</code></td><td>Kaspa</td><td>Uses Kaspa network APIs for UTXOs, balance, fee estimates, history, and transaction broadcast.</td></tr>
+                <tr><td><code>ckb-indexer</code></td><td>Nervos (CKB)</td><td>Uses failover CKB RPC nodes for tip, live cells, transaction status, and broadcast, plus the Nervos explorer API for balance and history.</td></tr>
+                <tr><td><code>electrum / rostrum</code></td><td>Bitcoin Cash, DigiByte, Peercoin, Zcash, Nexa</td><td>Remote balance, UTXO and history reads through the Altbase API.</td></tr>
+                <tr><td><code>privacy-rpc</code></td><td>Xelis, MimbleWimbleCoin</td><td>Node status and scan data through the Altbase API.</td></tr>
+                <tr><td><code>privacy-light</code></td><td>Monero, Zano, Epic Cash</td><td>Uses local native wallet code with server-provided scan/proxy data where required.</td></tr>
+                <tr><td><code>xgr-rpc</code></td><td>XGR</td><td>Balance, nonce, gas, receipts, history and broadcast.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    <section class="band" data-account-network-docs><div class="section dev-doc"><div class="section-head"><span class="eyebrow">Current network modules</span><h2>Ethereum, BNB Smart Chain, Polygon, Arbitrum One, Solana and Tron</h2><p class="lead">EVM, Solana and Tron connect directly to PublicNode. Address derivation and signing stay local; the Altbase backend supplies prices and module metadata.</p></div><div class="dev-table-wrap"><table class="dev-table"><thead><tr><th>Module</th><th>Networks</th><th>Public data requests</th><th>Local operations</th></tr></thead><tbody>
+<tr><td><a href="https://github.com/AltbaseWallet/module-evm">EVM</a></td><td><a href="/assets/ethereum">Ethereum</a>, <a href="/assets/bsc">BNB Smart Chain</a>, <a href="/assets/polygon">Polygon</a>, <a href="/assets/arbitrum">Arbitrum One</a></td><td><code>eth_getBalance</code>, <code>eth_call</code>, <code>eth_getLogs</code>, <code>eth_estimateGas</code>, <code>eth_getTransactionReceipt</code></td><td>Local keys, ERC-20 amounts, fee preparation and transaction signing.</td></tr>
+<tr><td><a href="https://github.com/AltbaseWallet/module-sol">Solana</a></td><td><a href="/assets/solana">Solana</a></td><td><code>getBalance</code>, <code>getAccountInfo</code>, <code>getTokenAccountsByOwner</code>, <code>simulateTransaction</code></td><td>Local keys, SPL token handling and transaction signing.</td></tr>
+<tr><td><a href="https://github.com/AltbaseWallet/module-trx">Tron</a></td><td><a href="/assets/tron">Tron</a></td><td><code>/wallet/getaccount</code>, <code>/walletsolidity/getaccount</code>, <code>/wallet/triggerconstantcontract</code></td><td>Local keys, TRC token handling, resource estimates and transaction signing.</td></tr>
+</tbody></table></div><p class="dev-callout">Public RPC indexing and history can be incomplete. Tokens can be added by contract or mint; icons download on demand and spam stays hidden until enabled.</p></div></section>
+</main>
+
+    <footer class="site-footer">
+      <div class="footer-grid">
+        <div><a class="brand" href="/"><span class="brand-mark"><img src="/assets/img/logo.png" alt=""></span><span>Altbase Wallet</span></a><p>Private multi-currency wallet for desktop self-custody.</p><p><a href="mailto:support@altbase.io">support@altbase.io</a></p></div>
+        <div><h3>Wallet</h3><a href="/download">Download</a><a href="/assets">Supported assets</a><a href="/security">Security</a><a href="/dev">API</a></div>
+        <div><h3>Support</h3><a href="/faq">FAQ</a><a href="/support">Contact support</a><a href="/download#hashsum">Check Hashsum</a></div>
+        <div><h3>Legal</h3><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="/cookies">Cookies</a><a href="/risk">Risk notice</a></div>
+        <div><h3>Social</h3><a href="https://discord.gg/4BTRfSYqPN" target="_blank" rel="noopener noreferrer">Discord</a><a href="https://x.com/altbasewallet" target="_blank" rel="noopener noreferrer">X / Twitter</a></div>
+      </div>
+      <div class="footer-networks" data-site-networks><strong>New networks</strong><div><a data-network-id="ethereum" href="/assets/ethereum"><img src="/assets/img/networks/ethereum.png" width="20" height="20" alt=""><span>Ethereum</span><small>ETH</small></a><a data-network-id="bsc" href="/assets/bsc"><img src="/assets/img/networks/bsc.png" width="20" height="20" alt=""><span>BNB Smart Chain</span><small>BNB</small></a><a data-network-id="polygon" href="/assets/polygon"><img src="/assets/img/networks/polygon.png" width="20" height="20" alt=""><span>Polygon</span><small>POL</small></a><a data-network-id="arbitrum" href="/assets/arbitrum"><img src="/assets/img/networks/arbitrum.png" width="20" height="20" alt=""><span>Arbitrum One</span><small>ETH</small></a><a data-network-id="solana" href="/assets/solana"><img src="/assets/img/networks/solana.png" width="20" height="20" alt=""><span>Solana</span><small>SOL</small></a><a data-network-id="tron" href="/assets/tron"><img src="/assets/img/networks/tron.png" width="20" height="20" alt=""><span>Tron</span><small>TRX</small></a></div><a href="/assets">View all supported networks</a></div>
+      <div class="footer-bottom">2026 &copy; Altbase Wallet. Private keys are stored only on the user's device.</div>
+    </footer>
+    <div class="cookie-banner" role="dialog" aria-label="Cookie notice">
+      <p>Altbase Wallet uses essential cookies and local storage to remember site preferences and keep the website working. Read the <a href="/cookies">Cookie Policy</a>.</p>
+      <div><button type="button" class="button secondary" data-cookie-choice="essential">Essential only</button><button type="button" class="button" data-cookie-choice="accepted">Accept</button></div>
+    </div>
+    <script src="/assets/js/asset-catalog.js?v=20261114-complete-e"></script>
+    <script src="/assets/js/main.js?v=20261114-complete-e"></script>
+  </body>
+</html>

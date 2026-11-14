@@ -1,0 +1,26 @@
+{
+  "at": "2026-11-14T02:07:28.540743+01:00",
+  "passed": true,
+  "removedQaDirectories": [
+    "local-checks/site-completeness-2026-11-13/gui-production-1794617325244/profile",
+    "local-checks/site-completeness-2026-11-13/gui-preview-1794612322792/profile",
+    "local-checks/site-completeness-2026-11-13/gui-production-1794613902153/profile",
+    "local-checks/site-completeness-2026-11-13/gui-production-1794614362228/profile",
+    "local-checks/site-completeness-2026-11-13/gui-production-1794615345664/profile",
+    "local-checks/site-completeness-2026-11-13/gui-production-1794613557762/profile",
+    "local-checks/site-completeness-2026-11-13/gui-preview-1794611973472/profile",
+    "local-checks/site-completeness-2026-11-13/chrome-1794617784225/profile",
+    "local-checks/site-completeness-2026-11-13/gui-production-1794612652801/profile",
+    "local-checks/site-completeness-2026-11-13/gui-production-1794616778565/profile",
+    "local-checks/site-completeness-2026-11-13/gui-production-1794614802839/profile",
+    "local-checks/site-completeness-2026-11-13/geometry-profile",
+    "local-checks/site-completeness-2026-11-13/network-gui-profile",
+    "local-checks/site-completeness-2026-11-13/diagnose-profile",
+    "local-checks/site-completeness-2026-11-13/pause-profile",
+    "local-checks/site-completeness-2026-11-13/cache"
+  ],
+  "freeBytesBefore": 82149822464,
+  "freeBytesAfter": 82352336896,
+  "userProfilesTouched": false,
+  "protectedSourceAccessed": false
+}

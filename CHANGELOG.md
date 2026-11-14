@@ -59,6 +59,12 @@
 - Supply Linux x64, Windows x64 and universal macOS builds for version 0.1.13. Compile the macOS vault and plugin host on Linux for Intel and Apple Silicon, with one CPU. Verify all 93 Mach-O files, universal loader metadata and archive contents. The macOS app is ad-hoc signed; Apple notarization and native macOS GUI execution are not available in this environment.
 - No live user transactions are part of release verification. Protected wallet source is excluded from this source export and all new upload operations.
 
+### Website corrections (2026-11-14)
+- Share the complete 35-asset catalog across directory, demo, calculator, marquees and public footers; update all 17 public pages and current developer tables.
+- Show readable unit prices, retain only valid cached quotes and recover native prices when market-statistic sources are unavailable.
+- Stop the translation observer feedback loop and fix tablet navigation and marquee overflow.
+- Verify all 35 asset profiles and the six new-network calculators in production Chrome, plus seven languages and 320–1920 px layouts.
+
 ## Earlier public release: 0.1.9
 
 Added BCH, DGB, PPC, ZEC, NEXA, XEL and MWC through the Altbase remote-node API, GrandPool mining defaults and separate coin repositories. The current changes above retain that repository layout.

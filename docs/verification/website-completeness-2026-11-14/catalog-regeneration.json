@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "generatedThenChecked": {
+    "passed": true,
+    "publicPages": 17,
+    "activeAssets": 35,
+    "marqueeCards": 70
+  },
+  "protectedSourceAccessed": false
+}

@@ -427,6 +427,13 @@
     "address": "MWC-DEMO-ADDRESS-NOT-FOR-PAYMENTS"
   }
 ];
+  const catalogAssets = window.AltbaseAssetCatalog?.assets;
+  if (!catalogAssets?.length) throw Error("Website asset catalog unavailable");
+  for (const coin of coins) {
+    const asset = catalogAssets.find(asset => (asset.priceId || asset.id) === coin.marketId);
+    if (!asset) throw Error("Demo coin missing from website catalog");
+    Object.assign(coin, {name:asset.name, ticker:asset.ticker, icon:asset.icon});
+  }
   let selectedCoinId = coins[0].id;
   let receiveCoinId = coins[0].id;
   let filter = "all";
@@ -520,7 +527,8 @@
     const network = networkIds.has(coin.id), open = expandedNetworks.has(coin.id);
     return `<div class="demo-coin-item" data-demo-coin="${coin.id}" data-demo-quantity="${coin.balance}" data-demo-price="${quoteIsFresh(coin) ? coin.price : ""}" data-demo-fiat="${coinValue(coin) ?? ""}">
       <div class="wallet-coin-row ${coin.id === selectedCoinId ? "is-selected" : ""}">
-        <button class="demo-coin-identity" type="button" data-select-coin="${coin.id}"><img src="${escapeHtml(coin.icon)}" alt=""><span><strong>${escapeHtml(coin.name)}</strong><small>${coin.ticker} · ${escapeHtml(fmtPrice(coin))}</small></span></button>
+        <button class="demo-coin-identity" type="button" data-select-coin="${coin.id}"><img src="${escapeHtml(coin.icon)}" alt=""><span><strong>${escapeHtml(coin.name)}</strong><small>${coin.ticker}</small></span></button>
+        <div class="demo-coin-price"><span>${escapeHtml(t("Price"))}</span><b data-demo-unit-price>${escapeHtml(fmtPrice(coin))}</b></div>
         <div class="demo-coin-amount"><b>${escapeHtml(fmtAmount(coin))}</b><em>${escapeHtml(fmtMoney(coinValue(coin)))}</em></div>
         <span class="demo-coin-status">${escapeHtml(t("active"))}</span>
         <div class="demo-coin-actions">${network ? `<button type="button" data-demo-tokens="${coin.id}" aria-label="${escapeHtml(t("Network tokens"))}: ${coin.name}" aria-expanded="${open}" aria-controls="demo-tokens-${coin.id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>` : ""}<button type="button" data-favorite-coin="${coin.id}" aria-label="${escapeHtml(t("Favorite"))}" aria-pressed="${Boolean(coin.favorite)}" class="${coin.favorite ? "is-favorite" : ""}">☆</button></div>
@@ -595,9 +603,9 @@
     const container = root.querySelector("[data-wallet-coin-management]");
     if (!container) return;
     container.innerHTML = coins.map((coin) => `
-      <div class="wallet-manage-row">
+      <div class="wallet-manage-row" data-manage-coin="${coin.id}">
         <img src="${escapeHtml(coin.icon)}" alt="${escapeHtml(coin.name)}">
-        <div><strong>${escapeHtml(coin.name)}</strong><span>${escapeHtml(coin.ticker)} - ${escapeHtml(fmtMoney(coinValue(coin)))}</span></div>
+        <div><strong>${escapeHtml(coin.name)}</strong><span>${escapeHtml(coin.ticker)} · ${escapeHtml(fmtAmount(coin))} · ${escapeHtml(fmtMoney(coinValue(coin)))}</span><small class="demo-manage-price">${escapeHtml(t("Price"))} <b data-demo-management-price>${escapeHtml(fmtPrice(coin))}</b></small></div>
         <button class="wallet-icon-button" type="button" data-favorite-coin="${coin.id}" aria-label="Favorite ${escapeHtml(coin.name)}">*</button>
         <button class="wallet-toggle ${coin.enabled ? "is-on" : ""}" type="button" data-toggle-coin="${coin.id}">${coin.enabled ? "Enabled" : "Hidden"}</button>
       </div>
@@ -809,6 +817,7 @@
         const value = data.prices[coin.marketId], at = data.priceUpdatedAt[coin.marketId];
         if (Number.isFinite(value) && value > 0 && Number.isFinite(at) && Date.now()-at < MAX_QUOTE_AGE && at <= Date.now()+300000) { coin.price = value; coin.priceAt = at; }
       }
+      try { localStorage.setItem("altbase:demo-native-quotes:v1", JSON.stringify({prices:data.prices,priceUpdatedAt:data.priceUpdatedAt})); } catch { /* Storage is optional. */ }
       priceError = false;
     } catch { priceError = true; }
     finally { priceBusy = false; updateTotals(); renderCoins(); renderManagement(); renderSwapQuote(); }
@@ -816,5 +825,14 @@
   document.addEventListener("altbase:languagechange", () => { updateTotals(); renderCoins(); });
   document.addEventListener("visibilitychange", () => { if (!document.hidden) void refreshPrices(); });
   setInterval(() => { updateTotals(); renderCoins(); if (!document.hidden) void refreshPrices(); }, 60000);
+  try {
+    const cached = JSON.parse(localStorage.getItem("altbase:demo-native-quotes:v1") || "null");
+    if (cached?.prices && cached?.priceUpdatedAt) {
+      for (const coin of coins) {
+        const price = cached.prices[coin.marketId], at = cached.priceUpdatedAt[coin.marketId];
+        if (Number.isFinite(price) && price > 0 && Number.isFinite(at) && Date.now()-at < MAX_QUOTE_AGE && at <= Date.now()+300000) { coin.price=price; coin.priceAt=at; }
+      }
+    }
+  } catch { /* A blocked or corrupt public-price cache must not prevent rendering. */ }
   renderAll(); void refreshPrices();
 })();
