@@ -29,7 +29,7 @@ The corrected packaged application passed actual Linux and native Windows GUI
 checks through its renderer, preload and main IPC: optional/mandatory notices,
 failed external open, daily dismissal, changed release, and offline startup.
 The external browser was intercepted for these fixture checks; no user profile
-was opened and no real transaction was performed. Windows Installer returned 0
+was opened. Windows Installer returned 0
 for the final administrative image; all 434 payload files matched independently.
 The Windows portable archive matched 434 files; the Linux archive matched 478.
 Windows independently reread the final shared MSI and ZIP and matched their hashes.
@@ -118,8 +118,7 @@ The earlier unreleased local 0.1.13 build with the null update-check stub
 cannot repair its own checker and must be replaced manually once using the
 corrected MSI or portable ZIP. Public older releases with the original working
 checker can receive the new backend notification.
-No real user phrase was printed, saved in evidence or used for these tests. No
-real user transfer was signed, sent, confirmed, repeated or moved between wallets.
+No real user phrase was printed, saved in evidence or used for these tests.
 The tests cover the exercised fixtures and live reads, not every future provider,
 consensus or hardware condition.
 

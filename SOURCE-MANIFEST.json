@@ -1,5 +1,5 @@
 {
-  "at": "2026-11-14T01:08:54.984806+00:00",
+  "at": "2026-11-15T16:29:37.715588+00:00",
   "version": "0.1.13",
   "protectedSourceIncluded": false,
   "credentialScanPassed": true,
@@ -11,8 +11,8 @@
     },
     {
       "file": "CHANGELOG.md",
-      "size": 7609,
-      "sha256": "ab4e8b8a0186f395594afd9181da94454481070944c1b6297999d9a18daa7154"
+      "size": 7549,
+      "sha256": "3d4abc18edf43ab1bc43c2f18168cbbf31e1d310e4844e38f42c9df3704b57db"
     },
     {
       "file": "logo.png",
@@ -1551,13 +1551,13 @@
     },
     {
       "file": "docs/WEBSITE-COMPLETENESS-2026-11-14.txt",
-      "size": 4201,
-      "sha256": "0773098a944657ac9a52745c56f7702e4406ce170049bd8bdbc0283620485cb7"
+      "size": 4114,
+      "sha256": "9de292aad08d3e3ab333a5e46ea98208eefab9012bb741cd73d4f543f51b648a"
     },
     {
       "file": "docs/CRYPTO-AUDIT-2026-09-24.md",
-      "size": 13625,
-      "sha256": "f851ff2e1cf27eef5aae06c9e36058445964dc1a8a30dece350bda0a6d8a6967"
+      "size": 13574,
+      "sha256": "649ae6683f2a5f6d510690d3979ca4ed0427681a3e98e3a93a66af0ed3234fd8"
     },
     {
       "file": "docs/windows-runtime-source.json",
@@ -1566,8 +1566,8 @@
     },
     {
       "file": "docs/UPDATE-RELEASE-2026-11-13.txt",
-      "size": 9100,
-      "sha256": "94ad61bc09d03ee2e31e0b69cf0921ee7630d8560e01b861e24757480ad90d06"
+      "size": 8976,
+      "sha256": "2197e8639b5da813062f8d37ef3573d8458be056cf7ef4b025225dbb2edbda7d"
     },
     {
       "file": "docs/MACOS-BUILD.md",
@@ -1576,8 +1576,8 @@
     },
     {
       "file": "docs/PACKAGING-CORRECTIONS-2026-11-13.txt",
-      "size": 6758,
-      "sha256": "6e39e68cf0da6f771fedf0749c7715b5a36ccd02366aa1d136fe3fcb21274718"
+      "size": 6720,
+      "sha256": "1c4f4ab10d4c42d77a01d5424976da437bde0e73b1a843a9106ebad41e2fe396"
     },
     {
       "file": "docs/PUBLICNODE-CHECKS-2026-09-24.md",

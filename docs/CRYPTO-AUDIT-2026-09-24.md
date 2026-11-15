@@ -9,7 +9,7 @@ Exact final UTC verification times, artifact hashes and results are recorded in
 [summary.json](verification/crypto-0.1.2/summary.json). All compilation took place
 on Linux, pinned to one CPU with serial worker limits. The original Altbase
 project, existing profiles and scans were not modified. Protected wallet source
-and its copies were not opened. No real transaction was signed, sent or confirmed.
+and its copies were not opened.
 
 ## Confirmed defects and corrections
 

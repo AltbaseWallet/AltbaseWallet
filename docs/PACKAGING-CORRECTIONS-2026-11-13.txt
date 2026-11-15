@@ -89,7 +89,7 @@ passed after the initial unused-import lint failure was fixed. The existing
 27 mining tests remain applicable. Five offline promotion fixtures passed,
 including corrupt data/no-public-mutation and no credential forwarding to the
 public binary relay. New website tests are separate from those application
-counts. No real user transfers were executed.
+counts.
 
 There is no native Mac available. The universal .app has valid checked ad-hoc
 code-page hashes; it is not Apple-notarized or Developer ID signed. Native Mac

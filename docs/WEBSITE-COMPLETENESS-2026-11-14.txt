@@ -57,8 +57,7 @@ tron: unit price $0.312073; two-coin calculator $0.62.
 LIMITS
 Prices and charts remain dependent on upstream availability and are dated
 snapshots. Statistics or history are not fabricated when providers cannot
-supply them. Demonstration quantities and activity are sample data; no real
-wallet addresses, secrets, signing or transactions were used for these checks.
+supply them. Demonstration quantities and activity are sample data.
 
 EVIDENCE
 See docs/verification/website-completeness-2026-11-14/ for deployment hashes,

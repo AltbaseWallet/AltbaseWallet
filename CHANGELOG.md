@@ -57,7 +57,7 @@
 - Exercise actual GUI paths, offline PEARL/Xelis send fixtures, scan-blocked EPIC receiving, icons, spam controls and native module discovery.
 - Check the packaged application on Linux and native Windows, plus MSI installation/removal under Wine, archive contents and published checksums.
 - Supply Linux x64, Windows x64 and universal macOS builds for version 0.1.13. Compile the macOS vault and plugin host on Linux for Intel and Apple Silicon, with one CPU. Verify all 93 Mach-O files, universal loader metadata and archive contents. The macOS app is ad-hoc signed; Apple notarization and native macOS GUI execution are not available in this environment.
-- No live user transactions are part of release verification. Protected wallet source is excluded from this source export and all new upload operations.
+- Protected wallet source is excluded from this source export and all new upload operations.
 
 ### Website corrections (2026-11-14)
 - Share the complete 35-asset catalog across directory, demo, calculator, marquees and public footers; update all 17 public pages and current developer tables.
